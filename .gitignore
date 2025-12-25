@@ -1,0 +1,35 @@
+.DS_Store
+xcuserdata/
+*.xcuserstate
+.vscode/
+.VSCodeCounter/
+__pycache__/
+
+# Local builds, compiler output, and distribution packages never belong in source.
+build/
+.build/
+dist/
+DerivedData/
+langmin-build-*/
+*.app
+*.xcarchive
+*.dSYM
+*.dSYM.zip
+*.dmg
+*.pkg
+*.o
+*.a
+*.dylib
+*.swiftmodule
+*.swiftdoc
+*.swiftsourceinfo
+
+# Maintainer procedures and local signing/configuration files stay on this Mac.
+/private/
+.env
+.env.*
+!.env.example
+*.p8
+*.p12
+*.mobileprovision
+*.provisionprofile
