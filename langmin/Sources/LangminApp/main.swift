@@ -21,3 +21,6 @@ func localized(_ key: String, _ english: String) -> String {
 // Keep display strings and icon lookup names in one place.
 let appName = "Langmin"
 let privacyPolicyURL = URL(string: "https://min.tools/langmin/privacy/")!
+let appIconName = "LangminIcon"
+let appIdentifier = LangminEdition.bundleIdentifier
+let keychainServiceName = appIdentifier
