@@ -24,3 +24,6 @@ let privacyPolicyURL = URL(string: "https://min.tools/langmin/privacy/")!
 let appIconName = "LangminIcon"
 let appIdentifier = LangminEdition.bundleIdentifier
 let keychainServiceName = appIdentifier
+let keychainOpenAIAPIKeyAccount = "OPENAI_API_KEY"
+let keychainAnthropicAPIKeyAccount = "ANTHROPIC_API_KEY"
+let keychainGeminiAPIKeyAccount = "GEMINI_API_KEY"
