@@ -27,3 +27,6 @@ let keychainServiceName = appIdentifier
 let keychainOpenAIAPIKeyAccount = "OPENAI_API_KEY"
 let keychainAnthropicAPIKeyAccount = "ANTHROPIC_API_KEY"
 let keychainGeminiAPIKeyAccount = "GEMINI_API_KEY"
+let keychainGrokAPIKeyAccount = "GROK_API_KEY"
+let keychainDeepSeekAPIKeyAccount = "DEEPSEEK_API_KEY"
+let keychainCustomAPIKeyAccount = "CUSTOM_API_KEY"
