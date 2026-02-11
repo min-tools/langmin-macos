@@ -35,3 +35,6 @@ let customModelID = "custom"
 let defaultCustomBaseURL = ""
 let defaultCustomModelName = ""
 let defaultCustomDisplayName = ""
+let openRequestScheme = LangminEdition.urlScheme
+let appleIntelligenceModelID = "apple-intelligence"
+let defaultExplanationModel = appleIntelligenceModelID
