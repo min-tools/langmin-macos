@@ -38,3 +38,6 @@ let defaultCustomDisplayName = ""
 let openRequestScheme = LangminEdition.urlScheme
 let appleIntelligenceModelID = "apple-intelligence"
 let defaultExplanationModel = appleIntelligenceModelID
+let defaultTTSModel = "gpt-4o-mini-tts"
+let defaultTTSVoice = "ash"
+let defaultExplanationEffort = "standard"
