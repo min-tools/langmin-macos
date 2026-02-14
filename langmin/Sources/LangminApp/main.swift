@@ -41,3 +41,6 @@ let defaultExplanationModel = appleIntelligenceModelID
 let defaultTTSModel = "gpt-4o-mini-tts"
 let defaultTTSVoice = "ash"
 let defaultExplanationEffort = "standard"
+let defaultRewriteStyle = "rephrase"
+let defaultSummaryStyle = "standard"
+let defaultDictionaryStyle = "standard"
