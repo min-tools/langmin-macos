@@ -44,3 +44,25 @@ let defaultExplanationEffort = "standard"
 let defaultRewriteStyle = "rephrase"
 let defaultSummaryStyle = "standard"
 let defaultDictionaryStyle = "standard"
+// Default to the user's language. Compute after initialization so the language catalog is available.
+var defaultTranslationTargetID: String {
+    // Prefer the first supported non-English language in the user's system language order.
+    for identifier in Locale.preferredLanguages {
+        // Skip locale identifiers that do not resolve to a language code.
+        guard let code = Locale(identifier: identifier).language.languageCode?.identifier else {
+            continue
+        }
+        // Keep English as the fallback rather than the first inferred translation target.
+        guard code != "en" else { continue }
+        // Use the system language only if it exists in the supported target options.
+        if translationTargetOptions.contains(where: { $0.id == code }) {
+            return code
+        }
+    }
+    // English-only systems still need a concrete target to start from.
+    return "es"
+}
+// Default narration voice; "none" opens results without generating audio.
+let defaultLauncherReader = "none"
+// Dictionary pronunciation voice; "none" prompts for a voice on the first click.
+let defaultDictionaryVoice = "none"
