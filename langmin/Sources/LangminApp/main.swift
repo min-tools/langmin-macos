@@ -66,3 +66,12 @@ var defaultTranslationTargetID: String {
 let defaultLauncherReader = "none"
 // Dictionary pronunciation voice; "none" prompts for a voice on the first click.
 let defaultDictionaryVoice = "none"
+let defaultPreferredReaderVoices = [
+    "grok:iris",
+    "grok:altair",
+    "nova",
+    "cedar",
+    "apple:com.apple.voice.compact.en-US.Samantha",
+    "apple:com.apple.voice.compact.en-GB.Daniel"
+]
+let defaultOutputLanguage = "auto"
