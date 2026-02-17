@@ -75,3 +75,6 @@ let defaultPreferredReaderVoices = [
     "apple:com.apple.voice.compact.en-GB.Daniel"
 ]
 let defaultOutputLanguage = "auto"
+let defaultWindowShape = "landscape"
+let defaultExplanationFontSize: Double = 16
+let defaultWebResearchEnabled = true
