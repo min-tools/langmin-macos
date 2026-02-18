@@ -78,3 +78,6 @@ let defaultOutputLanguage = "auto"
 let defaultWindowShape = "landscape"
 let defaultExplanationFontSize: Double = 16
 let defaultWebResearchEnabled = true
+let defaultSecretProtectionEnabled = true
+let defaultTextWatermarkCleaningEnabled = true
+let defaultResultDiffEnabled = true
