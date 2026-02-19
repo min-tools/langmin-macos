@@ -81,3 +81,6 @@ let defaultWebResearchEnabled = true
 let defaultSecretProtectionEnabled = true
 let defaultTextWatermarkCleaningEnabled = true
 let defaultResultDiffEnabled = true
+let defaultResultToolbarShowsSaveText = true
+let defaultResultToolbarShowsSaveAudio = true
+let defaultResultToolbarShowsCopy = true
