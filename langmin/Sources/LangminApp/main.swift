@@ -84,3 +84,6 @@ let defaultResultDiffEnabled = true
 let defaultResultToolbarShowsSaveText = true
 let defaultResultToolbarShowsSaveAudio = true
 let defaultResultToolbarShowsCopy = true
+let defaultResultToolbarShowsShare = true
+let defaultResultToolbarShowsNarration = true
+let defaultResultToolbarShowsHighlight = true
