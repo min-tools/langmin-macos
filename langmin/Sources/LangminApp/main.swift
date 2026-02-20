@@ -87,3 +87,6 @@ let defaultResultToolbarShowsCopy = true
 let defaultResultToolbarShowsShare = true
 let defaultResultToolbarShowsNarration = true
 let defaultResultToolbarShowsHighlight = true
+let defaultResultToolbarShowsStats = true
+let defaultResultStatsShowsTTS = false
+let defaultNarrationHighlightMode = false
