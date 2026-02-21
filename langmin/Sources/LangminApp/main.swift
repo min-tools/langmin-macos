@@ -90,3 +90,5 @@ let defaultResultToolbarShowsHighlight = true
 let defaultResultToolbarShowsStats = true
 let defaultResultStatsShowsTTS = false
 let defaultNarrationHighlightMode = false
+let defaultNarrationPlaybackRate: Float = 1
+let defaultLauncherShowsSecondaryOptions = true
