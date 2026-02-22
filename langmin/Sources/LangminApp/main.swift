@@ -92,3 +92,7 @@ let defaultResultStatsShowsTTS = false
 let defaultNarrationHighlightMode = false
 let defaultNarrationPlaybackRate: Float = 1
 let defaultLauncherShowsSecondaryOptions = true
+let defaultLauncherShowsTranslationTarget = true
+let defaultLauncherShowsModel = true
+// Hide the separate language-level picker by default; level choices remain in each mode's menu.
+let defaultLauncherShowsLevel = false
