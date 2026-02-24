@@ -99,3 +99,7 @@ let defaultLauncherShowsLevel = false
 let defaultLauncherClearsInputAfterSubmit = true
 let defaultMenuBarEnabled = true
 let defaultExtraLanguages = ""
+// Modes that support automatic narration.
+let autoNarrateModeIDs = ["explain", "proofread", "rewrite", "summarize", "translate", "dictionary"]
+let defaultAutoNarrateModes = "explain"
+let defaultExtraLanguagesInDictionary = true
