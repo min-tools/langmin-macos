@@ -103,3 +103,6 @@ let defaultExtraLanguages = ""
 let autoNarrateModeIDs = ["explain", "proofread", "rewrite", "summarize", "translate", "dictionary"]
 let defaultAutoNarrateModes = "explain"
 let defaultExtraLanguagesInDictionary = true
+let defaultExtraLanguagesInTranslate = false
+let defaultExtraLanguagesInExplain = false
+let defaultExtraLanguagesInSummarize = false
