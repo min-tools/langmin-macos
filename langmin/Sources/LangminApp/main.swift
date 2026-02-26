@@ -106,3 +106,5 @@ let defaultExtraLanguagesInDictionary = true
 let defaultExtraLanguagesInTranslate = false
 let defaultExtraLanguagesInExplain = false
 let defaultExtraLanguagesInSummarize = false
+let minimumExplanationFontSize: Double = 12
+let maximumExplanationFontSize: Double = 36
