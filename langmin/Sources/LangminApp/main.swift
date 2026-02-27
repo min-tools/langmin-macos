@@ -108,3 +108,7 @@ let defaultExtraLanguagesInExplain = false
 let defaultExtraLanguagesInSummarize = false
 let minimumExplanationFontSize: Double = 12
 let maximumExplanationFontSize: Double = 36
+let speechRequestTimeout: TimeInterval = 180
+let nativeTrafficLightInsetAdjustment: CGFloat = 2
+// Leading inset for custom launcher and result title text.
+let plainTitleGap: CGFloat = 10
