@@ -201,3 +201,107 @@ enum PreferenceKey {
     static let commandOpenShortcutMigrationCompleted = "commandOpenShortcutMigrationCompleted"
     static let globalLibraryShortcutMigrationCompleted = "globalLibraryShortcutMigrationCompleted"
 }
+
+// Store shortcut modifiers in our own fixed bit format, independent of NSEvent's raw values.
+struct GlobalShortcut: Equatable {
+    static let command = 1
+    static let option = 2
+    static let control = 4
+    static let shift = 8
+
+    var keyCode: UInt32
+    var modifiers: Int
+    var key: String
+
+    var encoded: String { "\(keyCode):\(modifiers):\(key)" }
+
+    // init(keyCode, modifiers, key): Normalize the displayed key name while
+    // retaining its hardware code and modifier mask.
+    init(keyCode: UInt32, modifiers: Int, key: String) {
+        self.keyCode = keyCode
+        self.modifiers = modifiers
+        self.key = Self.canonicalKeyLabel(for: keyCode, fallback: key)
+    }
+
+    // canonicalKeyLabel(keyCode, fallback): Label shifted number-row keys with
+    // their digits instead of punctuation.
+    private static func canonicalKeyLabel(for keyCode: UInt32, fallback: String) -> String {
+        // Use stable digit labels for hardware number keys regardless of keyboard-layout output.
+        switch keyCode {
+        // Label the hardware zero key consistently.
+        case UInt32(kVK_ANSI_0): return "0"
+        // Label the hardware one key consistently.
+        case UInt32(kVK_ANSI_1): return "1"
+        // Label the hardware two key consistently.
+        case UInt32(kVK_ANSI_2): return "2"
+        // Label the hardware three key consistently.
+        case UInt32(kVK_ANSI_3): return "3"
+        // Label the hardware four key consistently.
+        case UInt32(kVK_ANSI_4): return "4"
+        // Label the hardware five key consistently.
+        case UInt32(kVK_ANSI_5): return "5"
+        // Label the hardware six key consistently.
+        case UInt32(kVK_ANSI_6): return "6"
+        // Label the hardware seven key consistently.
+        case UInt32(kVK_ANSI_7): return "7"
+        // Label the hardware eight key consistently.
+        case UInt32(kVK_ANSI_8): return "8"
+        // Label the hardware nine key consistently.
+        case UInt32(kVK_ANSI_9): return "9"
+        // Use the supplied uppercase label for keys outside the fixed digit mapping.
+        default: return fallback.uppercased()
+        }
+    }
+
+    // init?(encoded): Restore a shortcut from the three fields stored in
+    // preferences; reject malformed values.
+    init?(encoded: String) {
+        let parts = encoded.split(separator: ":", maxSplits: 2, omittingEmptySubsequences: false)
+        // Reject shortcut preferences without all three correctly typed fields.
+        guard parts.count == 3, let code = UInt32(parts[0]), let modifiers = Int(parts[1]) else { return nil }
+        self.init(keyCode: code, modifiers: modifiers, key: String(parts[2]))
+    }
+
+    var displayText: String {
+        var result = ""
+        // Include Control in the displayed modifier sequence.
+        if modifiers & Self.control != 0 { result += "⌃" }
+        // Include Option after Control in the displayed sequence.
+        if modifiers & Self.option != 0 { result += "⌥" }
+        // Include Shift before Command in the displayed sequence.
+        if modifiers & Self.shift != 0 { result += "⇧" }
+        // Place Command immediately before the displayed key.
+        if modifiers & Self.command != 0 { result += "⌘" }
+        return result + key
+    }
+
+    var carbonModifiers: UInt32 {
+        var result: UInt32 = 0
+        // Translate the stored Control bit into Carbon's registration mask.
+        if modifiers & Self.control != 0 { result |= UInt32(controlKey) }
+        // Translate the stored Option bit into Carbon's registration mask.
+        if modifiers & Self.option != 0 { result |= UInt32(optionKey) }
+        // Translate the stored Shift bit into Carbon's registration mask.
+        if modifiers & Self.shift != 0 { result |= UInt32(shiftKey) }
+        // Translate the stored Command bit into Carbon's registration mask.
+        if modifiers & Self.command != 0 { result |= UInt32(cmdKey) }
+        return result
+    }
+
+    var eventModifierFlags: NSEvent.ModifierFlags {
+        var result: NSEvent.ModifierFlags = []
+        // Translate the stored Control bit into AppKit event flags.
+        if modifiers & Self.control != 0 { result.insert(.control) }
+        // Translate the stored Option bit into AppKit event flags.
+        if modifiers & Self.option != 0 { result.insert(.option) }
+        // Translate the stored Shift bit into AppKit event flags.
+        if modifiers & Self.shift != 0 { result.insert(.shift) }
+        // Translate the stored Command bit into AppKit event flags.
+        if modifiers & Self.command != 0 { result.insert(.command) }
+        return result
+    }
+}
+
+// Leave Open Clipboard unassigned. Library and clipboard actions use global Control-Shift shortcuts.
+let globalClipboardShortcutActions = ["compose", "proofread", "rewrite", "explain", "summarize", "translate", "dictionary"]
+let globalShortcutActions = ["library"] + globalClipboardShortcutActions
