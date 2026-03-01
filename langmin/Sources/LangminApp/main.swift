@@ -305,3 +305,24 @@ struct GlobalShortcut: Equatable {
 // Leave Open Clipboard unassigned. Library and clipboard actions use global Control-Shift shortcuts.
 let globalClipboardShortcutActions = ["compose", "proofread", "rewrite", "explain", "summarize", "translate", "dictionary"]
 let globalShortcutActions = ["library"] + globalClipboardShortcutActions
+let configurableShortcutActions = globalShortcutActions
+
+// Report rejected shortcuts separately from failure to install the hotkey event handler.
+struct GlobalHotKeyRegistrationOutcome {
+    let rejectedActions: [String]
+    let infrastructureUnavailable: Bool
+}
+
+let defaultGlobalShortcuts: [String: GlobalShortcut] = [
+    "library": GlobalShortcut(
+        keyCode: UInt32(kVK_ANSI_L),
+        modifiers: GlobalShortcut.control | GlobalShortcut.shift,
+        key: "L"
+    ),
+    "proofread": GlobalShortcut(keyCode: UInt32(kVK_ANSI_1), modifiers: GlobalShortcut.control | GlobalShortcut.shift, key: "1"),
+    "rewrite": GlobalShortcut(keyCode: UInt32(kVK_ANSI_2), modifiers: GlobalShortcut.control | GlobalShortcut.shift, key: "2"),
+    "explain": GlobalShortcut(keyCode: UInt32(kVK_ANSI_3), modifiers: GlobalShortcut.control | GlobalShortcut.shift, key: "3"),
+    "summarize": GlobalShortcut(keyCode: UInt32(kVK_ANSI_4), modifiers: GlobalShortcut.control | GlobalShortcut.shift, key: "4"),
+    "translate": GlobalShortcut(keyCode: UInt32(kVK_ANSI_5), modifiers: GlobalShortcut.control | GlobalShortcut.shift, key: "5"),
+    "dictionary": GlobalShortcut(keyCode: UInt32(kVK_ANSI_6), modifiers: GlobalShortcut.control | GlobalShortcut.shift, key: "6")
+]
