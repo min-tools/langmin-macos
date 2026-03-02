@@ -326,3 +326,48 @@ let defaultGlobalShortcuts: [String: GlobalShortcut] = [
     "translate": GlobalShortcut(keyCode: UInt32(kVK_ANSI_5), modifiers: GlobalShortcut.control | GlobalShortcut.shift, key: "5"),
     "dictionary": GlobalShortcut(keyCode: UInt32(kVK_ANSI_6), modifiers: GlobalShortcut.control | GlobalShortcut.shift, key: "6")
 ]
+
+let shortcutPreferenceKeys: [String: String] = [
+    "library": PreferenceKey.shortcutLibrary,
+    "compose": PreferenceKey.shortcutCompose,
+    "proofread": PreferenceKey.shortcutProofread,
+    "rewrite": PreferenceKey.shortcutRewrite,
+    "explain": PreferenceKey.shortcutExplain,
+    "summarize": PreferenceKey.shortcutSummarize,
+    "translate": PreferenceKey.shortcutTranslate,
+    "dictionary": PreferenceKey.shortcutDictionary
+]
+
+// migrateCommandOpenClipboardShortcut(): Clear the old Command-O default once.
+// Preserve custom shortcuts and allow later reassignment.
+func migrateCommandOpenClipboardShortcut() {
+    // Apply the shortcut-preference migration only once.
+    guard !preferencesStore.bool(forKey: PreferenceKey.commandOpenShortcutMigrationCompleted) else { return }
+    let formerDefault = GlobalShortcut(
+        keyCode: UInt32(kVK_ANSI_O),
+        modifiers: GlobalShortcut.command,
+        key: "O"
+    )
+    // Clear only the exact former default, preserving a user's custom Compose shortcut.
+    if preferencesStore.string(forKey: PreferenceKey.shortcutCompose) == formerDefault.encoded {
+        preferencesStore.set("", forKey: PreferenceKey.shortcutCompose)
+    }
+    preferencesStore.set(true, forKey: PreferenceKey.commandOpenShortcutMigrationCompleted)
+}
+
+// migrateLibraryShortcutToGlobalDefault(): Replace only the old Library
+// default; preserve custom and cleared shortcuts.
+func migrateLibraryShortcutToGlobalDefault() {
+    // Apply the Library-shortcut migration only once.
+    guard !preferencesStore.bool(forKey: PreferenceKey.globalLibraryShortcutMigrationCompleted) else { return }
+    let formerDefault = GlobalShortcut(
+        keyCode: UInt32(kVK_ANSI_L),
+        modifiers: GlobalShortcut.command,
+        key: "L"
+    )
+    // Replace only the former Library default, preserving user-customized bindings.
+    if preferencesStore.string(forKey: PreferenceKey.shortcutLibrary) == formerDefault.encoded {
+        preferencesStore.set(defaultGlobalShortcuts["library"]?.encoded, forKey: PreferenceKey.shortcutLibrary)
+    }
+    preferencesStore.set(true, forKey: PreferenceKey.globalLibraryShortcutMigrationCompleted)
+}
