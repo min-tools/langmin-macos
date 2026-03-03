@@ -371,3 +371,43 @@ func migrateLibraryShortcutToGlobalDefault() {
     }
     preferencesStore.set(true, forKey: PreferenceKey.globalLibraryShortcutMigrationCompleted)
 }
+
+// Pair a display label with its API identifier.
+struct PreferenceOption {
+    let id: String
+    let title: String
+    let note: String
+
+    var displayValue: String {
+        title
+    }
+
+    var descriptiveDisplayValue: String {
+        note.isEmpty ? title : "\(title) — \(note)"
+    }
+}
+
+// tabDirection(event): Allow Tab navigation regardless of the system's Full
+// Keyboard Access setting.
+func tabDirection(for event: NSEvent) -> Bool? {
+    // Only Tab can move through the custom logical focus order.
+    guard event.keyCode == 48 else {
+        return nil
+    }
+
+    let flags = event.modifierFlags
+        .intersection(.deviceIndependentFlagsMask)
+        .subtracting([.numericPad, .capsLock, .function])
+
+    // Unmodified Tab advances focus.
+    if flags.isEmpty {
+        return true
+    }
+
+    // Shift-Tab moves focus backward.
+    if flags == [.shift] {
+        return false
+    }
+
+    return nil
+}
