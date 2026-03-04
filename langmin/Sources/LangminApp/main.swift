@@ -411,3 +411,191 @@ func tabDirection(for event: NSEvent) -> Bool? {
 
     return nil
 }
+
+// Native text field with launcher-specific hover/focus background updates.
+final class FocusableTextField: NSTextField {
+    var focusHandler: (() -> Void)?
+    private var trackingArea: NSTrackingArea?
+    private var isMouseInside = false
+    private var isEditingText = false
+
+    override var acceptsFirstResponder: Bool {
+        true
+    }
+
+    override var isEnabled: Bool {
+        didSet {
+            updateLauncherAppearance()
+        }
+    }
+
+    // init(frameRect): Apply the launcher's field appearance when the control
+    // is created in code.
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        configureLauncherAppearance()
+    }
+
+    // init?(coder): Apply the same field appearance when AppKit decodes the
+    // control.
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        configureLauncherAppearance()
+    }
+
+    // becomeFirstResponder(): Notify the launcher after AppKit accepts keyboard
+    // focus.
+    override func becomeFirstResponder() -> Bool {
+        let accepted = super.becomeFirstResponder()
+
+        // Notify the owner only after AppKit accepts focus.
+        if accepted {
+            focusHandler?()
+            isEditingText = true
+            updateLauncherAppearance()
+        }
+
+        return accepted
+    }
+
+    // resignFirstResponder(): Clear the editing appearance only after AppKit
+    // allows focus to leave.
+    override func resignFirstResponder() -> Bool {
+        let accepted = super.resignFirstResponder()
+
+        // Clear editing state only after AppKit accepts the focus change.
+        if accepted {
+            isEditingText = false
+            updateLauncherAppearance()
+        }
+
+        return accepted
+    }
+
+    // updateTrackingAreas(): Replace hover tracking when the field's bounds
+    // change.
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+
+        // Remove the old hover region before installing one for current bounds.
+        if let trackingArea {
+            removeTrackingArea(trackingArea)
+        }
+
+        let options: NSTrackingArea.Options = [
+            .mouseEnteredAndExited,
+            .activeInKeyWindow,
+            .inVisibleRect
+        ]
+        let nextTrackingArea = NSTrackingArea(
+            rect: bounds,
+            options: options,
+            owner: self,
+            userInfo: nil
+        )
+        addTrackingArea(nextTrackingArea)
+        trackingArea = nextTrackingArea
+    }
+
+    // mouseEntered(event): Show the field's hover appearance while the pointer
+    // is inside.
+    override func mouseEntered(with event: NSEvent) {
+        isMouseInside = true
+        updateLauncherAppearance()
+    }
+
+    // mouseExited(event): Remove the hover appearance when the pointer leaves.
+    override func mouseExited(with event: NSEvent) {
+        isMouseInside = false
+        updateLauncherAppearance()
+    }
+
+    // viewDidChangeEffectiveAppearance(): Refresh field colors after a light or
+    // dark appearance change.
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateLauncherAppearance()
+    }
+
+    // setEditing(editing): Keep AppKit delegate editing state in sync with
+    // custom focus tracking.
+    func setEditing(_ editing: Bool) {
+        isEditingText = editing
+        updateLauncherAppearance()
+    }
+
+    // configureLauncherAppearance(): Use a native rounded field with a focus
+    // ring and launcher-specific background handling.
+    private func configureLauncherAppearance() {
+        bezelStyle = .roundedBezel
+        controlSize = .regular
+        drawsBackground = true
+        focusRingType = .default
+        updateLauncherAppearance()
+    }
+
+    // updateLauncherAppearance(): Show the editable surface on hover or focus,
+    // and keep idle fields visually quiet.
+    private func updateLauncherAppearance() {
+        let focused = isEditingText || currentEditor() != nil
+
+        // Show the field background only on hover or focus.
+        if isEnabled, focused || isMouseInside {
+            drawsBackground = true
+            backgroundColor = langminFieldFillColor
+        } else {
+            // Keep an idle or disabled launcher field visually quiet.
+            drawsBackground = false
+        }
+    }
+}
+
+// Popup button that reports focus changes to explicit Tab-order controllers.
+class FocusablePopUpButton: NSPopUpButton {
+    var focusHandler: (() -> Void)?
+
+    override var acceptsFirstResponder: Bool {
+        true
+    }
+
+    // becomeFirstResponder(): Notify the owner when this control receives
+    // keyboard focus.
+    override func becomeFirstResponder() -> Bool {
+        let accepted = super.becomeFirstResponder()
+
+        // Notify dependent controls only after focus is accepted.
+        if accepted {
+            focusHandler?()
+        }
+
+        return accepted
+    }
+
+    // acceptsFirstMouse(event): Clicking an inactive window should activate the
+    // window, not open a menu.
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool {
+        false
+    }
+}
+
+// Button that participates in the same explicit keyboard traversal as popups.
+final class FocusableButton: NSButton {
+    var focusHandler: (() -> Void)?
+
+    override var acceptsFirstResponder: Bool {
+        true
+    }
+
+    // becomeFirstResponder(): Notify the owner when this control receives
+    // keyboard focus.
+    override func becomeFirstResponder() -> Bool {
+        let accepted = super.becomeFirstResponder()
+
+        // Notify dependent controls only after focus is accepted.
+        if accepted {
+            focusHandler?()
+        }
+
+        return accepted
+    }
+}
