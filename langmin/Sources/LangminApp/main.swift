@@ -599,3 +599,299 @@ final class FocusableButton: NSButton {
         return accepted
     }
 }
+
+// tintedSymbol(name, color, pointSize): Render an SF Symbol filled with a solid
+// color for custom-drawn controls.
+func tintedSymbol(_ name: String, color: NSColor, pointSize: CGFloat) -> NSImage? {
+    // Return no tinted image when the system symbol cannot be loaded at the requested size.
+    guard let base = NSImage(systemSymbolName: name, accessibilityDescription: nil)?
+        .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: pointSize, weight: .regular)) else {
+        return nil
+    }
+
+    let image = NSImage(size: base.size)
+    image.lockFocus()
+    base.draw(at: .zero, from: NSRect(origin: .zero, size: base.size), operation: .sourceOver, fraction: 1)
+    color.set()
+    NSRect(origin: .zero, size: base.size).fill(using: .sourceAtop)
+    image.unlockFocus()
+    image.isTemplate = false
+    return image
+}
+
+// Settings navigation row with an icon and hover, selection, and keyboard focus highlights.
+final class SettingsSidebarButton: NSButton {
+    private let symbolName: String
+    private var isHovered = false
+    private var trackingArea: NSTrackingArea?
+    var focusHandler: (() -> Void)?
+
+    // init(title, symbolName, target, action): Store the icon and action;
+    // custom drawing handles the row's appearance.
+    init(title: String, symbolName: String, target: AnyObject?, action: Selector?) {
+        self.symbolName = symbolName
+        super.init(frame: .zero)
+        self.title = title
+        self.target = target
+        self.action = action
+        isBordered = false
+        setButtonType(.toggle)
+        focusRingType = .none
+        refusesFirstResponder = false
+    }
+
+    // init?(coder): This sidebar row is constructed in code with its title,
+    // symbol, and action.
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override var acceptsFirstResponder: Bool {
+        true
+    }
+
+    // Measure at the selected font weight so the label fits in either state.
+    override var intrinsicContentSize: NSSize {
+        let font = NSFont.systemFont(ofSize: 13, weight: .semibold)
+        let width = (title as NSString).size(withAttributes: [.font: font]).width
+        return NSSize(width: ceil(width) + 56, height: 36)
+    }
+
+    // becomeFirstResponder(): Notify the controller when keyboard focus reaches
+    // this row.
+    override func becomeFirstResponder() -> Bool {
+        let accepted = super.becomeFirstResponder()
+        // Notify the owner only after AppKit accepts keyboard focus.
+        if accepted {
+            focusHandler?()
+            needsDisplay = true
+        }
+        return accepted
+    }
+
+    // resignFirstResponder(): Remove the keyboard outline when focus moves to
+    // another control.
+    override func resignFirstResponder() -> Bool {
+        let accepted = super.resignFirstResponder()
+        needsDisplay = true
+        return accepted
+    }
+
+    override var state: NSControl.StateValue {
+        didSet {
+            needsDisplay = true
+        }
+    }
+
+    // updateTrackingAreas(): Keep the hover region aligned with the button's
+    // current bounds.
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+
+        // Replace the previous tab-button hover region after layout changes.
+        if let trackingArea {
+            removeTrackingArea(trackingArea)
+        }
+
+        let area = NSTrackingArea(
+            rect: bounds,
+            options: [.mouseEnteredAndExited, .activeInActiveApp, .inVisibleRect],
+            owner: self,
+            userInfo: nil
+        )
+        addTrackingArea(area)
+        trackingArea = area
+    }
+
+    // mouseEntered(event): Redraw the tab with its hover background.
+    override func mouseEntered(with event: NSEvent) {
+        isHovered = true
+        needsDisplay = true
+    }
+
+    // mouseExited(event): Redraw the tab after the pointer leaves.
+    override func mouseExited(with event: NSEvent) {
+        isHovered = false
+        needsDisplay = true
+    }
+
+    // viewDidChangeEffectiveAppearance(): Refresh custom drawing when the
+    // system appearance changes.
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        needsDisplay = true
+    }
+
+    // draw(dirtyRect): Align every icon and label while retaining the same row
+    // size for each state.
+    override func draw(_ dirtyRect: NSRect) {
+        let selected = state == .on
+        let path = NSBezierPath(roundedRect: bounds.insetBy(dx: 1, dy: 1), xRadius: 8, yRadius: 8)
+
+        // Highlight the selected page and hovered row.
+        if selected || isHovered {
+            (selected ? NSColor.controlAccentColor.withAlphaComponent(0.14) : .labelColor.withAlphaComponent(0.05)).setFill()
+            path.fill()
+
+            // Add the selected tab's accent outline in addition to its background.
+            if selected {
+                NSColor.controlAccentColor.withAlphaComponent(0.34).setStroke()
+                path.lineWidth = 1
+                path.stroke()
+            }
+        }
+
+        // Keyboard focus stays visible even when it is on an unselected page.
+        if window?.firstResponder === self {
+            NSColor.keyboardFocusIndicatorColor.setStroke()
+            path.lineWidth = 2
+            path.stroke()
+        }
+
+        let tint: NSColor = selected ? .controlAccentColor : .secondaryLabelColor
+
+        // Fit differently shaped symbols into the same leading icon slot.
+        if let icon = tintedSymbol(symbolName, color: tint, pointSize: 16) {
+            let scale = min(18 / icon.size.width, 18 / icon.size.height)
+            let size = NSSize(width: icon.size.width * scale, height: icon.size.height * scale)
+            let iconRect = NSRect(
+                x: 14 + (18 - size.width) / 2,
+                y: (bounds.height - size.height) / 2,
+                width: size.width,
+                height: size.height
+            )
+            icon.draw(in: iconRect)
+        }
+
+        let font = NSFont.systemFont(ofSize: 13, weight: selected ? .semibold : .regular)
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: font, .foregroundColor: selected ? NSColor.controlAccentColor : NSColor.labelColor
+        ]
+        let text = title as NSString
+        let size = text.size(withAttributes: attributes)
+        text.draw(
+            at: NSPoint(x: 42, y: (bounds.height - size.height) / 2),
+            withAttributes: attributes
+        )
+    }
+}
+
+// Library title bar button with an icon, saved count and chevron.
+final class LibraryTitlebarButton: NSButton {
+    // Show the saved count when nonzero. The launcher refreshes it from LibraryStore.
+    var savedCount: Int = 0 {
+        didSet {
+            // Avoid recalculating Library button width when the saved count did not change.
+            guard savedCount != oldValue else { return }
+            invalidateIntrinsicContentSize()
+            needsDisplay = true
+        }
+    }
+
+    private let iconTextGap: CGFloat = 6
+    private let iconPointSize: CGFloat = 13
+    private let labelFont = NSFont.systemFont(ofSize: 13, weight: .semibold)
+    private let countFont = NSFont.systemFont(ofSize: 13, weight: .regular)
+
+    // init(target, action): Create the Library action with a custom label
+    // instead of a native button title.
+    init(target: AnyObject?, action: Selector?) {
+        super.init(frame: .zero)
+        title = ""
+        self.target = target
+        self.action = action
+        isBordered = false
+        focusRingType = .none
+    }
+
+    // init?(coder): This Library button is constructed in code with its action.
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override var acceptsFirstResponder: Bool { true }
+
+    // becomeFirstResponder(): Redraw the Library indicator when keyboard focus
+    // arrives.
+    override func becomeFirstResponder() -> Bool {
+        let accepted = super.becomeFirstResponder()
+        // Redraw the Library button after it successfully gains focus.
+        if accepted {
+            needsDisplay = true
+        }
+        return accepted
+    }
+
+    // resignFirstResponder(): Remove the focus appearance after AppKit accepts
+    // the focus change.
+    override func resignFirstResponder() -> Bool {
+        let resigned = super.resignFirstResponder()
+        // Redraw the Library button after it successfully loses focus.
+        if resigned {
+            needsDisplay = true
+        }
+        return resigned
+    }
+
+    // "Library" (bold, label color) + " · N saved" + " ›" (both muted).
+    private var attributedLabel: NSAttributedString {
+        let focused = window?.firstResponder === self
+        let primary = focused ? NSColor.controlAccentColor : NSColor.labelColor
+        let muted = focused ? NSColor.controlAccentColor : NSColor.secondaryLabelColor
+        let text = NSMutableAttributedString(string: "Library", attributes: [
+            .font: labelFont, .foregroundColor: primary
+        ])
+        // Append a saved-item count only when the Library contains entries.
+        if savedCount > 0 {
+            text.append(NSAttributedString(string: " · " + String(format: localized("n_saved", "%d saved"), savedCount), attributes: [
+                .font: countFont, .foregroundColor: muted
+            ]))
+        }
+        text.append(NSAttributedString(string: "  ›", attributes: [
+            .font: labelFont, .foregroundColor: muted
+        ]))
+        return text
+    }
+
+    private var iconWidth: CGFloat {
+        tintedSymbol("books.vertical", color: .secondaryLabelColor, pointSize: iconPointSize)?.size.width ?? iconPointSize
+    }
+
+    override var intrinsicContentSize: NSSize {
+        NSSize(
+            width: iconWidth + iconTextGap + ceil(attributedLabel.size().width),
+            height: NSView.noIntrinsicMetric
+        )
+    }
+
+    // viewDidChangeEffectiveAppearance(): Refresh the Library label and symbol
+    // colors for the current appearance.
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        needsDisplay = true
+    }
+
+    // draw(dirtyRect): Draw the Library label and icon with a visible
+    // keyboard-focus state.
+    override func draw(_ dirtyRect: NSRect) {
+        let focused = window?.firstResponder === self
+        let text = attributedLabel
+        let textSize = text.size()
+        let iconColor: NSColor = focused ? .controlAccentColor : .secondaryLabelColor
+        let icon = tintedSymbol("books.vertical", color: iconColor, pointSize: iconPointSize)
+        let iconW = icon?.size.width ?? iconPointSize
+
+        var x: CGFloat = 0
+        // Draw the Library symbol only when its image is available.
+        if let icon {
+            icon.draw(in: NSRect(
+                x: x,
+                y: ((bounds.height - icon.size.height) / 2).rounded(),
+                width: icon.size.width,
+                height: icon.size.height
+            ))
+        }
+        x += iconW + iconTextGap
+        text.draw(at: NSPoint(x: x, y: ((bounds.height - textSize.height) / 2).rounded()))
+    }
+}
