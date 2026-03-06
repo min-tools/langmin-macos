@@ -895,3 +895,262 @@ final class LibraryTitlebarButton: NSButton {
         text.draw(at: NSPoint(x: x, y: ((bounds.height - textSize.height) / 2).rounded()))
     }
 }
+
+// Draw a pinned mode with its icon, name, options and shortcut badge.
+final class LauncherChipButton: NSButton {
+    let modeID: String
+    var focusHandler: (() -> Void)?
+    // Extra label after the title, e.g. "→ Српски" on the Translate chip.
+    var suffixText = "" { didSet { invalidateIntrinsicContentSize(); needsDisplay = true } }
+    // Shortcut badge, such as ⌃⇧1.
+    var hotkeyBadge = "" { didSet { invalidateIntrinsicContentSize(); needsDisplay = true } }
+    // Selected chips with per-mode options show a chevron and open a menu.
+    var showsChevron = false { didSet { invalidateIntrinsicContentSize(); needsDisplay = true } }
+    // Reserve the chevron width so selecting a mode does not resize its chip.
+    var reservesChevronSpace = false { didSet { invalidateIntrinsicContentSize(); needsDisplay = true } }
+    private let symbolName: String
+    private var isHovered = false
+    private var trackingArea: NSTrackingArea?
+
+    private static let chipHeight: CGFloat = 38
+    private static let horizontalPadding: CGFloat = 14
+    private static let elementGap: CGFloat = 7
+
+    // init(modeID, title, symbolName, target, action): Bind a launcher mode and
+    // symbol to a custom-drawn action button.
+    init(modeID: String, title: String, symbolName: String, target: AnyObject?, action: Selector?) {
+        self.modeID = modeID
+        self.symbolName = symbolName
+        super.init(frame: .zero)
+        self.title = title
+        self.target = target
+        self.action = action
+        isBordered = false
+        setButtonType(.toggle)
+        focusRingType = .none
+        wantsLayer = true
+        layer?.masksToBounds = false
+        // Supply an accessibility label because the chip draws its own title.
+        setAccessibilityLabel("\(title) mode")
+    }
+
+    // init?(coder): Mode buttons require a mode ID and are constructed in code.
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override var acceptsFirstResponder: Bool { true }
+    override var isFlipped: Bool { true }
+
+    private var titleFont: NSFont {
+        NSFont.systemFont(ofSize: 13, weight: state == .on ? .semibold : .medium)
+    }
+
+    private var badgeFont: NSFont {
+        NSFont.monospacedSystemFont(ofSize: 11, weight: .medium)
+    }
+
+    private var isDarkAppearance: Bool {
+        effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+    }
+
+    // Lighten the accent in dark mode and darken it in light mode for readable labels.
+    private var selectedTint: NSColor {
+        let accent = NSColor.controlAccentColor
+        return isDarkAppearance
+            ? (accent.blended(withFraction: 0.35, of: .white) ?? accent)
+            : (accent.blended(withFraction: 0.2, of: .black) ?? accent)
+    }
+
+    override var intrinsicContentSize: NSSize {
+        var width = Self.horizontalPadding * 2
+        width += tintedSymbol(symbolName, color: .labelColor, pointSize: 13)?.size.width ?? 0
+        width += Self.elementGap
+        width += ceil(displayTitle.size(withAttributes: [.font: NSFont.systemFont(ofSize: 13, weight: .semibold)]).width)
+        // Reserve space for a shortcut badge only when the badge has text.
+        if !hotkeyBadge.isEmpty {
+            width += Self.elementGap + ceil((hotkeyBadge as NSString).size(withAttributes: [.font: badgeFont]).width)
+        }
+        // Reserve disclosure space for either a visible chevron or stable alignment with one.
+        if showsChevron || reservesChevronSpace {
+            width += Self.elementGap + 9
+        }
+        return NSSize(width: ceil(width), height: Self.chipHeight)
+    }
+
+    private var displayTitle: NSString {
+        (suffixText.isEmpty ? title : "\(title) \(suffixText)") as NSString
+    }
+
+    // becomeFirstResponder(): Notify the launcher and redraw after the mode
+    // button gains focus.
+    override func becomeFirstResponder() -> Bool {
+        let accepted = super.becomeFirstResponder()
+        // Notify the launcher and redraw after this mode chip accepts focus.
+        if accepted {
+            focusHandler?()
+            needsDisplay = true
+        }
+        return accepted
+    }
+
+    // resignFirstResponder(): Remove the mode button's focus highlight when
+    // focus leaves.
+    override func resignFirstResponder() -> Bool {
+        let accepted = super.resignFirstResponder()
+        // Remove the chip's focused appearance when focus successfully leaves.
+        if accepted { needsDisplay = true }
+        return accepted
+    }
+
+    // mouseDown(event): Give the clicked mode keyboard focus before AppKit
+    // tracks the click.
+    override func mouseDown(with event: NSEvent) {
+        window?.makeFirstResponder(self)
+        needsDisplay = true
+        super.mouseDown(with: event)
+    }
+
+    // keyDown(event): Allow Return or Space to activate the focused mode
+    // button.
+    override func keyDown(with event: NSEvent) {
+        // Return and Space activate the focused mode chip.
+        if event.keyCode == 36 || event.keyCode == 49 {
+            performClick(nil)
+            return
+        }
+        super.keyDown(with: event)
+    }
+
+    override var state: NSControl.StateValue {
+        didSet {
+            invalidateIntrinsicContentSize()
+            needsDisplay = true
+        }
+    }
+
+    // viewDidChangeEffectiveAppearance(): Redraw the mode button when system
+    // colors change.
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        needsDisplay = true
+    }
+
+    // updateTrackingAreas(): Rebuild the hover region to match the current
+    // mode-button bounds.
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        // Replace the chip's old tracking area before registering its current bounds.
+        if let trackingArea { removeTrackingArea(trackingArea) }
+        let area = NSTrackingArea(
+            rect: bounds,
+            options: [.mouseEnteredAndExited, .activeInActiveApp, .inVisibleRect],
+            owner: self,
+            userInfo: nil
+        )
+        addTrackingArea(area)
+        trackingArea = area
+    }
+
+    // mouseEntered(event): Show the mode button's hover state.
+    override func mouseEntered(with event: NSEvent) { isHovered = true; needsDisplay = true }
+    // mouseExited(event): Clear the mode button's hover state.
+    override func mouseExited(with event: NSEvent) { isHovered = false; needsDisplay = true }
+
+    // draw(dirtyRect): Draw the mode's selection, focus, and disabled states
+    // around its content.
+    override func draw(_ dirtyRect: NSRect) {
+        let selected = state == .on
+        let focused = window?.firstResponder === self
+        let enabledAlpha: CGFloat = isEnabled ? 1 : 0.45
+        let path = NSBezierPath(roundedRect: bounds.insetBy(dx: 0.5, dy: 0.5), xRadius: 10, yRadius: 10)
+
+        // Tint the selected chip; reserve solid accent fill for Send.
+        // Show keyboard focus by brightening the fill so it remains distinct from selection.
+        let fill: NSColor
+        // Use an accent background for the currently selected mode.
+        if selected {
+            fill = NSColor.controlAccentColor.withAlphaComponent((focused ? 0.28 : 0.18) * enabledAlpha)
+        } else if isHovered && isEnabled {
+            // Show a subtle hover fill for an enabled unselected mode.
+            fill = NSColor.labelColor.withAlphaComponent(0.08)
+        } else {
+            // Use the normal background while preserving focus and disabled opacity cues.
+            fill = NSColor.labelColor.withAlphaComponent((focused ? 0.11 : 0.045) * enabledAlpha)
+        }
+        fill.setFill()
+        path.fill()
+
+        let baseTint: NSColor = selected ? selectedTint : NSColor.labelColor
+        let tint = baseTint.withAlphaComponent(enabledAlpha)
+        let baseQuiet: NSColor = selected ? selectedTint : NSColor.tertiaryLabelColor
+        let quiet = baseQuiet.withAlphaComponent(selected ? 0.62 * enabledAlpha : enabledAlpha)
+        let attributes: [NSAttributedString.Key: Any] = [.font: titleFont, .foregroundColor: tint]
+        let text = displayTitle
+        let textSize = text.size(withAttributes: attributes)
+        var x = Self.horizontalPadding
+
+        // Use a lighter icon on idle chips in light mode to match the label's visual weight.
+        let iconTint = selected || isDarkAppearance ? tint : NSColor.secondaryLabelColor.withAlphaComponent(enabledAlpha)
+        // Draw the mode icon only when the requested tinted symbol exists.
+        if let icon = tintedSymbol(symbolName, color: iconTint, pointSize: 13) {
+            icon.draw(in: NSRect(
+                x: x,
+                y: (bounds.height - icon.size.height) / 2,
+                width: icon.size.width,
+                height: icon.size.height
+            ))
+            x += icon.size.width + Self.elementGap
+        }
+
+        text.draw(at: NSPoint(x: x, y: (bounds.height - textSize.height) / 2), withAttributes: attributes)
+        x += textSize.width
+
+        // Draw the keyboard badge only when the chip has a shortcut hint.
+        if !hotkeyBadge.isEmpty {
+            let badgeAttributes: [NSAttributedString.Key: Any] = [.font: badgeFont, .foregroundColor: quiet]
+            let badge = hotkeyBadge as NSString
+            let badgeSize = badge.size(withAttributes: badgeAttributes)
+            x += Self.elementGap
+            badge.draw(at: NSPoint(x: x, y: (bounds.height - badgeSize.height) / 2), withAttributes: badgeAttributes)
+            x += badgeSize.width
+        }
+
+        // Draw a disclosure indicator only for chips that actually expose additional choices.
+        if showsChevron, let chevron = tintedSymbol("chevron.down", color: quiet, pointSize: 8.5) {
+            x += Self.elementGap
+            chevron.draw(in: NSRect(
+                x: x,
+                y: (bounds.height - chevron.size.height) / 2,
+                width: chevron.size.width,
+                height: chevron.size.height
+            ))
+        }
+    }
+}
+
+// Word document formats supported by NSAttributedString.
+private let wordProcessingExtensions: Set<String> = ["doc", "docx"]
+
+// droppedFileSupportsTextExtraction(url): True when the launcher can pull
+// readable text out of a dropped file.
+func droppedFileSupportsTextExtraction(_ url: URL) -> Bool {
+    let ext = url.pathExtension.lowercased()
+    // Audio enters the asynchronous speech path rather than a document text decoder.
+    if droppedFileSupportsAudioTranscription(url) { return true }
+    // Accept known word-processing formats that need attributed-text extraction.
+    if wordProcessingExtensions.contains(ext) {
+        return true
+    }
+
+    // Reject file extensions that cannot be resolved to a supported content type.
+    guard let type = UTType(filenameExtension: ext) else {
+        return false
+    }
+
+    return type.conforms(to: .pdf)
+        || type.conforms(to: .image)
+        || type.conforms(to: .text)
+        || type.conforms(to: .rtf)
+        || type.conforms(to: .rtfd)
+}
