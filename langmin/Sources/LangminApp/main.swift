@@ -1227,3 +1227,61 @@ func readPlainTextFile(_ url: URL) throws -> String {
 
     return detected
 }
+
+// extractTextFromPDF(url): Read embedded PDF text or OCR scanned pages, with a
+// page limit to bound processing time.
+func extractTextFromPDF(_ url: URL) throws -> String {
+    // Reject a PDF that PDFKit cannot open.
+    guard let document = PDFDocument(url: url) else {
+        throw DroppedTextError.unreadable(url.lastPathComponent)
+    }
+
+    // Use embedded PDF text before trying the more expensive OCR fallback.
+    if let text = document.string,
+       !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        return text
+    }
+
+    let pageLimit = min(document.pageCount, 25)
+    var pages: [String] = []
+    // OCR only the bounded number of PDF pages allowed by this import path.
+    for index in 0..<pageLimit {
+        // Skip a page that PDFKit cannot retrieve.
+        guard let page = document.page(at: index) else {
+            continue
+        }
+
+        let bounds = page.bounds(for: .mediaBox)
+        let renderScale: CGFloat = 2
+        let image = page.thumbnail(
+            of: NSSize(width: bounds.width * renderScale, height: bounds.height * renderScale),
+            for: .mediaBox
+        )
+        // Skip page previews that cannot be converted to image pixels for OCR.
+        guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+            continue
+        }
+
+        let pageText = (try? recognizeText(in: cgImage)) ?? ""
+        // Append only pages that produced nonempty recognized text.
+        if !pageText.isEmpty {
+            pages.append(pageText)
+        }
+    }
+
+    return pages.joined(separator: "\n\n")
+}
+
+// recognizeTextInImageFile(url): OCR one image file via Vision.
+func recognizeTextInImageFile(_ url: URL) throws -> String {
+    // Require a decodable image before starting file-based OCR.
+    guard
+        let source = CGImageSourceCreateWithURL(url as CFURL, nil),
+        let cgImage = CGImageSourceCreateImageAtIndex(source, 0, nil)
+    // Report an unreadable image instead of submitting invalid pixels to recognition.
+    else {
+        throw DroppedTextError.unreadable(url.lastPathComponent)
+    }
+
+    return try recognizeText(in: cgImage)
+}
