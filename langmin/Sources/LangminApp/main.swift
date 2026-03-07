@@ -1154,3 +1154,76 @@ func droppedFileSupportsTextExtraction(_ url: URL) -> Bool {
         || type.conforms(to: .rtf)
         || type.conforms(to: .rtfd)
 }
+
+// Distinguish an unreadable dropped file from one that contains no usable text.
+enum DroppedTextError: LocalizedError {
+    // Represent a file whose contents could not be decoded.
+    case unreadable(String)
+    // Represent a readable file with no usable extracted text.
+    case empty(String)
+
+    var errorDescription: String? {
+        // Choose a file-specific error message for failed or empty extraction.
+        switch self {
+        // Name the dropped file that could not be read.
+        case .unreadable(let name):
+            return "\(name) could not be read."
+        // Name the file that produced no readable text.
+        case .empty(let name):
+            return "No readable text was found in \(name)."
+        }
+    }
+}
+
+// extractTextFromDroppedFile(url): Extract document text, using OCR for images
+// and scanned PDFs.
+func extractTextFromDroppedFile(_ url: URL) throws -> String {
+    let ext = url.pathExtension.lowercased()
+    let type = UTType(filenameExtension: ext)
+
+    let text: String
+    // Use PDF text extraction for documents identified as PDFs.
+    if type?.conforms(to: .pdf) == true {
+        text = try extractTextFromPDF(url)
+    } else if type?.conforms(to: .image) == true {
+        // Use local OCR for image files.
+        text = try recognizeTextInImageFile(url)
+    // Use attributed-text import for rich-text and supported word-processing documents.
+    } else if type?.conforms(to: .rtf) == true
+        || type?.conforms(to: .rtfd) == true
+        || wordProcessingExtensions.contains(ext) {
+        // Report documents that AppKit cannot import as attributed text.
+        guard let attributed = try? NSAttributedString(url: url, options: [:], documentAttributes: nil) else {
+            throw DroppedTextError.unreadable(url.lastPathComponent)
+        }
+        text = attributed.string
+    } else {
+        // Use plain-text decoding for the remaining supported text formats.
+        text = try readPlainTextFile(url)
+    }
+
+    let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+    // Report an empty result after trimming incidental whitespace from extracted content.
+    guard !trimmed.isEmpty else {
+        throw DroppedTextError.empty(url.lastPathComponent)
+    }
+
+    return trimmed
+}
+
+// readPlainTextFile(url): Read a text file as UTF-8 first, then fall back to
+// encoding detection.
+func readPlainTextFile(_ url: URL) throws -> String {
+    // Prefer explicit UTF-8 decoding for ordinary text files.
+    if let utf8 = try? String(contentsOf: url, encoding: .utf8) {
+        return utf8
+    }
+
+    var encoding = String.Encoding.utf8
+    // Report a read failure when automatic encoding detection also fails.
+    guard let detected = try? String(contentsOf: url, usedEncoding: &encoding) else {
+        throw DroppedTextError.unreadable(url.lastPathComponent)
+    }
+
+    return detected
+}
