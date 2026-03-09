@@ -1752,3 +1752,296 @@ final class LauncherFieldContainer: NSView {
         path.stroke()
     }
 }
+
+// Draw launcher pickers as full fields.
+final class LauncherPopUpButton: FocusablePopUpButton {
+    private var isHovered = false
+    private var trackingArea: NSTrackingArea?
+
+    override var isFlipped: Bool { true }
+    override var intrinsicContentSize: NSSize { NSSize(width: NSView.noIntrinsicMetric, height: 48) }
+
+    // init(buttonFrame, flag): Disable AppKit's focus ring because this popup
+    // draws its own focus state.
+    override init(frame buttonFrame: NSRect, pullsDown flag: Bool) {
+        super.init(frame: buttonFrame, pullsDown: flag)
+        focusRingType = .none
+    }
+
+    // init?(coder): Apply the same custom focus treatment to decoded popup
+    // controls.
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        focusRingType = .none
+    }
+
+    // becomeFirstResponder(): Redraw the popup when it gains keyboard focus.
+    override func becomeFirstResponder() -> Bool {
+        let accepted = super.becomeFirstResponder()
+        // Redraw the popup after it accepts keyboard focus.
+        if accepted { needsDisplay = true }
+        return accepted
+    }
+
+    // resignFirstResponder(): Redraw the popup after keyboard focus leaves.
+    override func resignFirstResponder() -> Bool {
+        let accepted = super.resignFirstResponder()
+        // Redraw the popup after it accepts losing keyboard focus.
+        if accepted { needsDisplay = true }
+        return accepted
+    }
+
+    // mouseDown(event): Focus the popup before opening its menu so keyboard
+    // navigation remains consistent.
+    override func mouseDown(with event: NSEvent) {
+        window?.makeFirstResponder(self)
+        needsDisplay = true
+        super.mouseDown(with: event)
+    }
+
+    // updateTrackingAreas(): Keep popup hover tracking aligned with its current
+    // bounds.
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        // Replace the popup's previous hover region after layout changes.
+        if let trackingArea { removeTrackingArea(trackingArea) }
+        let area = NSTrackingArea(
+            rect: bounds,
+            options: [.mouseEnteredAndExited, .activeInActiveApp, .inVisibleRect],
+            owner: self,
+            userInfo: nil
+        )
+        addTrackingArea(area)
+        trackingArea = area
+    }
+
+    // mouseEntered(event): Show the popup's hover state.
+    override func mouseEntered(with event: NSEvent) { isHovered = true; needsDisplay = true }
+    // mouseExited(event): Clear the popup's hover state.
+    override func mouseExited(with event: NSEvent) { isHovered = false; needsDisplay = true }
+    // viewDidChangeEffectiveAppearance(): Refresh the popup's custom colors
+    // after an appearance change.
+    override func viewDidChangeEffectiveAppearance() { super.viewDidChangeEffectiveAppearance(); needsDisplay = true }
+
+    // draw(dirtyRect): Draw the popup's background, label, and arrow with
+    // matching focus and disabled states.
+    override func draw(_ dirtyRect: NSRect) {
+        let focused = window?.firstResponder === self
+        let enabledAlpha: CGFloat = isEnabled ? 1 : 0.45
+        let path = NSBezierPath(roundedRect: bounds.insetBy(dx: 0.5, dy: 0.5), xRadius: 10, yRadius: 10)
+
+        // Match the mode chips' neutral fill and brighten it for keyboard focus.
+        NSColor.labelColor.withAlphaComponent((focused ? 0.11 : 0.045) * enabledAlpha).setFill()
+        path.fill()
+
+        let textColor = (isEnabled ? NSColor.labelColor : NSColor.secondaryLabelColor)
+            .withAlphaComponent(enabledAlpha)
+        let font = font ?? NSFont.systemFont(ofSize: 17)
+        let title = titleOfSelectedItem ?? self.title
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .foregroundColor: textColor
+        ]
+        let textSize = (title as NSString).size(withAttributes: attributes)
+        let textRect = NSRect(
+            x: 18,
+            y: max(0, (bounds.height - textSize.height) / 2 - 1),
+            width: max(0, bounds.width - 58),
+            height: textSize.height + 3
+        )
+        (title as NSString).draw(with: textRect, options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine], attributes: attributes)
+
+        // Draw the popup arrow only when its system symbol is available.
+        if let icon = tintedSymbol("chevron.down", color: textColor, pointSize: 12) {
+            icon.draw(in: NSRect(
+                x: bounds.width - icon.size.width - 18,
+                y: (bounds.height - icon.size.height) / 2,
+                width: icon.size.width,
+                height: icon.size.height
+            ))
+        }
+    }
+}
+
+// Draw a compact rounded tooltip with a small pointer toward its owner.
+final class TooltipBubbleView: NSView {
+    private static let horizontalPadding: CGFloat = 12
+    private static let verticalPadding: CGFloat = 6
+    private static let arrowHeight: CGFloat = 7
+    private static let arrowHalfWidth: CGFloat = 8
+    private static let cornerRadius: CGFloat = 10
+    private static let maxTextWidth: CGFloat = 380
+
+    private let message: String
+    private let darkAppearance: Bool
+    // The arrow faces the owner: up for a bubble below it, down for one above.
+    private let pointsUp: Bool
+    private var arrowX: CGFloat
+
+    // init(message, darkAppearance, [maxBubbleWidth = nil], [pointsUp =
+    // false]): Size a tooltip to its message and remember which edge should
+    // carry the arrow.
+    init(message: String, darkAppearance: Bool, maxBubbleWidth: CGFloat? = nil, pointsUp: Bool = false) {
+        self.message = message
+        self.darkAppearance = darkAppearance
+        self.pointsUp = pointsUp
+        let size = Self.preferredSize(for: message, maxBubbleWidth: maxBubbleWidth)
+        self.arrowX = size.width / 2
+        super.init(frame: NSRect(origin: .zero, size: size))
+        wantsLayer = true
+    }
+
+    // init?(coder): Tooltips are created in code with their message and
+    // placement settings.
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    // preferredSize(message, [maxBubbleWidth = nil]): Size short tooltips to
+    // their text and wrap longer ones.
+    static func preferredSize(for message: String, maxBubbleWidth: CGFloat? = nil) -> NSSize {
+        let textWidthLimit = max(
+            96,
+            min(maxTextWidth, (maxBubbleWidth ?? .greatestFiniteMagnitude) - horizontalPadding * 2)
+        )
+        let rect = attributedMessage(message).boundingRect(
+            with: NSSize(width: textWidthLimit, height: .greatestFiniteMagnitude),
+            options: [.usesLineFragmentOrigin, .usesFontLeading]
+        )
+        let naturalWidth = ceil(rect.width) + horizontalPadding * 2
+        let bubbleWidth = min(naturalWidth, maxBubbleWidth ?? naturalWidth)
+
+        return NSSize(
+            width: bubbleWidth,
+            height: ceil(rect.height) + verticalPadding * 2 + arrowHeight
+        )
+    }
+
+    // pointArrow(proposedX): Aim the tooltip at its owner without letting the
+    // arrow overlap rounded corners.
+    func pointArrow(at proposedX: CGFloat) {
+        arrowX = Self.clampedArrowX(proposedX, bubbleWidth: bounds.width)
+        needsDisplay = true
+    }
+
+    // clampedArrowX(proposedX, bubbleWidth): Clamp the arrow center to the
+    // straight part of the bubble edge.
+    private static func clampedArrowX(_ proposedX: CGFloat, bubbleWidth: CGFloat) -> CGFloat {
+        let padding: CGFloat = 3
+        let minimumX = cornerRadius + arrowHalfWidth + padding
+        let maximumX = max(minimumX, bubbleWidth - cornerRadius - arrowHalfWidth - padding)
+        return min(max(proposedX, minimumX), maximumX)
+    }
+
+    // attributedMessage(message, [color = .labelColor]): Use the same tooltip
+    // font for measurement and drawing.
+    private static func attributedMessage(_ message: String, color: NSColor = .labelColor) -> NSAttributedString {
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.lineBreakMode = .byWordWrapping
+
+        return NSAttributedString(
+            string: message,
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 12, weight: .regular),
+                .foregroundColor: color,
+                .paragraphStyle: paragraph
+            ]
+        )
+    }
+
+    // draw(dirtyRect): Paint an inverted-contrast bubble: light in dark mode,
+    // dark in light mode.
+    override func draw(_ dirtyRect: NSRect) {
+        let arrowHeight = Self.arrowHeight
+        let bubbleRect = NSRect(
+            x: 0,
+            y: pointsUp ? 0 : arrowHeight,
+            width: bounds.width,
+            height: bounds.height - arrowHeight
+        )
+        // The arrow tip sits on the edge facing the owner: the view's bottom when
+        // the bubble is above it, its top when the bubble is below it.
+        let apexY = pointsUp ? bounds.maxY - 0.5 : bounds.minY + 0.5
+        let background = darkAppearance
+            ? NSColor(srgbRed: 1, green: 1, blue: 1, alpha: 1)
+            : NSColor(calibratedWhite: 0.12, alpha: 0.96)
+        let border = darkAppearance
+            ? NSColor.black.withAlphaComponent(0.12)
+            : NSColor.white.withAlphaComponent(0.16)
+        let foreground = darkAppearance ? NSColor.black : NSColor.white
+        let arrowX = Self.clampedArrowX(arrowX, bubbleWidth: bounds.width)
+        let arrowHalfWidth = Self.arrowHalfWidth
+        let radius = min(Self.cornerRadius, bubbleRect.width / 2, bubbleRect.height / 2)
+        let path = CGMutablePath()
+
+        // Trace the rounded body counterclockwise, notching the arrow into the
+        // bottom edge (bubble above owner) or the top edge (bubble below owner).
+        path.move(to: CGPoint(x: bubbleRect.minX + radius, y: bubbleRect.minY))
+        // Draw the arrow on the lower edge when the bubble points downward.
+        if !pointsUp {
+            path.addLine(to: CGPoint(x: arrowX - arrowHalfWidth, y: bubbleRect.minY))
+            path.addLine(to: CGPoint(x: arrowX, y: apexY))
+            path.addLine(to: CGPoint(x: arrowX + arrowHalfWidth, y: bubbleRect.minY))
+        }
+        path.addLine(to: CGPoint(x: bubbleRect.maxX - radius, y: bubbleRect.minY))
+        path.addArc(
+            center: CGPoint(x: bubbleRect.maxX - radius, y: bubbleRect.minY + radius),
+            radius: radius,
+            startAngle: -.pi / 2,
+            endAngle: 0,
+            clockwise: false
+        )
+        path.addLine(to: CGPoint(x: bubbleRect.maxX, y: bubbleRect.maxY - radius))
+        path.addArc(
+            center: CGPoint(x: bubbleRect.maxX - radius, y: bubbleRect.maxY - radius),
+            radius: radius,
+            startAngle: 0,
+            endAngle: .pi / 2,
+            clockwise: false
+        )
+        // Draw the arrow on the upper edge when the bubble points upward.
+        if pointsUp {
+            path.addLine(to: CGPoint(x: arrowX + arrowHalfWidth, y: bubbleRect.maxY))
+            path.addLine(to: CGPoint(x: arrowX, y: apexY))
+            path.addLine(to: CGPoint(x: arrowX - arrowHalfWidth, y: bubbleRect.maxY))
+        }
+        path.addLine(to: CGPoint(x: bubbleRect.minX + radius, y: bubbleRect.maxY))
+        path.addArc(
+            center: CGPoint(x: bubbleRect.minX + radius, y: bubbleRect.maxY - radius),
+            radius: radius,
+            startAngle: .pi / 2,
+            endAngle: .pi,
+            clockwise: false
+        )
+        path.addLine(to: CGPoint(x: bubbleRect.minX, y: bubbleRect.minY + radius))
+        path.addArc(
+            center: CGPoint(x: bubbleRect.minX + radius, y: bubbleRect.minY + radius),
+            radius: radius,
+            startAngle: .pi,
+            endAngle: .pi * 1.5,
+            clockwise: false
+        )
+        path.closeSubpath()
+
+        // Render the tooltip path only while a graphics context is available.
+        if let context = NSGraphicsContext.current?.cgContext {
+            context.addPath(path)
+            context.setFillColor(background.cgColor)
+            context.fillPath()
+
+            context.addPath(path)
+            context.setStrokeColor(border.cgColor)
+            context.setLineWidth(1)
+            context.strokePath()
+        }
+
+        let attributed = Self.attributedMessage(message, color: foreground)
+        let textRect = bubbleRect.insetBy(
+            dx: Self.horizontalPadding,
+            dy: Self.verticalPadding
+        )
+        attributed.draw(with: textRect, options: [.usesLineFragmentOrigin, .usesFontLeading])
+    }
+}
+
+private let tooltipWindowInset: CGFloat = 18
