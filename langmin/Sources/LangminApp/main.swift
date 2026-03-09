@@ -1285,3 +1285,470 @@ func recognizeTextInImageFile(_ url: URL) throws -> String {
 
     return try recognizeText(in: cgImage)
 }
+
+// recognizeText(cgImage): Use Vision's accurate recognition and automatic
+// language detection.
+func recognizeText(in cgImage: CGImage) throws -> String {
+    let request = VNRecognizeTextRequest()
+    request.recognitionLevel = .accurate
+    request.usesLanguageCorrection = true
+    request.automaticallyDetectsLanguage = true
+
+    let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
+    try handler.perform([request])
+
+    // Rebuild reading order: group fragments by baseline, sort rows top to bottom,
+    // then sort each row left to right.
+    struct Fragment {
+        let text: String
+        let box: CGRect
+    }
+
+    let fragments: [Fragment] = (request.results ?? []).compactMap { observation in
+        // Ignore OCR observations that have no recognized text candidate.
+        guard let candidate = observation.topCandidates(1).first else {
+            return nil
+        }
+        return Fragment(text: candidate.string, box: observation.boundingBox)
+    }
+
+    // Normalized Vision coordinates put the origin bottom-left, so a larger
+    // midY means higher on the page.
+    let topToBottom = fragments.sorted { $0.box.midY > $1.box.midY }
+    var rows: [[Fragment]] = []
+    // Group recognized fragments into visual rows from top to bottom.
+    for fragment in topToBottom {
+        // Compare a fragment with the last row's anchor before starting a new row.
+        if let row = rows.last, let anchor = row.first {
+            let tolerance = max(anchor.box.height, fragment.box.height) * 0.6
+            // Treat fragments with similar vertical centers as part of the same text row.
+            if abs(anchor.box.midY - fragment.box.midY) < tolerance {
+                rows[rows.count - 1].append(fragment)
+                continue
+            }
+        }
+        rows.append([fragment])
+    }
+
+    let lines = rows.map { row in
+        row.sorted { $0.box.minX < $1.box.minX }
+            .map(\.text)
+            .joined(separator: "  ")
+    }
+    return lines.joined(separator: "\n")
+}
+
+// Accept typed text, documents, image OCR, and audio transcripts in one editable input view.
+final class LauncherInputView: NSTextView {
+    var placeholderString = "" { didSet { needsDisplay = true; onPresentationChange?() } }
+    var onSubmit: (() -> Void)?
+    var onFocusChange: ((Bool) -> Void)?
+    // Let the welcome view follow edits and imports without owning the text view's delegate.
+    var onPresentationChange: (() -> Void)?
+    var usesCenteredPlaceholder = false
+    private(set) var isReceivingFileDrop = false {
+        didSet { /* Refresh the drop appearance only when the hover state actually changes. */ if oldValue != isReceivingFileDrop { onPresentationChange?() } }
+    }
+    private var fileDropRegistered = false
+    private var isExtractingDroppedText = false { didSet { needsDisplay = true; onPresentationChange?() } }
+    private var audioImport: AudioFileImportController?
+    var isImportingFiles: Bool { isExtractingDroppedText }
+
+    // Programmatic prefills and resets must hide or restore the invitation, just like typing.
+    override var string: String { didSet { needsDisplay = true; onPresentationChange?() } }
+
+    // becomeFirstResponder(): Notify the launcher when its input gains keyboard
+    // focus.
+    override func becomeFirstResponder() -> Bool {
+        let accepted = super.becomeFirstResponder()
+        // Report input focus only after AppKit accepts it.
+        if accepted { onFocusChange?(true) }
+        return accepted
+    }
+
+    // resignFirstResponder(): Notify the launcher when its input loses keyboard
+    // focus.
+    override func resignFirstResponder() -> Bool {
+        let accepted = super.resignFirstResponder()
+        // Report input blur only after AppKit accepts the focus change.
+        if accepted { onFocusChange?(false) }
+        return accepted
+    }
+
+    // keyDown(event): Keep text undo local and handle the launcher's submit
+    // shortcut before ordinary typing.
+    override func keyDown(with event: NSEvent) {
+        // Keep undo and redo in the focused launcher input.
+        if handleFocusedTextUndoRedoShortcut(event, in: self) {
+            return
+        }
+
+        // Check submission modifiers only for Return.
+        if event.keyCode == 36 {
+            let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            // Submit with Command-Return or Control-Return while preserving ordinary newlines.
+            if modifiers.contains(.command) || modifiers.contains(.control) {
+                onSubmit?()
+                return
+            }
+        }
+        super.keyDown(with: event)
+    }
+
+    // performKeyEquivalent(event): Give the focused input first refusal on undo
+    // and redo menu shortcuts.
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        // Consume local undo and redo before they reach other menu handlers.
+        if handleFocusedTextUndoRedoShortcut(event, in: self) {
+            return true
+        }
+
+        return super.performKeyEquivalent(with: event)
+    }
+
+    // didChangeText(): Refresh the empty-state placeholder after each edit.
+    override func didChangeText() {
+        super.didChangeText()
+        needsDisplay = true
+        onPresentationChange?()
+    }
+
+    // viewDidMoveToWindow(): Add file types without replacing NSTextView's
+    // registrations for text drags.
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        // Register file dragging once without dropping the text view's existing drag types.
+        if !fileDropRegistered {
+            registerForDraggedTypes(registeredDraggedTypes + [.fileURL])
+            fileDropRegistered = true
+        }
+    }
+
+    // extractableFileURLs(pasteboard): Read only file URLs whose formats
+    // Langmin can turn into text.
+    private func extractableFileURLs(in pasteboard: NSPasteboard) -> [URL] {
+        let options: [NSPasteboard.ReadingOptionKey: Any] = [.urlReadingFileURLsOnly: true]
+        let urls = pasteboard.readObjects(
+            forClasses: [NSURL.self],
+            options: options
+        ) as? [URL] ?? []
+        return urls.filter(droppedFileSupportsTextExtraction)
+    }
+
+    // draggingEntered(sender): Advertise a copy drop for extractable files;
+    // defer other drag types to AppKit.
+    override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
+        isReceivingFileDrop = !extractableFileURLs(in: sender.draggingPasteboard).isEmpty
+        return isReceivingFileDrop ? .copy : super.draggingEntered(sender)
+    }
+
+    // draggingUpdated(sender): Keep the drag cursor in sync with the
+    // pasteboard's extractable content.
+    override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
+        isReceivingFileDrop = !extractableFileURLs(in: sender.draggingPasteboard).isEmpty
+        return isReceivingFileDrop ? .copy : super.draggingUpdated(sender)
+    }
+
+    // draggingExited(sender): Restore the idle invitation when files leave the
+    // editor without being dropped.
+    override func draggingExited(_ sender: NSDraggingInfo?) {
+        isReceivingFileDrop = false
+        super.draggingExited(sender)
+    }
+
+    // performDragOperation(sender): Insert document text or audio transcripts
+    // at the drop location; preserve ordinary text dragging.
+    override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        defer { isReceivingFileDrop = false }
+        let urls = extractableFileURLs(in: sender.draggingPasteboard)
+        // Use normal text-view dragging when no extractable file URLs were supplied.
+        guard !urls.isEmpty else {
+            return super.performDragOperation(sender)
+        }
+
+        let point = convert(sender.draggingLocation, from: nil)
+        insertExtractedText(from: urls, at: characterIndexForInsertion(at: point))
+        return true
+    }
+
+    // validateUserInterfaceItem(item): Enable Paste for supported documents,
+    // images, and audio files.
+    override func validateUserInterfaceItem(_ item: NSValidatedUserInterfaceItem) -> Bool {
+        // Enable Paste when the pasteboard contains supported files or image content for extraction.
+        if item.action == #selector(NSText.paste(_:)), pasteboardCarriesExtractableContent(.general) {
+            return true
+        }
+
+        return super.validateUserInterfaceItem(item)
+    }
+
+    // pasteboardCarriesExtractableContent(pasteboard): Recognize file or image
+    // content that needs extraction instead of plain-text paste.
+    private func pasteboardCarriesExtractableContent(_ pasteboard: NSPasteboard) -> Bool {
+        !extractableFileURLs(in: pasteboard).isEmpty
+            || (pasteboard.string(forType: .string) == nil && pasteboardImage(pasteboard) != nil)
+    }
+
+    // paste(sender): Turn pasted documents, images, and recordings into text;
+    // paste ordinary text directly.
+    override func paste(_ sender: Any?) {
+        let pasteboard = NSPasteboard.general
+
+        let urls = extractableFileURLs(in: pasteboard)
+        if !urls.isEmpty {
+            // Pasted file URLs may lack sandbox access. Check before extraction and suggest dragging the
+            // file instead.
+            let anyReadable = urls.contains { FileManager.default.isReadableFile(atPath: $0.path) }
+            // Explain when pasted files contain no supported readable content.
+            guard anyReadable else {
+                let alert = NSAlert()
+                alert.messageText = urls.count == 1
+                    ? localized("pasted_file_denied", "Langmin can't access the pasted file")
+                    : localized("pasted_files_denied", "Langmin can't access the pasted files")
+                alert.informativeText = localized("pasted_files_denied_body", "macOS did not grant access to these files. Drag them into this window instead.")
+                alert.alertStyle = .warning
+                alert.runModal()
+                return
+            }
+            insertExtractedText(from: urls, at: selectedRange().location)
+            return
+        }
+        // Use OCR for a pasted image only when there is no plain-text pasteboard value.
+        if pasteboard.string(forType: .string) == nil, let image = pasteboardImage(pasteboard) {
+            insertRecognizedText(from: image, at: selectedRange().location)
+            return
+        }
+
+        super.paste(sender)
+    }
+
+    // pasteboardImage(pasteboard): Decode pasteboard image data into pixels for
+    // local text recognition.
+    private func pasteboardImage(_ pasteboard: NSPasteboard) -> CGImage? {
+        // Prefer directly supplied PNG or TIFF bytes when decoding a pasteboard image.
+        if let data = pasteboard.data(forType: .png) ?? pasteboard.data(forType: .tiff),
+           let rep = NSBitmapImageRep(data: data),
+           let cgImage = rep.cgImage {
+            return cgImage
+        }
+
+        // Try NSImage for promised or less common pasteboard image formats.
+        guard let image = NSImage(pasteboard: pasteboard) else {
+            return nil
+        }
+
+        var rect = NSRect(origin: .zero, size: image.size)
+        return image.cgImage(forProposedRect: &rect, context: nil, hints: nil)
+    }
+
+    // insertExtractedText(urls, index): Read dropped files with a progress
+    // message and insert their combined text.
+    private func insertExtractedText(from urls: [URL], at index: Int) {
+        // Mixed batches keep their drop order while audio uses a cancellable progress sheet.
+        if urls.contains(where: droppedFileSupportsAudioTranscription) {
+            // Avoid overlapping imports and require a window to host the progress sheet.
+            guard !isExtractingDroppedText, let window else { return }
+            let preferences = loadAppPreferences()
+            isExtractingDroppedText = true
+            isEditable = false
+            let controller = AudioFileImportController(
+                parent: window, urls: urls,
+                provider: .resolved(preferences.transcriptionProvider), language: preferences.transcriptionLanguage
+            ) { [weak self] pieces, failures in
+                // Ignore completion if the input view has already been released.
+                guard let self else { return }
+                self.isExtractingDroppedText = false
+                self.isEditable = true
+                self.audioImport = nil
+                self.finishDropInsertion(pieces: pieces, failures: failures, at: index)
+            }
+            audioImport = controller
+            controller.start()
+            return
+        }
+        let progressText = urls.count == 1
+            ? "Reading text from \(urls[0].lastPathComponent)..."
+            : "Reading text from \(urls.count) files..."
+
+        runTextExtraction(progressText: progressText, at: index) {
+            var pieces: [String] = []
+            var failures: [String] = []
+            // Extract each dropped file independently so one failure does not discard readable siblings.
+            for url in urls {
+                // Extract each dropped file independently and collect any file-specific failure.
+                do {
+                    pieces.append(try extractTextFromDroppedFile(url))
+                } catch {
+                    // Collect per-file errors while continuing with the remaining dropped files.
+                    failures.append(error.localizedDescription)
+                }
+            }
+            return (pieces, failures)
+        }
+    }
+
+    // insertRecognizedText(image, index): Run local OCR on a pasted image and
+    // report recognition or empty-text errors.
+    private func insertRecognizedText(from image: CGImage, at index: Int) {
+        runTextExtraction(progressText: "Recognizing text in pasted image...", at: index) {
+            // Attempt OCR for pasted image content before returning the combined extraction result.
+            do {
+                let text = try recognizeText(in: image)
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                // Report an image whose OCR result contains only whitespace.
+                guard !text.isEmpty else {
+                    return ([], ["No readable text was found in the pasted image."])
+                }
+                return ([text], [])
+            } catch {
+                // Return recognition failure details through the shared extraction-result path.
+                return ([], [error.localizedDescription])
+            }
+        }
+    }
+
+    // runTextExtraction(progressText, index, work): Run extraction off the main
+    // thread and keep the field read-only until it finishes.
+    private func runTextExtraction(
+        progressText: String,
+        at index: Int,
+        work: @escaping () -> ([String], [String])
+    ) {
+        // Do not start a second extraction while one is already inserting dropped content.
+        guard !isExtractingDroppedText else {
+            return
+        }
+
+        isExtractingDroppedText = true
+        isEditable = false
+        let restoredPlaceholder = placeholderString
+        placeholderString = progressText
+
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let (pieces, failures) = work()
+
+            DispatchQueue.main.async {
+                // Ignore extraction completion after the input view is released.
+                guard let self else {
+                    return
+                }
+
+                self.isExtractingDroppedText = false
+                self.isEditable = true
+                self.placeholderString = restoredPlaceholder
+                self.finishDropInsertion(pieces: pieces, failures: failures, at: index)
+            }
+        }
+    }
+
+    // finishDropInsertion(pieces, failures, index): Insert with undo support
+    // and blank lines separating the extracted text from existing input.
+    private func finishDropInsertion(pieces: [String], failures: [String], at index: Int) {
+        // Insert successfully extracted pieces even when other files in the batch failed.
+        if !pieces.isEmpty {
+            let existing = string as NSString
+            let insertion = min(index, existing.length)
+            let newline = ("\n" as NSString).character(at: 0)
+            var text = pieces.joined(separator: "\n\n")
+            // Separate inserted text from preceding content when there is no existing newline boundary.
+            if insertion > 0 && existing.character(at: insertion - 1) != newline {
+                text = "\n\n" + text
+            }
+            // Separate inserted text from following content when there is no existing newline boundary.
+            if insertion < existing.length && existing.character(at: insertion) != newline {
+                text += "\n\n"
+            }
+
+            setSelectedRange(NSRange(location: insertion, length: 0))
+            insertText(text, replacementRange: NSRange(location: insertion, length: 0))
+            window?.makeFirstResponder(self)
+        }
+
+        // Show collected extraction errors after inserting any successful text.
+        if !failures.isEmpty {
+            let alert = NSAlert()
+            alert.messageText = failures.count == 1
+                ? "Could not read a dropped file"
+                : "Could not read some dropped files"
+            alert.informativeText = failures.joined(separator: "\n")
+            alert.alertStyle = .warning
+            alert.runModal()
+        }
+    }
+
+    // clearUndoably([actionName = "Clear Text"]): Clear the input through the
+    // text system so the user can undo it.
+    func clearUndoably(actionName: String = "Clear Text") {
+        let fullRange = NSRange(location: 0, length: (string as NSString).length)
+        // Do not create an undo operation for clearing an already empty input.
+        guard fullRange.length > 0 else {
+            return
+        }
+
+        // Respect text-system approval before recording and applying the clear operation.
+        if shouldChangeText(in: fullRange, replacementString: "") {
+            replaceCharacters(in: fullRange, with: "")
+            didChangeText()
+            setSelectedRange(NSRange(location: 0, length: 0))
+            undoManager?.setActionName(actionName)
+        }
+    }
+
+    // draw(dirtyRect): Draw a plain prompt during extraction or when no
+    // centered invitation is installed.
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        // Draw placeholder text only when the input is empty and a prompt was supplied.
+        guard string.isEmpty, !placeholderString.isEmpty,
+              !usesCenteredPlaceholder || isImportingFiles else { return }
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: font ?? NSFont.systemFont(ofSize: 16),
+            .foregroundColor: NSColor.placeholderTextColor
+        ]
+        let padding = textContainer?.lineFragmentPadding ?? 0
+        placeholderString.draw(
+            at: NSPoint(x: textContainerInset.width + padding, y: textContainerInset.height),
+            withAttributes: attributes
+        )
+    }
+}
+
+// Rounded surface around the launcher input that shows an accent focus ring.
+final class LauncherFieldContainer: NSView {
+    var isFocused = false { didSet { needsDisplay = true } }
+    var isDropTarget = false { didSet { needsDisplay = true } }
+
+    // viewDidChangeEffectiveAppearance(): Refresh the pane fill and outline
+    // when the window changes appearance.
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        needsDisplay = true
+    }
+
+    // draw(dirtyRect): Draw the launcher's rounded input surface and focus
+    // outline.
+    override func draw(_ dirtyRect: NSRect) {
+        let isHighlighted = isFocused || isDropTarget
+        let isDark = effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        // Match the titlebar and menu dividers with a pixel-aligned hairline in light mode.
+        let usesHairline = !isHighlighted && !isDark
+        let neutralWidth: CGFloat = usesHairline ? 1 / (window?.backingScaleFactor ?? 2) : 1
+        let inset: CGFloat = usesHairline ? 1 - neutralWidth / 2 : 1
+        let path = NSBezierPath(roundedRect: bounds.insetBy(dx: inset, dy: inset), xRadius: 12, yRadius: 12)
+        // Give both light-mode panes a pale-gray well against the white window.
+        let fill = isDark ? langminFieldFillColor : NSColor(calibratedWhite: 0.97, alpha: 1)
+        fill.setFill()
+        path.fill()
+
+        // Highlight keyboard focus and accepted file drags with the same accent outline.
+        if isHighlighted {
+            NSColor.controlAccentColor.setStroke()
+            path.lineWidth = 2
+        } else {
+            // Use a neutral outline when input focus is elsewhere.
+            langminControlBorderColor.setStroke()
+            path.lineWidth = neutralWidth
+        }
+        path.stroke()
+    }
+}
