@@ -2045,3 +2045,73 @@ final class TooltipBubbleView: NSView {
 }
 
 private let tooltipWindowInset: CGFloat = 18
+private let tooltipOwnerGap: CGFloat = -6
+
+// tooltipMaxBubbleWidth(hostWindow): Reserve margins within the host window
+// while allowing a minimum readable tooltip width.
+private func tooltipMaxBubbleWidth(in hostWindow: NSWindow) -> CGFloat {
+    max(96, hostWindow.frame.width - tooltipWindowInset * 2)
+}
+
+// tooltipPlacement(owner, hostWindow, size, [anchorXOffset = 0], [yOffset =
+// tooltipOwnerGap], [extraXShift = 0], [placeBelow = false], [containerFrame =
+// nil], [windowEdgeInset = tooltipWindowInset]): Place the tooltip near its
+// owner while keeping the bubble inside the host window.
+private func tooltipPlacement(
+    for owner: NSView,
+    in hostWindow: NSWindow,
+    size: NSSize,
+    anchorXOffset: CGFloat = 0,
+    yOffset: CGFloat = tooltipOwnerGap,
+    extraXShift: CGFloat = 0,
+    placeBelow: Bool = false,
+    constrainingTo containerFrame: NSRect? = nil,
+    // How close the bubble may sit to the window edge. Small for edge controls
+    // (e.g. the titlebar bookmark) so the arrow can reach a control near the corner.
+    windowEdgeInset: CGFloat = tooltipWindowInset
+) -> (origin: NSPoint, arrowX: CGFloat) {
+    let localRect = owner.convert(owner.bounds, to: nil)
+    let screenRect = hostWindow.convertToScreen(localRect)
+    let anchorX = screenRect.midX + anchorXOffset
+    let windowFrame = containerFrame ?? hostWindow.frame
+    let minimumX = windowFrame.minX + windowEdgeInset
+    let maximumX = windowFrame.maxX - windowEdgeInset - size.width
+    let minimumY = windowFrame.minY + windowEdgeInset
+    let maximumY = windowFrame.maxY - windowEdgeInset - size.height
+
+    var origin = NSPoint(
+        x: anchorX - size.width / 2,
+        // Above the owner (arrow down) by default; below it (arrow up) when asked —
+        // titlebar controls sit too high for a bubble to fit above them.
+        y: placeBelow ? (screenRect.minY - size.height - yOffset) : (screenRect.maxY + yOffset)
+    )
+
+    // Clamp the bubble horizontally when it fits inside the available window width.
+    if maximumX >= minimumX {
+        origin.x = min(max(origin.x, minimumX), maximumX)
+    } else {
+        // Center an oversized bubble when the window cannot contain its preferred width.
+        origin.x = windowFrame.midX - size.width / 2
+    }
+
+    // Optional nudge that may extend past the window edge, but stays on screen.
+    if extraXShift != 0 {
+        origin.x += extraXShift
+        // Apply a second horizontal constraint using the display's visible frame.
+        if let screenFrame = hostWindow.screen?.visibleFrame {
+            let screenMin = screenFrame.minX + tooltipWindowInset
+            let screenMax = screenFrame.maxX - tooltipWindowInset - size.width
+            // Clamp to the screen when the bubble fits between its reserved margins.
+            if screenMax >= screenMin {
+                origin.x = min(max(origin.x, screenMin), screenMax)
+            }
+        }
+    }
+
+    // Clamp vertically when the available frame can contain the bubble height.
+    if maximumY >= minimumY {
+        origin.y = min(max(origin.y, minimumY), maximumY)
+    }
+
+    return (origin, anchorX - origin.x)
+}
