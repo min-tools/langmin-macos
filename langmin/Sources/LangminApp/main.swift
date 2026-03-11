@@ -2115,3 +2115,342 @@ private func tooltipPlacement(
 
     return (origin, anchorX - origin.x)
 }
+
+// buttonTooltip(owner, hostWindow, message, container, [windowEdgeInset =
+// tooltipWindowInset]): Fit result-button tooltips inside the inline pane or
+// the standalone window's content area.
+private func buttonTooltip(
+    for owner: NSView, in hostWindow: NSWindow, message: String,
+    container: NSView?, windowEdgeInset: CGFloat = tooltipWindowInset
+) -> (bubble: TooltipBubbleView, origin: NSPoint) {
+    let containerFrame = container.map { hostWindow.convertToScreen($0.convert($0.bounds, to: nil)) }
+        ?? hostWindow.convertToScreen(hostWindow.contentLayoutRect)
+    let inset = container == nil ? windowEdgeInset : tooltipWindowInset
+    // Leave room for the pointer near side edges and keep the bubble clear of rounded corners.
+    var availableFrame = containerFrame.insetBy(dx: min(inset, 4), dy: inset)
+    // Restrict tooltip placement to the overlap between its host bounds and visible display.
+    if let screenFrame = hostWindow.screen?.visibleFrame, availableFrame.intersects(screenFrame) {
+        availableFrame = availableFrame.intersection(screenFrame)
+    }
+    let maxWidth = max(96, availableFrame.width)
+    let size = TooltipBubbleView.preferredSize(for: message, maxBubbleWidth: maxWidth)
+    let ownerFrame = hostWindow.convertToScreen(owner.convert(owner.bounds, to: nil))
+    let gap: CGFloat = 4
+    let above = availableFrame.maxY - ownerFrame.maxY - gap
+    let below = ownerFrame.minY - availableFrame.minY - gap
+    // Prefer above when it fits; otherwise choose the larger space and clamp to the container.
+    let placeBelow = size.height > above && (size.height <= below || below > above)
+    let bubble = TooltipBubbleView(
+        message: message,
+        darkAppearance: owner.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua,
+        maxBubbleWidth: maxWidth,
+        pointsUp: placeBelow
+    )
+    let placement = tooltipPlacement(
+        for: owner, in: hostWindow, size: size, yOffset: gap,
+        placeBelow: placeBelow, constrainingTo: availableFrame, windowEdgeInset: 0
+    )
+    bubble.pointArrow(at: placement.arrowX)
+    return (bubble, placement.origin)
+}
+
+// Info label with a tooltip matched to the app's other controls.
+final class TooltipInfoLabel: NSTextField {
+    var tooltipMessage = ""
+    var tooltipAnchorXOffset: CGFloat = -10
+    var tooltipYOffset: CGFloat = tooltipOwnerGap
+    var tooltipMaximumWidth: CGFloat?
+    var tooltipExtraXShift: CGFloat = 0
+    private var trackingArea: NSTrackingArea?
+    private var tooltipWindow: NSPanel?
+
+    // init(): Create a noneditable information marker with custom tooltip
+    // handling.
+    init() {
+        super.init(frame: .zero)
+        stringValue = "ⓘ"
+        isBezeled = false
+        isBordered = false
+        drawsBackground = false
+        isEditable = false
+        isSelectable = false
+        alignment = .center
+        textColor = .secondaryLabelColor
+        font = NSFont.systemFont(ofSize: 12, weight: .medium)
+    }
+
+    // init?(coder): Information markers are configured in code rather than
+    // decoded from a nib.
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    // updateTrackingAreas(): Keep information-marker hover tracking aligned
+    // with its current bounds.
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+
+        // Replace the information marker's old tracking area after layout changes.
+        if let trackingArea {
+            removeTrackingArea(trackingArea)
+        }
+
+        let area = NSTrackingArea(
+            rect: bounds,
+            options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
+            owner: self,
+            userInfo: nil
+        )
+        addTrackingArea(area)
+        trackingArea = area
+    }
+
+    // mouseEntered(event): Show the explanatory tooltip when the pointer enters
+    // the information marker.
+    override func mouseEntered(with event: NSEvent) {
+        showTooltip()
+    }
+
+    // mouseExited(event): Dismiss the information tooltip when the pointer
+    // leaves.
+    override func mouseExited(with event: NSEvent) {
+        hideTooltip()
+    }
+
+    // viewDidMoveToWindow(): Dismiss any tooltip when the information marker
+    // leaves its window.
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+
+        // Dismiss the tooltip when its marker leaves the window.
+        if window == nil {
+            hideTooltip()
+        }
+    }
+
+    // showTooltip(): Position the bubble above the icon while keeping it inside
+    // the owner window.
+    private func showTooltip() {
+        hideTooltip()
+
+        // Show information only when the marker has a host window and nonempty help text.
+        guard let hostWindow = window, !tooltipMessage.isEmpty else {
+            return
+        }
+
+        let isDark = effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        let maxBubbleWidth = tooltipMaximumWidth.map {
+            min($0, tooltipMaxBubbleWidth(in: hostWindow))
+        } ?? tooltipMaxBubbleWidth(in: hostWindow)
+        let bubbleView = TooltipBubbleView(
+            message: tooltipMessage,
+            darkAppearance: isDark,
+            maxBubbleWidth: maxBubbleWidth
+        )
+        let size = bubbleView.frame.size
+        let placement = tooltipPlacement(
+            for: self,
+            in: hostWindow,
+            size: size,
+            anchorXOffset: tooltipAnchorXOffset,
+            yOffset: tooltipYOffset,
+            extraXShift: tooltipExtraXShift
+        )
+        bubbleView.pointArrow(at: placement.arrowX)
+
+        let panel = NSPanel(
+            contentRect: NSRect(origin: placement.origin, size: size),
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+        panel.backgroundColor = .clear
+        panel.contentView = bubbleView
+        panel.hasShadow = true
+        panel.ignoresMouseEvents = true
+        panel.isOpaque = false
+        panel.level = .floating
+        panel.collectionBehavior = [.transient, .ignoresCycle]
+        panel.orderFront(nil)
+        tooltipWindow = panel
+    }
+
+    // hideTooltip(): Remove the transient tooltip window when hover ends or the
+    // owner closes.
+    private func hideTooltip() {
+        tooltipWindow?.orderOut(nil)
+        tooltipWindow = nil
+    }
+}
+
+// Toolbar buttons use the same custom tooltip bubble as info labels.
+final class TooltipButton: NSButton {
+    var drawsOutline = true
+    var contentOffset = NSPoint.zero
+    var tooltipMessage = "" {
+        didSet {
+            // Refresh an already visible tooltip when its content changes.
+            if tooltipWindow != nil {
+                showTooltip()
+            }
+        }
+    }
+    weak var tooltipContainerView: NSView?
+    private var trackingArea: NSTrackingArea?
+    private var tooltipWindow: NSPanel?
+    private var isMouseInside = false
+
+    override var isHighlighted: Bool {
+        didSet {
+            refreshBackground()
+        }
+    }
+
+    override var isOpaque: Bool {
+        false
+    }
+
+    // viewDidChangeEffectiveAppearance(): Redraw the outline and interaction
+    // fill after an appearance change.
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        refreshBackground()
+    }
+
+    // Remove the button cell's alignment insets so Auto Layout sizes the actual
+    // bounds and keeps the background square.
+    override var alignmentRectInsets: NSEdgeInsets {
+        NSEdgeInsets()
+    }
+
+    // updateTrackingAreas(): Update hover tracking for the tooltip button's
+    // current bounds.
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+
+        // Replace the tooltip button's tracking area after its bounds change.
+        if let trackingArea {
+            removeTrackingArea(trackingArea)
+        }
+
+        let area = NSTrackingArea(
+            rect: bounds,
+            options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
+            owner: self,
+            userInfo: nil
+        )
+        addTrackingArea(area)
+        trackingArea = area
+    }
+
+    // mouseEntered(event): Show the button's hover feedback and explanatory
+    // tooltip together.
+    override func mouseEntered(with event: NSEvent) {
+        isMouseInside = true
+        refreshBackground()
+        showTooltip()
+    }
+
+    // mouseExited(event): Clear hover feedback and dismiss the tooltip when the
+    // pointer leaves.
+    override func mouseExited(with event: NSEvent) {
+        isMouseInside = false
+        refreshBackground()
+        hideTooltip()
+    }
+
+    // viewDidMoveToWindow(): Close any tooltip when the button is removed from
+    // its window.
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+
+        // Dismiss the button's tooltip when its view leaves the window.
+        if window == nil {
+            hideTooltip()
+        }
+    }
+
+    fileprivate var interactionFillColor: NSColor? {
+        // Use pressed feedback while AppKit marks the button highlighted.
+        if isHighlighted {
+            return NSColor.controlAccentColor.withAlphaComponent(0.12)
+        }
+        return isMouseInside ? NSColor.controlAccentColor.withAlphaComponent(0.06) : nil
+    }
+
+    // refreshBackground(): Invalidate the button and, for grouped buttons, the
+    // shared background that draws its state.
+    private func refreshBackground() {
+        needsDisplay = true
+        // Ask the group to redraw hover or pressed state when it owns the button's outline.
+        if !drawsOutline { superview?.needsDisplay = true }
+    }
+
+    // draw(dirtyRect): Draw a standalone outline when needed, then render the
+    // button's content.
+    override func draw(_ dirtyRect: NSRect) {
+        // Groups draw the shared background, including each button's hover and pressed fill.
+        if drawsOutline {
+            let rect = bounds.insetBy(dx: 0.5, dy: 0.5)
+            let path = NSBezierPath(roundedRect: rect, xRadius: 7, yRadius: 7)
+            (interactionFillColor ?? NSColor.windowBackgroundColor.withAlphaComponent(0.35)).setFill()
+            path.fill()
+            langminControlBorderColor.setStroke()
+            path.lineWidth = 1
+            path.stroke()
+        }
+
+        // Adjust the label or icon without moving its outline, hover fill or hit area.
+        if contentOffset != .zero {
+            NSGraphicsContext.saveGraphicsState()
+            let offset = NSAffineTransform()
+            offset.translateX(by: contentOffset.x, yBy: isFlipped ? -contentOffset.y : contentOffset.y)
+            offset.concat()
+            super.draw(dirtyRect)
+            NSGraphicsContext.restoreGraphicsState()
+        } else {
+            // Let AppKit draw content types outside this button's custom symbol treatment.
+            super.draw(dirtyRect)
+        }
+    }
+
+    // showTooltip(): Keep the bubble within its result pane or standalone
+    // window.
+    private func showTooltip() {
+        hideTooltip()
+
+        // Require a host window and explanatory text before showing a button tooltip.
+        guard let hostWindow = window, !tooltipMessage.isEmpty else {
+            return
+        }
+
+        let tooltip = buttonTooltip(
+            for: self, in: hostWindow, message: tooltipMessage, container: tooltipContainerView
+        )
+        let bubbleView = tooltip.bubble
+        let size = bubbleView.frame.size
+
+        let panel = NSPanel(
+            contentRect: NSRect(origin: tooltip.origin, size: size),
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+        panel.backgroundColor = .clear
+        panel.contentView = bubbleView
+        panel.hasShadow = true
+        panel.ignoresMouseEvents = true
+        panel.isOpaque = false
+        panel.level = .floating
+        panel.collectionBehavior = [.transient, .ignoresCycle]
+        panel.orderFront(nil)
+        tooltipWindow = panel
+    }
+
+    // hideTooltip(): Remove the transient tooltip window when hover ends or the
+    // owner closes.
+    private func hideTooltip() {
+        tooltipWindow?.orderOut(nil)
+        tooltipWindow = nil
+    }
+}
