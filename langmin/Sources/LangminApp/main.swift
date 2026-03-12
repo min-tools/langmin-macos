@@ -2454,3 +2454,145 @@ final class TooltipButton: NSButton {
         tooltipWindow = nil
     }
 }
+
+// Unbordered title-bar actions use the shared tooltip placement.
+final class TitlebarTooltipButton: NSButton {
+    var tooltipMessage = "" {
+        didSet {
+            // Refresh a visible tooltip when the action label changes.
+            if tooltipWindow != nil {
+                showTooltip()
+            }
+        }
+    }
+    weak var tooltipContainerView: NSView?
+    private var trackingArea: NSTrackingArea?
+    private var tooltipWindow: NSPanel?
+
+    override var isHidden: Bool {
+        didSet {
+            // Hide a tooltip when its owning view becomes hidden.
+            if isHidden { hideTooltip() }
+        }
+    }
+
+    // updateTrackingAreas(): Keep text-tooltip hover tracking aligned with the
+    // view's current bounds.
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        // Replace the text-tooltip owner's old tracking region.
+        if let trackingArea {
+            removeTrackingArea(trackingArea)
+        }
+        let area = NSTrackingArea(
+            rect: bounds,
+            options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
+            owner: self,
+            userInfo: nil
+        )
+        addTrackingArea(area)
+        trackingArea = area
+    }
+
+    // mouseEntered(event): Show the text tooltip when the pointer enters its
+    // owner.
+    override func mouseEntered(with event: NSEvent) {
+        showTooltip()
+    }
+
+    // mouseExited(event): Dismiss the text tooltip when the pointer leaves its
+    // owner.
+    override func mouseExited(with event: NSEvent) {
+        hideTooltip()
+    }
+
+    // viewDidMoveToWindow(): Dismiss the text tooltip if its owner no longer
+    // belongs to a window.
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        // Dismiss the text tooltip when its owner leaves the window.
+        if window == nil {
+            hideTooltip()
+        }
+    }
+
+    // showTooltip(): Use the shared fit decision; a titlebar naturally leaves
+    // room only below.
+    private func showTooltip() {
+        hideTooltip()
+
+        // Require a host window and nonempty content before presenting the text tooltip.
+        guard let hostWindow = window, !tooltipMessage.isEmpty else {
+            return
+        }
+
+        let tooltip = buttonTooltip(
+            for: self, in: hostWindow, message: tooltipMessage, container: tooltipContainerView,
+            windowEdgeInset: 0
+        )
+        let bubbleView = tooltip.bubble
+        let size = bubbleView.frame.size
+
+        let panel = NSPanel(
+            contentRect: NSRect(origin: tooltip.origin, size: size),
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+        panel.backgroundColor = .clear
+        panel.contentView = bubbleView
+        panel.hasShadow = true
+        panel.ignoresMouseEvents = true
+        panel.isOpaque = false
+        panel.level = .floating
+        panel.collectionBehavior = [.transient, .ignoresCycle]
+        panel.orderFront(nil)
+        tooltipWindow = panel
+    }
+
+    // hideTooltip(): Hide and release the tooltip window without affecting its
+    // owner.
+    private func hideTooltip() {
+        tooltipWindow?.orderOut(nil)
+        tooltipWindow = nil
+    }
+}
+
+// Built-in text models for the model pickers.
+let explanationModelOptions: [PreferenceOption] = [
+    PreferenceOption(id: "gpt-6-astra", title: "GPT-6 Astra", note: "web research"),
+    PreferenceOption(id: "gpt-5.6-sol", title: "GPT-5.6 Sol", note: "web research"),
+    PreferenceOption(id: "gpt-5.6-terra", title: "GPT-5.6 Terra", note: "web research"),
+    PreferenceOption(id: "gpt-5.6-luna", title: "GPT-5.6 Luna", note: "web research"),
+    PreferenceOption(id: "gpt-5.5", title: "GPT-5.5", note: "web research"),
+    PreferenceOption(id: "gpt-5.4", title: "GPT-5.4", note: "web research"),
+    PreferenceOption(id: "gpt-5.4-mini", title: "GPT-5.4 Mini", note: "web research"),
+    PreferenceOption(id: "gpt-5.4-nano", title: "GPT-5.4 Nano", note: "web research"),
+    PreferenceOption(id: "gpt-4.1", title: "GPT-4.1", note: "web research"),
+    PreferenceOption(id: "gpt-4.1-mini", title: "GPT-4.1 Mini", note: "web research"),
+    PreferenceOption(id: "anthropic:claude-fable-5-1", title: "Claude Fable 5.1", note: "web research"),
+    PreferenceOption(id: "anthropic:claude-fable-5", title: "Claude Fable 5", note: "web research"),
+    PreferenceOption(id: "anthropic:claude-sonnet-5", title: "Claude Sonnet 5", note: "web research"),
+    PreferenceOption(id: "anthropic:claude-sonnet-4-5", title: "Claude Sonnet 4.5", note: "web research"),
+    PreferenceOption(id: "anthropic:claude-haiku-4-5", title: "Claude Haiku", note: "web research"),
+    PreferenceOption(id: "anthropic:claude-opus-4-1", title: "Claude Opus 4.1", note: "web research"),
+    PreferenceOption(id: "gemini:gemini-2.5-pro", title: "Gemini 2.5 Pro", note: "web research"),
+    PreferenceOption(id: "gemini:gemini-2.5-flash", title: "Gemini 2.5 Flash", note: "web research"),
+    PreferenceOption(id: "gemini:gemini-2.5-flash-lite", title: "Gemini Flash Lite", note: "web research"),
+    PreferenceOption(id: "grok:grok-4", title: "Grok 4", note: "xAI"),
+    PreferenceOption(id: "grok:grok-3-mini", title: "Grok 3 Mini", note: "xAI"),
+    PreferenceOption(id: "deepseek:deepseek-chat", title: "DeepSeek Chat", note: "chat"),
+    PreferenceOption(id: "deepseek:deepseek-reasoner", title: "DeepSeek Reasoner", note: "reasoning"),
+    PreferenceOption(id: appleIntelligenceModelID, title: "Apple Intelligence", note: "on this Mac"),
+    PreferenceOption(id: customModelID, title: "Custom Endpoint", note: "OpenAI-compatible endpoint")
+]
+
+// Default to one balanced model per provider. Enable Custom Endpoint only after a model name is set.
+let defaultPreferredTextModelIDs = [
+    "gpt-5.6-terra",
+    "anthropic:claude-sonnet-5",
+    "gemini:gemini-2.5-flash",
+    "grok:grok-4",
+    "deepseek:deepseek-chat",
+    appleIntelligenceModelID
+]
