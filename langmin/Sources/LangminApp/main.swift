@@ -2596,3 +2596,33 @@ let defaultPreferredTextModelIDs = [
     "deepseek:deepseek-chat",
     appleIntelligenceModelID
 ]
+
+// appleIntelligenceIsAvailable():
+// Check local-model availability for the picker and setup. Recheck when starting a request.
+func appleIntelligenceIsAvailable() -> Bool {
+    // The on-device model API is available only on supported macOS versions.
+    guard #available(macOS 26.0, *) else { return false }
+    // Report availability only when Apple's model is ready to answer.
+    if case .available = SystemLanguageModel.default.availability {
+        return true
+    }
+    return false
+}
+
+// explanationModelOptionsDisplaying(customName): Apply the custom model name
+// and show Apple Intelligence availability.
+func explanationModelOptionsDisplaying(customName: String) -> [PreferenceOption] {
+    let name = customName.trimmingCharacters(in: .whitespacesAndNewlines)
+    let appleAvailable = appleIntelligenceIsAvailable()
+    return explanationModelOptions.map { option in
+        // Use the configured display name for the custom model choice.
+        if option.id == customModelID, !name.isEmpty {
+            return PreferenceOption(id: option.id, title: name, note: option.note)
+        }
+        // Explain local unavailability beside the Apple model option.
+        if option.id == appleIntelligenceModelID, !appleAvailable {
+            return PreferenceOption(id: option.id, title: option.title, note: "not available on this Mac")
+        }
+        return option
+    }
+}
