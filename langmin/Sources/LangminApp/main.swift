@@ -2626,3 +2626,48 @@ func explanationModelOptionsDisplaying(customName: String) -> [PreferenceOption]
         return option
     }
 }
+
+// Mark user-added models with an asterisk.
+let extraModelMarker = " *"
+
+// displayedExplanationModelOptions(customName, extraModels): Insert user-added
+// models after their provider's built-in models and mark them with an asterisk.
+func displayedExplanationModelOptions(customName: String, extraModels: [String]) -> [PreferenceOption] {
+    var options = explanationModelOptionsDisplaying(customName: customName)
+    // Insert each valid configured extra model into the provider-ordered menu.
+    for line in extraModels {
+        // Ignore blank or unparseable extra-model entries.
+        guard let parsed = parseExtraModel(line) else {
+            continue
+        }
+        let option = PreferenceOption(
+            id: parsed.id,
+            title: parsed.label + extraModelMarker,
+            note: "added in Advanced"
+        )
+        let provider = textProvider(for: parsed.id).provider
+        // Insert added models after the existing choices from the same provider.
+        if let lastMatch = options.lastIndex(where: {
+            $0.id != customModelID && textProvider(for: $0.id).provider == provider
+        }) {
+            options.insert(option, at: lastMatch + 1)
+        } else if let customIndex = options.firstIndex(where: { $0.id == customModelID }) {
+            // Otherwise place added models before the custom endpoint choice when it exists.
+            options.insert(option, at: customIndex)
+        } else {
+            // Append the model when there is no provider group or custom choice to anchor it.
+            options.append(option)
+        }
+    }
+    return options
+}
+
+// displayedExplanationModelOptions([customName = nil]): Build model display
+// options from the currently saved custom name and extra models.
+func displayedExplanationModelOptions(customName: String? = nil) -> [PreferenceOption] {
+    let preferences = loadAppPreferences()
+    return displayedExplanationModelOptions(
+        customName: customName ?? preferences.customDisplayName,
+        extraModels: preferences.extraModels
+    )
+}
