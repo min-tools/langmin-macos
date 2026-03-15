@@ -2671,3 +2671,48 @@ func displayedExplanationModelOptions(customName: String? = nil) -> [PreferenceO
         extraModels: preferences.extraModels
     )
 }
+
+// enabledExplanationModelOptions([preferences = nil]): Keep enabled models in
+// catalog order. Hide an unconfigured Custom Endpoint and repair an empty or
+// stale list.
+func enabledExplanationModelOptions(_ preferences: AppPreferences? = nil) -> [PreferenceOption] {
+    let preferences = preferences ?? loadAppPreferences()
+    let allOptions = displayedExplanationModelOptions(
+        customName: preferences.customDisplayName,
+        extraModels: preferences.extraModels
+    )
+    let selected = Set(preferences.preferredTextModels)
+    let hasCustomModel = !preferences.customModelName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    let enabled = allOptions.filter {
+        selected.contains($0.id) && ($0.id != customModelID || hasCustomModel)
+    }
+    // Use the enabled shortlist when it contains valid models.
+    if !enabled.isEmpty {
+        return enabled
+    }
+
+    let defaults = Set(defaultPreferredTextModelIDs)
+    return allOptions.filter { defaults.contains($0.id) }
+}
+
+// defaultEnabledExplanationModel(preferences): Keep the preferred model when
+// enabled; otherwise choose from the enabled models.
+func defaultEnabledExplanationModel(_ preferences: AppPreferences) -> String {
+    let enabledIDs = enabledExplanationModelOptions(preferences).map(\.id)
+    // Keep the saved preferred model when it is still enabled.
+    if enabledIDs.contains(preferences.explanationModel) {
+        return preferences.explanationModel
+    }
+    // Prefer the built-in default when it appears in the enabled set.
+    if enabledIDs.contains(defaultExplanationModel) {
+        return defaultExplanationModel
+    }
+    return enabledIDs.first ?? defaultExplanationModel
+}
+
+// Built-in OpenAI speech models.
+let ttsModelOptions: [PreferenceOption] = [
+    PreferenceOption(id: "gpt-4o-mini-tts", title: "GPT-4o Mini TTS", note: "voice instructions"),
+    PreferenceOption(id: "tts-1", title: "TTS-1", note: "lower latency"),
+    PreferenceOption(id: "tts-1-hd", title: "TTS-1 HD", note: "legacy HD voice")
+]
