@@ -2716,3 +2716,49 @@ let ttsModelOptions: [PreferenceOption] = [
     PreferenceOption(id: "tts-1", title: "TTS-1", note: "lower latency"),
     PreferenceOption(id: "tts-1-hd", title: "TTS-1 HD", note: "legacy HD voice")
 ]
+
+// Built-in OpenAI voices and display names.
+let voiceOptions: [PreferenceOption] = [
+    PreferenceOption(id: "marin", title: "Marin", note: "Warm and conversational"),
+    PreferenceOption(id: "cedar", title: "Cedar", note: "Calm and clear"),
+    PreferenceOption(id: "coral", title: "Coral", note: "Warm and friendly"),
+    PreferenceOption(id: "alloy", title: "Alloy", note: "Neutral"),
+    PreferenceOption(id: "ash", title: "Ash", note: "Clear and steady"),
+    PreferenceOption(id: "ballad", title: "Ballad", note: "Smooth and expressive"),
+    PreferenceOption(id: "echo", title: "Echo", note: "Deep and resonant"),
+    PreferenceOption(id: "fable", title: "Fable", note: "Expressive storytelling"),
+    PreferenceOption(id: "nova", title: "Nova", note: "Bright and energetic"),
+    PreferenceOption(id: "onyx", title: "Onyx", note: "Deep and serious"),
+    PreferenceOption(id: "sage", title: "Sage", note: "Calm and measured"),
+    PreferenceOption(id: "shimmer", title: "Shimmer", note: "Soft and upbeat"),
+    PreferenceOption(id: "verse", title: "Verse", note: "Expressive")
+]
+
+// openAIVoiceOptions(): Use fetched OpenAI voices when available, with built-in
+// voices as a fallback. Keep known descriptions.
+func openAIVoiceOptions() -> [PreferenceOption] {
+    let names = cachedOpenAIVoiceNames()
+    // Use the built-in OpenAI voice options when no cached catalog names are available.
+    guard !names.isEmpty else {
+        return voiceOptions
+    }
+    return names.map { name in
+        let id = name.lowercased()
+        // Retain known voice labels and notes when matching them against the refreshed catalog.
+        if let known = voiceOptions.first(where: { $0.id == id }) {
+            return known
+        }
+        return PreferenceOption(id: id, title: name.capitalized, note: "")
+    }
+}
+
+// Built-in fallback xAI Grok voices used until the live catalog is fetched.
+let grokVoiceOptions: [PreferenceOption] = [
+    PreferenceOption(id: "grok:iris", title: "Iris", note: "Multilingual"),
+    PreferenceOption(id: "grok:altair", title: "Altair", note: "Multilingual"),
+    PreferenceOption(id: "grok:eve", title: "Eve", note: "Multilingual"),
+    PreferenceOption(id: "grok:ara", title: "Ara", note: "Multilingual"),
+    PreferenceOption(id: "grok:leo", title: "Leo", note: "Multilingual"),
+    PreferenceOption(id: "grok:rex", title: "Rex", note: "Multilingual"),
+    PreferenceOption(id: "grok:sal", title: "Sal", note: "Multilingual")
+]
