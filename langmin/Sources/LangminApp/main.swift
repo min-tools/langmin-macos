@@ -2762,3 +2762,33 @@ let grokVoiceOptions: [PreferenceOption] = [
     PreferenceOption(id: "grok:rex", title: "Rex", note: "Multilingual"),
     PreferenceOption(id: "grok:sal", title: "Sal", note: "Multilingual")
 ]
+
+// Exclude language headings from pronunciation targets. Initialize lazily because
+// the language catalog is declared later in this file.
+enum LanguageHeadingNames {
+    static let all: Set<String> = {
+        var names = Set<String>()
+        let english = Locale(identifier: "en")
+        // Build the language-name set from system-recognized language codes.
+        for code in Locale.LanguageCode.isoLanguageCodes {
+            // Include only language codes with an English display name.
+            if let name = english.localizedString(forLanguageCode: code.identifier) {
+                names.insert(name.lowercased())
+            }
+        }
+        // Include app-specific language option names in the same recognition set.
+        for option in languageOptions {
+            names.insert(option.title.lowercased())
+        }
+        return names
+    }()
+}
+
+let readerNoneOption = PreferenceOption(id: "none", title: "None", note: "")
+
+// Group voices by provider and indent language groups beneath them.
+struct ReaderVoiceSection {
+    let header: String
+    let options: [PreferenceOption]
+    var indentLevel: Int = 0
+}
