@@ -2792,3 +2792,35 @@ struct ReaderVoiceSection {
     let options: [PreferenceOption]
     var indentLevel: Int = 0
 }
+
+// readerLanguageName(code): Friendly language name for a voice's code (handles
+// region suffixes like zh-CN).
+func readerLanguageName(_ code: String) -> String {
+    // Use the catalog's multilingual label instead of treating it as a locale code.
+    if code == "multilingual" {
+        return "Multilingual"
+    }
+    let base = code.split(separator: "-").first.map(String.init) ?? code
+    let name = languageName(for: base)
+    return name.isEmpty ? code : name
+}
+
+// grokVoiceNote(voice): Describe a Grok voice's language and other catalog
+// details for voice menus.
+func grokVoiceNote(_ voice: GrokVoice) -> String {
+    // Describe multilingual Grok voices without attaching a single-language label.
+    if voice.language == "multilingual" {
+        return "Multilingual"
+    }
+    var parts: [String] = []
+    // Include a supplied nonempty gender description in the voice note.
+    if let gender = voice.gender, !gender.isEmpty {
+        parts.append(gender.capitalized)
+    }
+    // Include a supplied nonempty age description in the voice note.
+    if let age = voice.age, !age.isEmpty {
+        parts.append(age)
+    }
+    parts.append(readerLanguageName(voice.language))
+    return parts.joined(separator: " · ")
+}
