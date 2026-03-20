@@ -2824,3 +2824,19 @@ func grokVoiceNote(_ voice: GrokVoice) -> String {
     parts.append(readerLanguageName(voice.language))
     return parts.joined(separator: " · ")
 }
+
+// grokVoicePreferenceOption(voice): Use a provider-prefixed ID so Grok voices
+// cannot collide with other catalogs.
+func grokVoicePreferenceOption(_ voice: GrokVoice) -> PreferenceOption {
+    PreferenceOption(id: "grok:\(voice.id)", title: voice.name, note: grokVoiceNote(voice))
+}
+
+// isAppleNoveltyVoice(voice): Identify novelty voices using Apple's voice
+// traits rather than guessing from their names.
+func isAppleNoveltyVoice(_ voice: AVSpeechSynthesisVoice) -> Bool {
+    voice.voiceTraits.contains(.isNoveltyVoice)
+}
+
+// Cache installed Apple voices; enumerating the system catalog is expensive.
+// Exclude novelty voices and refresh the cache when Settings opens.
+private let appleVoiceCacheLock = NSLock()
