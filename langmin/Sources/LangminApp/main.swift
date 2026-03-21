@@ -2840,3 +2840,27 @@ func isAppleNoveltyVoice(_ voice: AVSpeechSynthesisVoice) -> Bool {
 // Cache installed Apple voices; enumerating the system catalog is expensive.
 // Exclude novelty voices and refresh the cache when Settings opens.
 private let appleVoiceCacheLock = NSLock()
+private var cachedAppleVoicesStorage: [AVSpeechSynthesisVoice]?
+
+// appleVoices(): Return a synchronized cache of installed voices to avoid
+// repeatedly enumerating the system catalog.
+func appleVoices() -> [AVSpeechSynthesisVoice] {
+    appleVoiceCacheLock.lock()
+    // Release the voice-cache lock even when returning an already cached catalog.
+    defer { appleVoiceCacheLock.unlock() }
+    // Return the cached installed Apple voices instead of re-enumerating the system catalog.
+    if let cached = cachedAppleVoicesStorage {
+        return cached
+    }
+    let voices = AVSpeechSynthesisVoice.speechVoices().filter { !isAppleNoveltyVoice($0) }
+    cachedAppleVoicesStorage = voices
+    return voices
+}
+
+// invalidateAppleVoiceCache(): Reload the voice catalog on the next access so
+// newly installed voices appear in Settings.
+func invalidateAppleVoiceCache() {
+    appleVoiceCacheLock.lock()
+    cachedAppleVoicesStorage = nil
+    appleVoiceCacheLock.unlock()
+}
