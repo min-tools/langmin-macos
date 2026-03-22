@@ -2864,3 +2864,60 @@ func invalidateAppleVoiceCache() {
     cachedAppleVoicesStorage = nil
     appleVoiceCacheLock.unlock()
 }
+
+// appleVoiceNote(voice): Add quality and region labels to distinguish voices
+// that share a name.
+func appleVoiceNote(_ voice: AVSpeechSynthesisVoice) -> String {
+    var parts: [String] = []
+    // Describe improved Apple voice quality when the catalog provides it.
+    switch voice.quality {
+    // Mark enhanced-quality voices in their menu note.
+    case .enhanced:
+        parts.append("Enhanced")
+    // Mark premium-quality voices in their menu note.
+    case .premium:
+        parts.append("Premium")
+    // Leave default-quality voices without an extra quality label.
+    default:
+        break
+    }
+    let language = readerLanguageName(voice.language)
+    let localeComponents = voice.language.split(separator: "-")
+    // Include a locale region when the voice identifier supplies one.
+    if localeComponents.count > 1, let region = localeComponents.last {
+        parts.append("\(language) (\(region))")
+    } else {
+        // Use the language label alone when no region is present.
+        parts.append(language)
+    }
+    return parts.joined(separator: " · ")
+}
+
+// appleVoicePreferenceOption(voice): Pair an Apple voice's stable identifier
+// with its display name and descriptive note.
+func appleVoicePreferenceOption(_ voice: AVSpeechSynthesisVoice) -> PreferenceOption {
+    PreferenceOption(id: "apple:\(voice.identifier)", title: voice.name, note: appleVoiceNote(voice))
+}
+
+// appleVoiceSections(): Group installed Apple voices by language under one
+// provider header.
+func appleVoiceSections() -> [ReaderVoiceSection] {
+    let voices = appleVoices()
+    // Omit Apple provider sections when no installed voices exist.
+    guard !voices.isEmpty else {
+        return []
+    }
+
+    var sections: [ReaderVoiceSection] = [
+        ReaderVoiceSection(header: "Apple", options: [])
+    ]
+    let grouped = Dictionary(grouping: voices) { readerLanguageName($0.language) }
+    // Build Apple language sections in a consistent sorted order.
+    for language in grouped.keys.sorted() {
+        let options = grouped[language]!
+            .sorted { $0.name < $1.name }
+            .map(appleVoicePreferenceOption)
+        sections.append(ReaderVoiceSection(header: language, options: options, indentLevel: 1))
+    }
+    return sections
+}
