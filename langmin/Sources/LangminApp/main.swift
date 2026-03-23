@@ -2921,3 +2921,60 @@ func appleVoiceSections() -> [ReaderVoiceSection] {
     }
     return sections
 }
+
+// grokVoiceSections(): Group Grok voices by the catalog's language metadata.
+func grokVoiceSections() -> [ReaderVoiceSection] {
+    let voices = cachedGrokVoices()
+    // Provide the catalog's fallback group when no cached Grok voices are available.
+    guard !voices.isEmpty else {
+        return [
+            ReaderVoiceSection(header: "Grok", options: []),
+            ReaderVoiceSection(header: "Multilingual", options: grokVoiceOptions, indentLevel: 1)
+        ]
+    }
+
+    // Nest language groups under one Grok header.
+    var sections = [ReaderVoiceSection(header: "Grok", options: [])]
+    let multilingual = voices.filter { $0.language == "multilingual" }
+    // Keep multilingual voices in their own group before language-specific choices.
+    if !multilingual.isEmpty {
+        sections.append(ReaderVoiceSection(
+            header: "Multilingual",
+            options: multilingual.map(grokVoicePreferenceOption),
+            indentLevel: 1
+        ))
+    }
+    let grouped = Dictionary(grouping: voices.filter { $0.language != "multilingual" }) {
+        readerLanguageName($0.language)
+    }
+    // Build language-specific Grok groups in a consistent order.
+    for language in grouped.keys.sorted() {
+        let options = grouped[language]!
+            .sorted { $0.name < $1.name }
+            .map(grokVoicePreferenceOption)
+        sections.append(ReaderVoiceSection(header: language, options: options, indentLevel: 1))
+    }
+    return sections
+}
+
+// readerVoiceSections(): Show None first, followed by Grok, OpenAI and
+// installed Apple voices.
+func readerVoiceSections() -> [ReaderVoiceSection] {
+    var sections = [ReaderVoiceSection(header: "", options: [readerNoneOption])]
+    // Group cloud voices by provider before listing installed Apple voices.
+    sections.append(contentsOf: grokVoiceSections())
+    sections.append(ReaderVoiceSection(header: "OpenAI", options: []))
+    sections.append(ReaderVoiceSection(
+        header: "Multilingual",
+        options: openAIVoiceOptions(),
+        indentLevel: 1
+    ))
+    sections.append(contentsOf: appleVoiceSections())
+    return sections
+}
+
+// currentReaderOptions(): Flat reader options (None + every voice) for
+// selection/ID mapping.
+func currentReaderOptions() -> [PreferenceOption] {
+    readerVoiceSections().flatMap { $0.options }
+}
