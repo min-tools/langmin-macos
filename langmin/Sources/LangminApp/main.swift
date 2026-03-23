@@ -2978,3 +2978,100 @@ func readerVoiceSections() -> [ReaderVoiceSection] {
 func currentReaderOptions() -> [PreferenceOption] {
     readerVoiceSections().flatMap { $0.options }
 }
+
+// readerSectionHeaderItem(title): A native section-header menu item.
+func readerSectionHeaderItem(_ title: String) -> NSMenuItem {
+    NSMenuItem.sectionHeader(title: title)
+}
+
+// makeReaderMenu([style = nil]): Build the Reader popup menu with a provider
+// header above each voice group. `style` applies per-item attributed styling
+// (Settings) or nothing (launcher).
+func makeReaderMenu(style: ((NSMenuItem) -> Void)? = nil) -> NSMenu {
+    let menu = NSMenu()
+    // Build provider and language sections in catalog order.
+    for section in readerVoiceSections() {
+        // Add a section header only when it has display text.
+        if !section.header.isEmpty {
+            let headerItem = readerSectionHeaderItem(section.header)
+            headerItem.indentationLevel = section.indentLevel
+            menu.addItem(headerItem)
+        }
+        // Add each section's voice choices beneath its header.
+        for option in section.options {
+            let item = NSMenuItem(title: option.descriptiveDisplayValue, action: nil, keyEquivalent: "")
+            item.indentationLevel = section.indentLevel
+            style?(item)
+            menu.addItem(item)
+        }
+    }
+    return menu
+}
+
+// makeReaderChoiceMenu([allowed = []]): Build a voice menu using IDs, since
+// display names can repeat. Indent voices beneath provider/language headers
+// without attributedTitle, which suppresses indentation. An empty allowed set
+// shows all voices. Always include None and omit empty groups.
+func makeReaderChoiceMenu(allowed: Set<String> = []) -> NSMenu {
+    // voiceItem(option, indentLevel): Build an indented voice menu item
+    // carrying the stable selection ID.
+    func voiceItem(_ option: PreferenceOption, indentLevel: Int) -> NSMenuItem {
+        let item = NSMenuItem(title: option.descriptiveDisplayValue, action: nil, keyEquivalent: "")
+        item.representedObject = option.id
+        item.indentationLevel = indentLevel
+        return item
+    }
+
+    let menu = NSMenu()
+    menu.addItem(voiceItem(readerNoneOption, indentLevel: 0))
+
+    // Filter each section's own options to the shortlist (None handled above).
+    let sections = readerVoiceSections().map { section -> (section: ReaderVoiceSection, options: [PreferenceOption]) in
+        var options = section.options.filter { $0.id != readerNoneOption.id }
+        // Filter voices only when the user configured a nonempty shortlist.
+        if !allowed.isEmpty {
+            options = options.filter { allowed.contains($0.id) }
+        }
+        return (section, options)
+    }
+
+    var index = 0
+    // Build one top-level provider group and its remaining language sections at a time.
+    while index < sections.count {
+        let top = sections[index]
+        var childEndIndex = index + 1
+        var nonEmptyChildren: [(header: String, indentLevel: Int, options: [PreferenceOption])] = []
+        // Collect child sections until the next provider-level header.
+        while childEndIndex < sections.count, sections[childEndIndex].section.indentLevel > 0 {
+            let child = sections[childEndIndex]
+            // Keep only language sections that still contain allowed voices.
+            if !child.options.isEmpty {
+                nonEmptyChildren.append((child.section.header, child.section.indentLevel, child.options))
+            }
+            childEndIndex += 1
+        }
+
+        // Show a provider header only when its own or descendant voices remain visible.
+        if !top.section.header.isEmpty, !top.options.isEmpty || !nonEmptyChildren.isEmpty {
+            let headerItem = readerSectionHeaderItem(top.section.header)
+            headerItem.indentationLevel = top.section.indentLevel
+            menu.addItem(headerItem)
+        }
+        // Add voices listed directly under the provider header.
+        for option in top.options {
+            menu.addItem(voiceItem(option, indentLevel: top.section.indentLevel + 1))
+        }
+        // Add the nonempty language subsections beneath their provider.
+        for child in nonEmptyChildren {
+            let headerItem = readerSectionHeaderItem(child.header)
+            headerItem.indentationLevel = child.indentLevel
+            menu.addItem(headerItem)
+            // Add each allowed voice beneath its language header.
+            for option in child.options {
+                menu.addItem(voiceItem(option, indentLevel: child.indentLevel + 1))
+            }
+        }
+        index = childEndIndex
+    }
+    return menu
+}
