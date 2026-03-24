@@ -3075,3 +3075,22 @@ func makeReaderChoiceMenu(allowed: Set<String> = []) -> NSMenu {
     }
     return menu
 }
+
+// selectReaderChoice(popup, id): Select the item whose voice ID matches,
+// falling back to "None".
+func selectReaderChoice(_ popup: NSPopUpButton, id: String) {
+    let target = id.trimmingCharacters(in: .whitespacesAndNewlines)
+    // Restore the requested voice when its menu item is still available.
+    if let item = popup.menu?.items.first(where: { ($0.representedObject as? String) == target }) {
+        popup.select(item)
+    } else if let noneItem = popup.menu?.items.first(where: { ($0.representedObject as? String) == readerNoneOption.id }) {
+        // Otherwise select the explicit no-voice option when the menu provides one.
+        popup.select(noneItem)
+    }
+}
+
+// selectedReaderChoiceID(popup): Read the selected voice ID, falling back to
+// the explicit no-voice option.
+func selectedReaderChoiceID(_ popup: NSPopUpButton) -> String {
+    (popup.selectedItem?.representedObject as? String) ?? readerNoneOption.id
+}
