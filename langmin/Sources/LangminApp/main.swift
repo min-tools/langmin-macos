@@ -3094,3 +3094,47 @@ func selectReaderChoice(_ popup: NSPopUpButton, id: String) {
 func selectedReaderChoiceID(_ popup: NSPopUpButton) -> String {
     (popup.selectedItem?.representedObject as? String) ?? readerNoneOption.id
 }
+
+// narrationModelLabel(provider, model): Model label used in the result's
+// narration details, with a trailing TTS label removed.
+func narrationModelLabel(provider: NarrationProvider, model: String) -> String {
+    // Describe the provider that actually generated the narration.
+    switch provider {
+    // Identify on-device Apple text-to-speech.
+    case .apple:
+        return "Apple TTS"
+    // Identify Grok text-to-speech.
+    case .grok:
+        return "Grok TTS"
+    // Retain the specific OpenAI narration model label.
+    case .openAI:
+        return model
+    }
+}
+
+// Modes available in the launcher.
+let launcherModeOptions: [PreferenceOption] = [
+    PreferenceOption(id: "proofread", title: "Proofread", note: ""),
+    PreferenceOption(id: "rewrite", title: "Rewrite", note: ""),
+    PreferenceOption(id: "explain", title: "Explain", note: ""),
+    PreferenceOption(id: "summarize", title: "Summarize", note: ""),
+    PreferenceOption(id: "translate", title: "Translate", note: ""),
+    PreferenceOption(id: "dictionary", title: "Dictionary", note: "")
+]
+
+// ttsModel(voice, requestedModel): Legacy TTS models support only the original
+// small voice subset.
+func ttsModel(forVoice voice: String, requestedModel: String) -> String {
+    let model = requestedModel.trimmingCharacters(in: .whitespacesAndNewlines)
+    let normalizedModel = model.isEmpty ? defaultTTSModel : model
+    let normalizedVoice = voice.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    let legacyModels: Set<String> = ["tts-1", "tts-1-hd"]
+    let legacyVoices: Set<String> = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
+
+    // Use a compatible model when a selected newer voice is unsupported by a legacy model.
+    if legacyModels.contains(normalizedModel) && !legacyVoices.contains(normalizedVoice) {
+        return defaultTTSModel
+    }
+
+    return normalizedModel
+}
