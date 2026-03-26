@@ -3138,3 +3138,25 @@ func ttsModel(forVoice voice: String, requestedModel: String) -> String {
 
     return normalizedModel
 }
+
+// Answer style choices shared by Settings and the launcher.
+let effortOptions: [PreferenceOption] = [
+    PreferenceOption(id: "simple", title: localized("effort_simple", "Short and clear"), note: ""),
+    PreferenceOption(id: "standard", title: localized("effort_standard", "Balanced depth"), note: ""),
+    PreferenceOption(id: "detailed", title: localized("effort_detailed", "Deeper essay"), note: "")
+]
+
+// Rewrite styles exposed in Settings and the launcher.
+let rewriteStyleOptions: [PreferenceOption] = [
+    PreferenceOption(id: "rephrase", title: "Rephrase", note: ""),
+    PreferenceOption(id: "humanize", title: "Humanize", note: ""),
+    PreferenceOption(id: "concise", title: "Concise", note: ""),
+    PreferenceOption(id: "elaborate", title: "Elaborate", note: "")
+]
+
+// Summary depth options.
+let summaryStyleOptions: [PreferenceOption] = [
+    PreferenceOption(id: "short", title: "Short", note: ""),
+    PreferenceOption(id: "standard", title: "Balanced", note: ""),
+    PreferenceOption(id: "detailed", title: "Detailed", note: "")
+]
