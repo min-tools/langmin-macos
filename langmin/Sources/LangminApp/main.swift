@@ -3256,3 +3256,41 @@ let languageOptions: [PreferenceOption] = [
 
 // Translation needs a concrete target language; "Match question" is skipped.
 let translationTargetOptions = languageOptions.filter { $0.id != "auto" }
+
+// Override the UI language with AppleLanguages; system clears the override.
+// Show language names in their own language so users can recognize them.
+let appUILanguageOptions: [(id: String, title: String)] = [
+    ("system", localized("system_default", "System Default")),
+    ("en", "English"), ("ru", "Русский"), ("uk", "Українська"),
+    ("sr", "Српски"), ("sr-Latn", "Srpski (latinica)"), ("es", "Español"),
+    ("pt", "Português"), ("fr", "Français"), ("it", "Italiano"),
+    ("de", "Deutsch"), ("nl", "Nederlands"), ("sv", "Svenska"),
+    ("da", "Dansk"), ("nb", "Norsk bokmål"), ("fi", "Suomi"),
+    ("pl", "Polski"), ("cs", "Čeština"), ("sk", "Slovenčina"),
+    ("hu", "Magyar"), ("ro", "Română"), ("hr", "Hrvatski"),
+    ("el", "Ελληνικά"), ("tr", "Türkçe"), ("zh-Hans", "简体中文"),
+    ("zh-Hant", "繁體中文"), ("ja", "日本語"), ("ko", "한국어"),
+    ("vi", "Tiếng Việt"), ("th", "ไทย"), ("id", "Bahasa Indonesia"),
+    ("hi", "हिन्दी")
+]
+
+// appUILanguageOverride(): Read only the app's AppleLanguages override,
+// excluding global language preferences.
+func appUILanguageOverride() -> String? {
+    // Read the app-specific domain so a system-wide language list is not mistaken for an override.
+    guard
+        let bundleID = Bundle.main.bundleIdentifier,
+        let domain = UserDefaults.standard.persistentDomain(forName: bundleID),
+        let languages = domain["AppleLanguages"] as? [String]
+    // Use automatic language selection when the app has no saved override.
+    else {
+        return nil
+    }
+    return languages.first
+}
+
+// Supported result-window layouts.
+let windowShapeOptions: [PreferenceOption] = [
+    PreferenceOption(id: "landscape", title: "Landscape", note: "16:10"),
+    PreferenceOption(id: "portrait", title: "Portrait", note: "10:16")
+]
