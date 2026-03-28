@@ -3294,3 +3294,81 @@ let windowShapeOptions: [PreferenceOption] = [
     PreferenceOption(id: "landscape", title: "Landscape", note: "16:10"),
     PreferenceOption(id: "portrait", title: "Portrait", note: "10:16")
 ]
+
+// Window text sizes exposed in Settings.
+let fontSizeOptions: [PreferenceOption] = [
+    PreferenceOption(id: "21", title: "21", note: ""),
+    PreferenceOption(id: "18", title: "18", note: ""),
+    PreferenceOption(id: "16", title: "16", note: ""),
+    PreferenceOption(id: "15", title: "15", note: ""),
+    PreferenceOption(id: "14", title: "14", note: "")
+]
+
+// Saved app preferences.
+struct AppPreferences {
+    var explanationModel: String = defaultExplanationModel
+    var preferredTextModels: [String] = defaultPreferredTextModelIDs
+    var customBaseURL: String = defaultCustomBaseURL
+    var customModelName: String = defaultCustomModelName
+    var customDisplayName: String = defaultCustomDisplayName
+    var ttsModel: String = defaultTTSModel
+    var ttsVoice: String = defaultTTSVoice
+    var explanationEffort: String = defaultExplanationEffort
+    var rewriteStyle: String = defaultRewriteStyle
+    var summaryStyle: String = defaultSummaryStyle
+    var dictionaryStyle: String = defaultDictionaryStyle
+    var translationTargets: [String] = [defaultTranslationTargetID]
+    var launcherReader: String = defaultLauncherReader
+    var dictionaryVoice: String = defaultDictionaryVoice
+    var dictionaryIllustrationProvider: DictionaryIllustrationProvider = .off
+    // A saved provider alone never opts an existing installation into automatic images.
+    var dictionaryIllustrationAutomatic = false
+    // Speech recognition has its own provider and source language, independent of writing modes.
+    var transcriptionProvider = "apple"
+    var transcriptionLanguage = "auto"
+    // Voices shown in narration menus. An empty list shows all voices.
+    var preferredReaderVoices: [String] = defaultPreferredReaderVoices
+    // Main answer language for Explain and Summarize; auto follows the question's language.
+    var explainAnswerLanguage: String = defaultOutputLanguage
+    var summarizeAnswerLanguage: String = defaultOutputLanguage
+    var webResearchEnabled: Bool = defaultWebResearchEnabled
+    var secretProtectionEnabled: Bool = defaultSecretProtectionEnabled
+    var textWatermarkCleaningEnabled: Bool = defaultTextWatermarkCleaningEnabled
+    var resultDiffEnabled: Bool = defaultResultDiffEnabled
+    var resultToolbarShowsSaveText: Bool = defaultResultToolbarShowsSaveText
+    var resultToolbarShowsSaveAudio: Bool = defaultResultToolbarShowsSaveAudio
+    var resultToolbarShowsCopy: Bool = defaultResultToolbarShowsCopy
+    var resultToolbarShowsShare: Bool = defaultResultToolbarShowsShare
+    var resultToolbarShowsNarration: Bool = defaultResultToolbarShowsNarration
+    var resultToolbarShowsHighlight: Bool = defaultResultToolbarShowsHighlight
+    var resultToolbarShowsStats: Bool = defaultResultToolbarShowsStats
+    var resultStatsShowsTTS: Bool = defaultResultStatsShowsTTS
+    var narrationHighlightMode: Bool = defaultNarrationHighlightMode
+    var windowShape: String = defaultWindowShape
+    var explanationFontSize: Double = defaultExplanationFontSize
+    var rememberLauncherChoices: Bool = true
+    var launcherShowsSecondaryOptions: Bool = defaultLauncherShowsSecondaryOptions
+    var launcherShowsTranslationTarget: Bool = defaultLauncherShowsTranslationTarget
+    var launcherShowsModel: Bool = defaultLauncherShowsModel
+    // Default response level and visibility of the separate launcher level picker.
+    var languageLevel: String = defaultLanguageLevel
+    var launcherShowsLevel: Bool = defaultLauncherShowsLevel
+    var launcherClearsInputAfterSubmit: Bool = defaultLauncherClearsInputAfterSubmit
+    var extraLanguages: [String] = []
+    // Unused legacy switches retained when saving preferences. The extra-language list now controls
+    // output.
+    var extraLanguagesInDictionary: Bool = defaultExtraLanguagesInDictionary
+    var extraLanguagesInTranslate: Bool = defaultExtraLanguagesInTranslate
+    var extraLanguagesInExplain: Bool = defaultExtraLanguagesInExplain
+    var extraLanguagesInSummarize: Bool = defaultExtraLanguagesInSummarize
+    var autoNarrateModes: [String] = ["explain"]
+    var openAIEndpointOverride: String = ""
+    var anthropicEndpointOverride: String = ""
+    var geminiEndpointOverride: String = ""
+    var anthropicVersionOverride: String = ""
+    var anthropicWebSearchToolTypeOverride: String = ""
+    var customInstructions: String = ""
+    var extraModels: [String] = []
+    var menuBarEnabled: Bool = defaultMenuBarEnabled
+    var globalShortcuts: [String: GlobalShortcut] = defaultGlobalShortcuts
+}
