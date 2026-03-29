@@ -3372,3 +3372,26 @@ struct AppPreferences {
     var menuBarEnabled: Bool = defaultMenuBarEnabled
     var globalShortcuts: [String: GlobalShortcut] = defaultGlobalShortcuts
 }
+
+// decodeLanguageList(value): Extra languages persist as a comma-joined list of
+// language IDs.
+func decodeLanguageList(_ value: String) -> [String] {
+    value.split(separator: ",")
+        .map { $0.trimmingCharacters(in: .whitespaces) }
+        .filter { id in translationTargetOptions.contains { $0.id == id } }
+}
+
+// encodeLanguageList(ids): Serialize selected language IDs in their chosen
+// order.
+func encodeLanguageList(_ ids: [String]) -> String {
+    ids.joined(separator: ",")
+}
+
+// decodeTextModelList(value): Store enabled model IDs as a comma-separated
+// list; provider prefixes use colons.
+func decodeTextModelList(_ value: String) -> [String] {
+    var seen = Set<String>()
+    return value.split(separator: ",")
+        .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+        .filter { !$0.isEmpty && seen.insert($0).inserted }
+}
