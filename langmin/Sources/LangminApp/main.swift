@@ -3395,3 +3395,26 @@ func decodeTextModelList(_ value: String) -> [String] {
         .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
         .filter { !$0.isEmpty && seen.insert($0).inserted }
 }
+
+// encodeTextModelList(ids): Serialize model IDs without changing their provider
+// prefixes.
+func encodeTextModelList(_ ids: [String]) -> String {
+    ids.joined(separator: ",")
+}
+
+// decodeReaderVoiceList(value): Store voice IDs as a comma-separated list.
+func decodeReaderVoiceList(_ value: String) -> [String] {
+    let requested = value.split(separator: ",")
+        .map { $0.trimmingCharacters(in: .whitespaces) }
+        .filter { !$0.isEmpty }
+    // Avoid loading the voice catalog when there is no list to validate.
+    guard !requested.isEmpty else { return [] }
+    let known = Set(currentReaderOptions().map { $0.id })
+    return requested.filter { known.contains($0) }
+}
+
+// encodeReaderVoiceList(ids): Serialize the voice shortlist in the order
+// supplied by the caller.
+func encodeReaderVoiceList(_ ids: [String]) -> String {
+    ids.joined(separator: ",")
+}
