@@ -3418,3 +3418,27 @@ func decodeReaderVoiceList(_ value: String) -> [String] {
 func encodeReaderVoiceList(_ ids: [String]) -> String {
     ids.joined(separator: ",")
 }
+
+// decodeAutoNarrateModes(value): Auto-narrate modes persist comma-joined,
+// validated against the known ids.
+func decodeAutoNarrateModes(_ value: String) -> [String] {
+    value.split(separator: ",")
+        .map { $0.trimmingCharacters(in: .whitespaces) }
+        .filter { autoNarrateModeIDs.contains($0) }
+}
+
+// encodeAutoNarrateModes(ids): Serialize enabled automatic-narration modes for
+// preferences storage.
+func encodeAutoNarrateModes(_ ids: [String]) -> String {
+    ids.joined(separator: ",")
+}
+
+// Use the launcher mode order for automatic-narration checkboxes.
+let autoNarrateModeOptions: [PreferenceOption] = [
+    PreferenceOption(id: "proofread", title: "Proofread", note: ""),
+    PreferenceOption(id: "rewrite", title: "Rewrite", note: ""),
+    PreferenceOption(id: "explain", title: "Explain", note: ""),
+    PreferenceOption(id: "summarize", title: "Summarize", note: ""),
+    PreferenceOption(id: "translate", title: "Translate", note: ""),
+    PreferenceOption(id: "dictionary", title: "Dictionary", note: "")
+]
