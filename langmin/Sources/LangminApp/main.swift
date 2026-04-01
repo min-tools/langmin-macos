@@ -3442,3 +3442,27 @@ let autoNarrateModeOptions: [PreferenceOption] = [
     PreferenceOption(id: "translate", title: "Translate", note: ""),
     PreferenceOption(id: "dictionary", title: "Dictionary", note: "")
 ]
+
+// loadTranslationTargets(): Read single-language values from older versions as
+// a one-item list; default if empty.
+func loadTranslationTargets() -> [String] {
+    let decoded = decodeLanguageList(
+        storedPreferenceString(PreferenceKey.translationTarget, fallback: defaultTranslationTargetID)
+    )
+    return decoded.isEmpty ? [defaultTranslationTargetID] : decoded
+}
+
+// extraLanguageNames(ids): Resolve extra-language IDs into English prompt names
+// (e.g. "fr" -> "French").
+func extraLanguageNames(_ ids: [String]) -> [String] {
+    ids.compactMap { preferredOutputLanguage($0) }
+}
+
+// extraLanguagesInstruction(names, result): Request extra translations,
+// skipping any language already used by the main answer.
+func extraLanguagesInstruction(_ names: [String], result: String) -> String {
+    let languages = promptLanguageNames(names)
+    // Add no translated appendix when no extra languages were selected.
+    guard !languages.isEmpty else { return "" }
+    return "\n- Append a complete translation of the \(result) in \(languages.joined(separator: ", ")), in that order, under language headings. Omit any language already used. Keep the same facts, examples and numbers. All languages belong in the same Markdown text, never separate JSON fields."
+}
