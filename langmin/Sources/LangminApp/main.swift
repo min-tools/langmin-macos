@@ -3466,3 +3466,33 @@ func extraLanguagesInstruction(_ names: [String], result: String) -> String {
     guard !languages.isEmpty else { return "" }
     return "\n- Append a complete translation of the \(result) in \(languages.joined(separator: ", ")), in that order, under language headings. Omit any language already used. Keep the same facts, examples and numbers. All languages belong in the same Markdown text, never separate JSON fields."
 }
+
+// Remember launcher choices separately from Settings defaults.
+struct LauncherPreferences {
+    var mode: String = "explain"
+    var explanationModel: String = ""
+    var explanationEffort: String = ""
+    var rewriteStyle: String = "rephrase"
+    var summaryStyle: String = "standard"
+    var dictionaryStyle: String = "standard"
+    var translationTarget: String = ""
+    // Last-used per-run language level; empty means "fall back to the default".
+    var languageLevel: String = ""
+    // Mode chips shown in the launcher; empty means "all modes pinned".
+    var pinnedModes: [String] = []
+    // Last few translate targets, newest first, for the chip menu's Recent list.
+    var recentTranslationTargets: [String] = []
+}
+
+// normalizedFontSize(value): Clamp text size so saved settings cannot create
+// unusable windows.
+func normalizedFontSize(_ value: Double) -> Double {
+    min(max(value, minimumExplanationFontSize), maximumExplanationFontSize)
+}
+
+// parsedFontSize(value, fallback): Parse a user-entered text size, falling back
+// to a known safe value.
+func parsedFontSize(_ value: String, fallback: Double) -> Double {
+    let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+    return normalizedFontSize(Double(trimmed) ?? fallback)
+}
