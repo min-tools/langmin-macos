@@ -3496,3 +3496,25 @@ func parsedFontSize(_ value: String, fallback: Double) -> Double {
     let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
     return normalizedFontSize(Double(trimmed) ?? fallback)
 }
+
+// formattedFontSize(value): Save whole-number sizes cleanly, while preserving
+// fractional values.
+func formattedFontSize(_ value: Double) -> String {
+    let size = normalizedFontSize(value)
+    let rounded = size.rounded()
+
+    // Display effectively integral font sizes without an unnecessary decimal suffix.
+    if abs(size - rounded) < 0.01 {
+        return String(Int(rounded))
+    }
+
+    return String(format: "%.1f", size)
+}
+
+// storedPreferenceString(key, [fallback = ""]): Read a non-empty string from
+// the app's native settings domain.
+func storedPreferenceString(_ key: String, fallback: String = "") -> String {
+    let value = preferencesStore.string(forKey: key)?
+        .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    return value.isEmpty ? fallback : value
+}
