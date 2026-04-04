@@ -3518,3 +3518,51 @@ func storedPreferenceString(_ key: String, fallback: String = "") -> String {
         .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
     return value.isEmpty ? fallback : value
 }
+
+// storedPreferenceDouble(key, fallback): Read a numeric preference while
+// accepting manual string writes.
+func storedPreferenceDouble(_ key: String, fallback: Double) -> Double {
+    // Read numeric preferences directly when stored as numbers.
+    if let number = preferencesStore.object(forKey: key) as? NSNumber {
+        return number.doubleValue
+    }
+
+    // Accept older preferences stored as numeric strings.
+    if let text = preferencesStore.string(forKey: key), let value = Double(text) {
+        return value
+    }
+
+    return fallback
+}
+
+// storedPreferenceBool(key, fallback): Read a boolean only when it was
+// explicitly saved.
+func storedPreferenceBool(_ key: String, fallback: Bool) -> Bool {
+    // Apply a fallback only when the preference has never been stored.
+    guard preferencesStore.object(forKey: key) != nil else {
+        return fallback
+    }
+
+    return preferencesStore.bool(forKey: key)
+}
+
+// loadGlobalShortcuts(): Load saved shortcuts, using defaults only when an
+// action has no stored preference.
+func loadGlobalShortcuts() -> [String: GlobalShortcut] {
+    var result: [String: GlobalShortcut] = [:]
+    // Load each shortcut independently so an absent preference differs from a cleared binding.
+    for (action, preferenceKey) in shortcutPreferenceKeys {
+        // Use the default only for actions with no saved preference value.
+        if preferencesStore.object(forKey: preferenceKey) == nil {
+            result[action] = defaultGlobalShortcuts[action]
+        // Decode a saved shortcut when present, preserving an explicitly cleared action.
+        } else if
+            let encoded = preferencesStore.string(forKey: preferenceKey),
+            !encoded.isEmpty,
+            let shortcut = GlobalShortcut(encoded: encoded)
+        {
+            result[action] = shortcut
+        }
+    }
+    return result
+}
