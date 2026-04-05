@@ -3566,3 +3566,288 @@ func loadGlobalShortcuts() -> [String: GlobalShortcut] {
     }
     return result
 }
+
+// loadAppPreferences(): Read Settings defaults for model, reader, language,
+// shape, and text size.
+func loadAppPreferences() -> AppPreferences {
+    let launcherShowsSecondaryOptions = storedPreferenceBool(
+        PreferenceKey.launcherShowsSecondaryOptions,
+        fallback: defaultLauncherShowsSecondaryOptions
+    )
+    let launcherShowsTranslationTarget = preferencesStore.object(
+        forKey: PreferenceKey.launcherShowsTranslationTarget
+    ) == nil
+        ? launcherShowsSecondaryOptions
+        : storedPreferenceBool(
+            PreferenceKey.launcherShowsTranslationTarget,
+            fallback: defaultLauncherShowsTranslationTarget
+        )
+
+    let customModelName = storedPreferenceString(
+        PreferenceKey.customModelName,
+        fallback: defaultCustomModelName
+    )
+    let hasSavedModelShortlist = preferencesStore.object(forKey: PreferenceKey.preferredTextModels) != nil
+    var preferredTextModels = decodeTextModelList(
+        storedPreferenceString(
+            PreferenceKey.preferredTextModels,
+            fallback: encodeTextModelList(defaultPreferredTextModelIDs)
+        )
+    )
+    // Include a configured Custom Endpoint on migration, but preserve later explicit deselection.
+    if !hasSavedModelShortlist,
+       !customModelName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+       !preferredTextModels.contains(customModelID) {
+        preferredTextModels.append(customModelID)
+    }
+
+    return AppPreferences(
+        explanationModel: storedPreferenceString(
+            PreferenceKey.explanationModel,
+            fallback: defaultExplanationModel
+        ),
+        preferredTextModels: preferredTextModels,
+        customBaseURL: storedPreferenceString(
+            PreferenceKey.customBaseURL,
+            fallback: defaultCustomBaseURL
+        ),
+        customModelName: customModelName,
+        customDisplayName: storedPreferenceString(
+            PreferenceKey.customDisplayName,
+            fallback: defaultCustomDisplayName
+        ),
+        ttsModel: storedPreferenceString(
+            PreferenceKey.ttsModel,
+            fallback: defaultTTSModel
+        ),
+        ttsVoice: storedPreferenceString(
+            PreferenceKey.ttsVoice,
+            fallback: defaultTTSVoice
+        ),
+        explanationEffort: storedPreferenceString(
+            PreferenceKey.explanationEffort,
+            fallback: defaultExplanationEffort
+        ),
+        rewriteStyle: storedPreferenceString(
+            PreferenceKey.rewriteStyle,
+            fallback: defaultRewriteStyle
+        ),
+        summaryStyle: storedPreferenceString(
+            PreferenceKey.summaryStyle,
+            fallback: defaultSummaryStyle
+        ),
+        dictionaryStyle: storedPreferenceString(
+            PreferenceKey.dictionaryStyle,
+            fallback: defaultDictionaryStyle
+        ),
+        translationTargets: loadTranslationTargets(),
+        launcherReader: storedPreferenceString(
+            PreferenceKey.launcherReader,
+            fallback: defaultLauncherReader
+        ),
+        dictionaryVoice: storedPreferenceString(
+            PreferenceKey.dictionaryVoice,
+            fallback: defaultDictionaryVoice
+        ),
+        dictionaryIllustrationProvider: DictionaryIllustrationProvider(rawValue: storedPreferenceString(
+            PreferenceKey.dictionaryIllustrationProvider, fallback: "off"
+        )) ?? .off,
+        dictionaryIllustrationAutomatic: storedPreferenceBool(PreferenceKey.dictionaryIllustrationAutomatic, fallback: false),
+        transcriptionProvider: storedPreferenceString(PreferenceKey.transcriptionProvider, fallback: "apple"),
+        transcriptionLanguage: storedPreferenceString(PreferenceKey.transcriptionLanguage, fallback: "auto"),
+        preferredReaderVoices: decodeReaderVoiceList(
+            storedPreferenceString(
+                PreferenceKey.preferredReaderVoices,
+                fallback: encodeReaderVoiceList(defaultPreferredReaderVoices)
+            )
+        ),
+        // Seed both modes from the legacy answer-language setting.
+        explainAnswerLanguage: storedPreferenceString(
+            PreferenceKey.explainAnswerLanguage,
+            fallback: storedPreferenceString(
+                PreferenceKey.outputLanguage,
+                fallback: defaultOutputLanguage
+            )
+        ),
+        summarizeAnswerLanguage: storedPreferenceString(
+            PreferenceKey.summarizeAnswerLanguage,
+            fallback: storedPreferenceString(
+                PreferenceKey.outputLanguage,
+                fallback: defaultOutputLanguage
+            )
+        ),
+        webResearchEnabled: storedPreferenceBool(
+            PreferenceKey.webResearchEnabled,
+            fallback: defaultWebResearchEnabled
+        ),
+        secretProtectionEnabled: storedPreferenceBool(
+            PreferenceKey.secretProtectionEnabled,
+            fallback: defaultSecretProtectionEnabled
+        ),
+        textWatermarkCleaningEnabled: storedPreferenceBool(
+            PreferenceKey.textWatermarkCleaningEnabled,
+            fallback: defaultTextWatermarkCleaningEnabled
+        ),
+        resultDiffEnabled: storedPreferenceBool(
+            PreferenceKey.resultDiffEnabled,
+            fallback: defaultResultDiffEnabled
+        ),
+        resultToolbarShowsSaveText: storedPreferenceBool(
+            PreferenceKey.resultToolbarShowsSaveText,
+            fallback: defaultResultToolbarShowsSaveText
+        ),
+        resultToolbarShowsSaveAudio: storedPreferenceBool(
+            PreferenceKey.resultToolbarShowsSaveAudio,
+            fallback: defaultResultToolbarShowsSaveAudio
+        ),
+        resultToolbarShowsCopy: storedPreferenceBool(
+            PreferenceKey.resultToolbarShowsCopy,
+            fallback: defaultResultToolbarShowsCopy
+        ),
+        resultToolbarShowsShare: storedPreferenceBool(
+            PreferenceKey.resultToolbarShowsShare,
+            fallback: defaultResultToolbarShowsShare
+        ),
+        resultToolbarShowsNarration: storedPreferenceBool(
+            PreferenceKey.resultToolbarShowsNarration,
+            fallback: defaultResultToolbarShowsNarration
+        ),
+        resultToolbarShowsHighlight: storedPreferenceBool(
+            PreferenceKey.resultToolbarShowsHighlight,
+            fallback: defaultResultToolbarShowsHighlight
+        ),
+        resultToolbarShowsStats: storedPreferenceBool(
+            PreferenceKey.resultToolbarShowsStats,
+            fallback: defaultResultToolbarShowsStats
+        ),
+        resultStatsShowsTTS: storedPreferenceBool(
+            PreferenceKey.resultStatsShowsTTS,
+            fallback: defaultResultStatsShowsTTS
+        ),
+        narrationHighlightMode: storedPreferenceBool(
+            PreferenceKey.narrationHighlightMode,
+            fallback: defaultNarrationHighlightMode
+        ),
+        windowShape: storedPreferenceString(
+            PreferenceKey.windowShape,
+            fallback: defaultWindowShape
+        ),
+        explanationFontSize: normalizedFontSize(
+            storedPreferenceDouble(
+                PreferenceKey.explanationFontSize,
+                fallback: defaultExplanationFontSize
+            )
+        ),
+        rememberLauncherChoices: storedPreferenceBool(
+            PreferenceKey.rememberLauncherChoices,
+            fallback: true
+        ),
+        launcherShowsSecondaryOptions: launcherShowsSecondaryOptions,
+        launcherShowsTranslationTarget: launcherShowsTranslationTarget,
+        launcherShowsModel: storedPreferenceBool(
+            PreferenceKey.launcherShowsModel,
+            fallback: defaultLauncherShowsModel
+        ),
+        languageLevel: normalizedLanguageLevel(storedPreferenceString(
+            PreferenceKey.languageLevel,
+            fallback: defaultLanguageLevel
+        )),
+        launcherShowsLevel: storedPreferenceBool(
+            PreferenceKey.launcherShowsLevel,
+            fallback: defaultLauncherShowsLevel
+        ),
+        launcherClearsInputAfterSubmit: storedPreferenceBool(
+            PreferenceKey.launcherClearsInputAfterSubmit,
+            fallback: defaultLauncherClearsInputAfterSubmit
+        ),
+        extraLanguages: decodeLanguageList(
+            storedPreferenceString(PreferenceKey.extraLanguages, fallback: defaultExtraLanguages)
+        ),
+        extraLanguagesInDictionary: storedPreferenceBool(
+            PreferenceKey.extraLanguagesInDictionary,
+            fallback: defaultExtraLanguagesInDictionary
+        ),
+        extraLanguagesInTranslate: storedPreferenceBool(
+            PreferenceKey.extraLanguagesInTranslate,
+            fallback: defaultExtraLanguagesInTranslate
+        ),
+        extraLanguagesInExplain: storedPreferenceBool(
+            PreferenceKey.extraLanguagesInExplain,
+            fallback: defaultExtraLanguagesInExplain
+        ),
+        extraLanguagesInSummarize: storedPreferenceBool(
+            PreferenceKey.extraLanguagesInSummarize,
+            fallback: defaultExtraLanguagesInSummarize
+        ),
+        autoNarrateModes: decodeAutoNarrateModes(
+            storedPreferenceString(PreferenceKey.autoNarrateModes, fallback: defaultAutoNarrateModes)
+        ),
+        openAIEndpointOverride: storedPreferenceString(PreferenceKey.advancedOpenAIEndpoint),
+        anthropicEndpointOverride: storedPreferenceString(PreferenceKey.advancedAnthropicEndpoint),
+        geminiEndpointOverride: storedPreferenceString(PreferenceKey.advancedGeminiEndpoint),
+        anthropicVersionOverride: storedPreferenceString(PreferenceKey.advancedAnthropicVersion),
+        anthropicWebSearchToolTypeOverride: storedPreferenceString(PreferenceKey.advancedAnthropicWebSearchToolType),
+        customInstructions: storedPreferenceString(PreferenceKey.advancedCustomInstructions),
+        extraModels: decodeExtraModels(storedPreferenceString(PreferenceKey.advancedExtraModels)),
+        menuBarEnabled: storedPreferenceBool(PreferenceKey.menuBarEnabled, fallback: defaultMenuBarEnabled),
+        globalShortcuts: loadGlobalShortcuts()
+    )
+}
+
+// loadLauncherPreferences(): Load the launcher's last-used choices.
+func loadLauncherPreferences() -> LauncherPreferences {
+    LauncherPreferences(
+        mode: storedPreferenceString(
+            PreferenceKey.launcherMode,
+            fallback: "explain"
+        ),
+        explanationModel: storedPreferenceString(PreferenceKey.launcherExplanationModel),
+        explanationEffort: storedPreferenceString(PreferenceKey.launcherExplanationEffort),
+        rewriteStyle: storedPreferenceString(
+            PreferenceKey.launcherRewriteStyle,
+            fallback: "rephrase"
+        ),
+        summaryStyle: storedPreferenceString(
+            PreferenceKey.launcherSummaryStyle,
+            fallback: "standard"
+        ),
+        dictionaryStyle: storedPreferenceString(
+            PreferenceKey.launcherDictionaryStyle,
+            fallback: "standard"
+        ),
+        translationTarget: storedPreferenceString(PreferenceKey.launcherTranslationTarget),
+        languageLevel: storedPreferenceString(PreferenceKey.launcherLanguageLevel),
+        // Decode mode IDs without filtering them as language IDs.
+        pinnedModes: LauncherLogic.idList(
+            from: storedPreferenceString(PreferenceKey.launcherPinnedModes)
+        ),
+        recentTranslationTargets: decodeLanguageList(
+            storedPreferenceString(PreferenceKey.launcherRecentTranslationTargets)
+        )
+    )
+}
+
+// preferenceID(value, options): Pull the raw API ID out of a friendly display
+// value.
+func preferenceID(from value: String, options: [PreferenceOption]) -> String {
+    let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+
+    // Accept an option's ID or either supported display-label form.
+    if let option = options.first(where: { $0.displayValue == trimmed || $0.descriptiveDisplayValue == trimmed || $0.id == trimmed }) {
+        return option.id
+    }
+
+    // Recognize older labels that include the stored ID in trailing parentheses.
+    if trimmed.hasSuffix(")"), let openParen = trimmed.lastIndex(of: "(") {
+        let idStart = trimmed.index(after: openParen)
+        let idEnd = trimmed.index(before: trimmed.endIndex)
+        let candidate = String(trimmed[idStart..<idEnd]).trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Use a recovered parenthesized ID only when it is nonempty.
+        if !candidate.isEmpty {
+            return candidate
+        }
+    }
+
+    return trimmed
+}
