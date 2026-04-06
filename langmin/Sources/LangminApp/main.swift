@@ -3851,3 +3851,64 @@ func preferenceID(from value: String, options: [PreferenceOption]) -> String {
 
     return trimmed
 }
+
+// preferenceDisplayValue(id, options, [fallbackID = nil], [descriptive =
+// false]): Show a friendly label for a saved raw API ID, with optional default
+// repair.
+func preferenceDisplayValue(
+    for id: String,
+    options: [PreferenceOption],
+    fallbackID: String? = nil,
+    descriptive: Bool = false
+) -> String {
+    // Resolve the requested ID or label to a current display value.
+    if let option = options.first(where: { $0.id == id || $0.displayValue == id || $0.descriptiveDisplayValue == id }) {
+        return descriptive ? option.descriptiveDisplayValue : option.displayValue
+    }
+
+    // Try the configured fallback when the requested option cannot be found.
+    if
+        let fallbackID,
+        let fallback = options.first(where: { $0.id == fallbackID })
+    {
+        return descriptive ? fallback.descriptiveDisplayValue : fallback.displayValue
+    }
+
+    return id
+}
+
+// setPopupSelection(popup, id, options, fallbackID, [descriptive = false]):
+// Select a native popup item by saved ID, repairing unknown values to defaults.
+func setPopupSelection(
+    _ popup: NSPopUpButton,
+    id: String,
+    options: [PreferenceOption],
+    fallbackID: String,
+    descriptive: Bool = false
+) {
+    let displayValue = preferenceDisplayValue(
+        for: id,
+        options: options,
+        fallbackID: fallbackID,
+        descriptive: descriptive
+    )
+
+    popup.selectItem(withTitle: displayValue)
+
+    // Select the first menu item if assigning the requested value left no selected item.
+    if popup.selectedItem == nil {
+        popup.selectItem(at: 0)
+    }
+}
+
+// selectedPreferenceID(popup, options, fallbackID): Convert the current native
+// popup selection back to the saved API ID.
+func selectedPreferenceID(
+    from popup: NSPopUpButton,
+    options: [PreferenceOption],
+    fallbackID: String
+) -> String {
+    let selected = popup.selectedItem?.title ?? ""
+    let id = preferenceID(from: selected, options: options)
+    return id.isEmpty ? fallbackID : id
+}
