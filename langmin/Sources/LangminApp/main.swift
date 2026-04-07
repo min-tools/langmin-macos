@@ -3912,3 +3912,110 @@ func selectedPreferenceID(
     let id = preferenceID(from: selected, options: options)
     return id.isEmpty ? fallbackID : id
 }
+
+// writePreferences(preferences, launcherPreferences): Write model and voice
+// preferences without storing any API key.
+func writePreferences(_ preferences: AppPreferences, launcherPreferences: LauncherPreferences) {
+    preferencesStore.set(preferences.explanationModel, forKey: PreferenceKey.explanationModel)
+    preferencesStore.set(
+        encodeTextModelList(preferences.preferredTextModels),
+        forKey: PreferenceKey.preferredTextModels
+    )
+    preferencesStore.set(preferences.customBaseURL, forKey: PreferenceKey.customBaseURL)
+    preferencesStore.set(preferences.customModelName, forKey: PreferenceKey.customModelName)
+    preferencesStore.set(preferences.customDisplayName, forKey: PreferenceKey.customDisplayName)
+    // Persist the selected writing styles, translation targets, and voices.
+    preferencesStore.set(preferences.ttsModel, forKey: PreferenceKey.ttsModel)
+    preferencesStore.set(preferences.ttsVoice, forKey: PreferenceKey.ttsVoice)
+    preferencesStore.set(preferences.explanationEffort, forKey: PreferenceKey.explanationEffort)
+    preferencesStore.set(preferences.rewriteStyle, forKey: PreferenceKey.rewriteStyle)
+    preferencesStore.set(preferences.summaryStyle, forKey: PreferenceKey.summaryStyle)
+    preferencesStore.set(preferences.dictionaryStyle, forKey: PreferenceKey.dictionaryStyle)
+    preferencesStore.set(encodeLanguageList(preferences.translationTargets), forKey: PreferenceKey.translationTarget)
+    preferencesStore.set(preferences.launcherReader, forKey: PreferenceKey.launcherReader)
+    preferencesStore.set(preferences.dictionaryVoice, forKey: PreferenceKey.dictionaryVoice)
+    // Store illustration and transcription choices independently of text
+    // models.
+    preferencesStore.set(preferences.dictionaryIllustrationProvider.rawValue, forKey: PreferenceKey.dictionaryIllustrationProvider)
+    preferencesStore.set(preferences.dictionaryIllustrationAutomatic, forKey: PreferenceKey.dictionaryIllustrationAutomatic)
+    preferencesStore.set(preferences.transcriptionProvider, forKey: PreferenceKey.transcriptionProvider)
+    preferencesStore.set(preferences.transcriptionLanguage, forKey: PreferenceKey.transcriptionLanguage)
+    preferencesStore.set(
+        encodeReaderVoiceList(preferences.preferredReaderVoices),
+        forKey: PreferenceKey.preferredReaderVoices
+    )
+    // Store answer-language choices and optional text-processing behavior.
+    preferencesStore.set(preferences.explainAnswerLanguage, forKey: PreferenceKey.explainAnswerLanguage)
+    preferencesStore.set(preferences.summarizeAnswerLanguage, forKey: PreferenceKey.summarizeAnswerLanguage)
+    preferencesStore.set(preferences.webResearchEnabled, forKey: PreferenceKey.webResearchEnabled)
+    preferencesStore.set(preferences.secretProtectionEnabled, forKey: PreferenceKey.secretProtectionEnabled)
+    preferencesStore.set(preferences.textWatermarkCleaningEnabled, forKey: PreferenceKey.textWatermarkCleaningEnabled)
+    // Save result toolbar visibility and narration highlighting.
+    preferencesStore.set(preferences.resultDiffEnabled, forKey: PreferenceKey.resultDiffEnabled)
+    preferencesStore.set(preferences.resultToolbarShowsSaveText, forKey: PreferenceKey.resultToolbarShowsSaveText)
+    preferencesStore.set(preferences.resultToolbarShowsSaveAudio, forKey: PreferenceKey.resultToolbarShowsSaveAudio)
+    preferencesStore.set(preferences.resultToolbarShowsCopy, forKey: PreferenceKey.resultToolbarShowsCopy)
+    preferencesStore.set(preferences.resultToolbarShowsShare, forKey: PreferenceKey.resultToolbarShowsShare)
+    preferencesStore.set(preferences.resultToolbarShowsNarration, forKey: PreferenceKey.resultToolbarShowsNarration)
+    preferencesStore.set(preferences.resultToolbarShowsHighlight, forKey: PreferenceKey.resultToolbarShowsHighlight)
+    preferencesStore.set(preferences.resultToolbarShowsStats, forKey: PreferenceKey.resultToolbarShowsStats)
+    preferencesStore.set(preferences.resultStatsShowsTTS, forKey: PreferenceKey.resultStatsShowsTTS)
+    preferencesStore.set(preferences.narrationHighlightMode, forKey: PreferenceKey.narrationHighlightMode)
+    // Normalize window text size and save launcher presentation choices.
+    preferencesStore.set(preferences.windowShape, forKey: PreferenceKey.windowShape)
+    preferencesStore.set(normalizedFontSize(preferences.explanationFontSize), forKey: PreferenceKey.explanationFontSize)
+    preferencesStore.set(preferences.rememberLauncherChoices, forKey: PreferenceKey.rememberLauncherChoices)
+    preferencesStore.set(preferences.launcherShowsSecondaryOptions, forKey: PreferenceKey.launcherShowsSecondaryOptions)
+    preferencesStore.set(preferences.launcherShowsTranslationTarget, forKey: PreferenceKey.launcherShowsTranslationTarget)
+    preferencesStore.set(preferences.launcherShowsModel, forKey: PreferenceKey.launcherShowsModel)
+    preferencesStore.set(normalizedLanguageLevel(preferences.languageLevel), forKey: PreferenceKey.languageLevel)
+    preferencesStore.set(preferences.launcherShowsLevel, forKey: PreferenceKey.launcherShowsLevel)
+    preferencesStore.set(preferences.launcherClearsInputAfterSubmit, forKey: PreferenceKey.launcherClearsInputAfterSubmit)
+    // Save additional-language choices and the modes that use them.
+    preferencesStore.set(encodeLanguageList(preferences.extraLanguages), forKey: PreferenceKey.extraLanguages)
+    preferencesStore.set(preferences.extraLanguagesInDictionary, forKey: PreferenceKey.extraLanguagesInDictionary)
+    preferencesStore.set(preferences.extraLanguagesInTranslate, forKey: PreferenceKey.extraLanguagesInTranslate)
+    preferencesStore.set(preferences.extraLanguagesInExplain, forKey: PreferenceKey.extraLanguagesInExplain)
+    preferencesStore.set(preferences.extraLanguagesInSummarize, forKey: PreferenceKey.extraLanguagesInSummarize)
+    preferencesStore.set(encodeAutoNarrateModes(preferences.autoNarrateModes), forKey: PreferenceKey.autoNarrateModes)
+    // Keep advanced endpoint and instruction overrides in preferences.
+    preferencesStore.set(preferences.openAIEndpointOverride, forKey: PreferenceKey.advancedOpenAIEndpoint)
+    preferencesStore.set(preferences.anthropicEndpointOverride, forKey: PreferenceKey.advancedAnthropicEndpoint)
+    preferencesStore.set(preferences.geminiEndpointOverride, forKey: PreferenceKey.advancedGeminiEndpoint)
+    preferencesStore.set(preferences.anthropicVersionOverride, forKey: PreferenceKey.advancedAnthropicVersion)
+    preferencesStore.set(preferences.anthropicWebSearchToolTypeOverride, forKey: PreferenceKey.advancedAnthropicWebSearchToolType)
+    preferencesStore.set(preferences.customInstructions, forKey: PreferenceKey.advancedCustomInstructions)
+    preferencesStore.set(encodeExtraModels(preferences.extraModels), forKey: PreferenceKey.advancedExtraModels)
+    preferencesStore.set(preferences.menuBarEnabled, forKey: PreferenceKey.menuBarEnabled)
+    // Persist cleared shortcuts as empty strings so reopening Settings does not restore defaults.
+    for (action, preferenceKey) in shortcutPreferenceKeys {
+        preferencesStore.set(preferences.globalShortcuts[action]?.encoded ?? "", forKey: preferenceKey)
+    }
+
+    preferencesStore.set(launcherPreferences.mode, forKey: PreferenceKey.launcherMode)
+    preferencesStore.set(launcherPreferences.explanationModel, forKey: PreferenceKey.launcherExplanationModel)
+    preferencesStore.set(launcherPreferences.explanationEffort, forKey: PreferenceKey.launcherExplanationEffort)
+    preferencesStore.set(launcherPreferences.rewriteStyle, forKey: PreferenceKey.launcherRewriteStyle)
+    preferencesStore.set(launcherPreferences.summaryStyle, forKey: PreferenceKey.launcherSummaryStyle)
+    preferencesStore.set(launcherPreferences.dictionaryStyle, forKey: PreferenceKey.launcherDictionaryStyle)
+    preferencesStore.set(launcherPreferences.translationTarget, forKey: PreferenceKey.launcherTranslationTarget)
+    preferencesStore.set(launcherPreferences.languageLevel, forKey: PreferenceKey.launcherLanguageLevel)
+    preferencesStore.set(LauncherLogic.encodedIDList(launcherPreferences.pinnedModes), forKey: PreferenceKey.launcherPinnedModes)
+    preferencesStore.set(
+        encodeLanguageList(launcherPreferences.recentTranslationTargets),
+        forKey: PreferenceKey.launcherRecentTranslationTargets
+    )
+    preferencesStore.synchronize()
+}
+
+// saveAppPreferences(preferences): Save model and voice preferences while
+// preserving direct-launcher state.
+func saveAppPreferences(_ preferences: AppPreferences) {
+    writePreferences(preferences, launcherPreferences: loadLauncherPreferences())
+}
+
+// saveLauncherPreferences(preferences): Save direct-launcher state without
+// changing app-wide defaults.
+func saveLauncherPreferences(_ preferences: LauncherPreferences) {
+    writePreferences(loadAppPreferences(), launcherPreferences: preferences)
+}
