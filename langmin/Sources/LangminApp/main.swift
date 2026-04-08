@@ -4019,3 +4019,88 @@ func saveAppPreferences(_ preferences: AppPreferences) {
 func saveLauncherPreferences(_ preferences: LauncherPreferences) {
     writePreferences(loadAppPreferences(), launcherPreferences: preferences)
 }
+
+// Handle double-clicks across custom title bars while leaving their controls clickable.
+class NativeWindow: NSWindow {
+    private var consumesTitlebarMouseUp = false
+
+    // sendEvent(event): Handle custom titlebar double-click behavior and
+    // consume its matching mouse-up event.
+    override func sendEvent(_ event: NSEvent) {
+        // Consume the matching release after handling a title-bar double click ourselves.
+        if event.type == .leftMouseUp, consumesTitlebarMouseUp {
+            consumesTitlebarMouseUp = false
+            return
+        }
+        // Start each new mouse gesture without a pending release to suppress.
+        if event.type == .leftMouseDown {
+            consumesTitlebarMouseUp = false
+            // Apply the title-bar action only when the click misses interactive controls.
+            if isTitlebarDoubleClick(event) {
+                consumesTitlebarMouseUp = true
+                performZoom(nil)
+                return
+            }
+        }
+        super.sendEvent(event)
+    }
+
+    // isTitlebarDoubleClick(event): Recognize a resizable titlebar double-click
+    // that does not target an interactive control.
+    private func isTitlebarDoubleClick(_ event: NSEvent) -> Bool {
+        // Require a double click belonging to this window before inspecting its location.
+        guard event.type == .leftMouseDown, event.clickCount == 2,
+              event.windowNumber == windowNumber,
+              styleMask.contains(.titled), styleMask.contains(.resizable),
+              !styleMask.contains(.fullScreen), attachedSheet == nil else { return false }
+        let point = event.locationInWindow
+        // Exclude the content area and points beyond the window's title bar.
+        guard point.x >= 0, point.x < frame.width,
+              point.y >= contentLayoutRect.maxY, point.y < frame.height else { return false }
+
+        // Keep native close, minimize, and zoom buttons responsible for their own clicks.
+        for type: NSWindow.ButtonType in [.closeButton, .miniaturizeButton, .zoomButton] {
+            // A visible window button makes this a control click, not a title-bar gesture.
+            if let button = standardWindowButton(type), titlebarControlContains(point, in: button) {
+                return false
+            }
+        }
+        return !titlebarAccessoryViewControllers.contains {
+            titlebarControlContains(point, in: $0.view)
+        }
+    }
+
+    // titlebarControlContains(point, view): Exclude editable fields and other
+    // titlebar controls from window double-click handling.
+    private func titlebarControlContains(_ point: NSPoint, in view: NSView) -> Bool {
+        // Hidden or transparent views cannot claim the click.
+        guard !view.isHidden, view.alphaValue > 0 else { return false }
+        // Inspect this view's interaction only when the point lies within it.
+        if view.bounds.contains(view.convert(point, from: nil)) {
+            // Distinguish interactive text fields from passive title labels.
+            if let field = view as? NSTextField {
+                // Editable or selectable text must keep its normal double-click behavior.
+                if field.isEditable || field.isSelectable { return true }
+            } else if view is NSControl || view is NSTextView {
+                // Other controls and text views handle their own mouse gestures.
+                return true
+            }
+        }
+        return view.subviews.contains { titlebarControlContains(point, in: $0) }
+    }
+}
+
+// configureNativeWindow(window): Use a transparent title bar so
+// NativeBackgroundView draws one background and separator across the whole
+// window.
+func configureNativeWindow(_ window: NSWindow) {
+    window.titlebarAppearsTransparent = true
+    window.titlebarSeparatorStyle = .none
+    insetNativeTrafficLights(in: window)
+    DispatchQueue.main.async { [weak window] in
+        // Position traffic lights once the view has joined a window.
+        if let window {
+            insetNativeTrafficLights(in: window)
+        }
+    }
+}
