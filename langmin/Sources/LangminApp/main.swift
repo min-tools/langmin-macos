@@ -4104,3 +4104,120 @@ func configureNativeWindow(_ window: NSWindow) {
         }
     }
 }
+
+// insetNativeTrafficLights(window): Move native window buttons inward after
+// AppKit finishes laying out the titlebar.
+func insetNativeTrafficLights(in window: NSWindow) {
+    // Finish native title-bar layout before applying the inset; layout can reset button frames.
+    window.layoutIfNeeded()
+    let buttons: [NSWindow.ButtonType] = [
+        .closeButton,
+        .miniaturizeButton,
+        .zoomButton
+    ]
+    let availableButtons = buttons.compactMap { window.standardWindowButton($0) }
+    // Windows without native traffic lights need no inset adjustment.
+    guard let closeButton = window.standardWindowButton(.closeButton) else {
+        return
+    }
+
+    let currentX = closeButton.frame.minX
+    let key = ObjectIdentifier(window)
+    let originalX = nativeTrafficLightOriginalCloseX[key] ?? currentX
+    nativeTrafficLightOriginalCloseX[key] = originalX
+    let targetX = originalX + nativeTrafficLightInsetAdjustment
+    let delta = targetX - currentX
+    // Avoid repeated layout changes for an imperceptible position difference.
+    guard abs(delta) > 0.5 else {
+        return
+    }
+
+    // Move all available traffic lights together to preserve their spacing.
+    for button in availableButtons {
+        button.setFrameOrigin(NSPoint(
+            x: button.frame.minX + delta,
+            y: button.frame.minY
+        ))
+    }
+}
+
+// Draw the window material behind content without applying vibrancy to its controls.
+// Use one background for the body and title bar, separated by a hairline.
+final class NativeBackgroundView: NSView {
+    // Draw a one-pixel separator without NSBox's internal size constraints,
+    // which can conflict with the window's content size.
+    final class HairlineView: NSView {
+        // draw(dirtyRect): Draw a separator exactly one physical pixel thick at
+        // the titlebar edge.
+        override func draw(_ dirtyRect: NSRect) {
+            let thickness = 1 / (window?.backingScaleFactor ?? 2)
+            langminControlBorderColor.setFill()
+            NSRect(x: 0, y: bounds.height - thickness, width: bounds.width, height: thickness).fill()
+        }
+
+        // viewDidChangeEffectiveAppearance(): Redraw the titlebar separator
+        // when its system color changes.
+        override func viewDidChangeEffectiveAppearance() {
+            super.viewDidChangeEffectiveAppearance()
+            needsDisplay = true
+        }
+    }
+
+    private let hairline = HairlineView()
+
+    // init(frameRect): Install the titlebar's background material and separator
+    // for a new view.
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        installMaterial()
+        installHairline()
+    }
+
+    // init?(coder): Restore the same titlebar material and separator when
+    // decoding a view.
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        installMaterial()
+        installHairline()
+    }
+
+    // installHairline(): Pin the titlebar separator across the full width of
+    // its host view.
+    private func installHairline() {
+        hairline.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(hairline)
+        NSLayoutConstraint.activate([
+            hairline.leadingAnchor.constraint(equalTo: leadingAnchor),
+            hairline.trailingAnchor.constraint(equalTo: trailingAnchor),
+            hairline.heightAnchor.constraint(equalToConstant: 1)
+        ])
+    }
+
+    // pinHairline(titlebarBottom): The hairline sits at the titlebar boundary,
+    // which only the window knows.
+    func pinHairline(to titlebarBottom: NSLayoutYAxisAnchor) {
+        hairline.topAnchor.constraint(equalTo: titlebarBottom).isActive = true
+    }
+
+    // installMaterial(): Install a window-local material so the titlebar
+    // background stays stable over other windows.
+    private func installMaterial() {
+        let material = NSVisualEffectView()
+        material.material = .windowBackground
+        // Blend within the window so its background stays consistent when moved over other windows.
+        material.blendingMode = .withinWindow
+        // Keep the background appearance consistent across focused and unfocused windows.
+        material.state = .active
+        material.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(material)
+        NSLayoutConstraint.activate([
+            material.topAnchor.constraint(equalTo: topAnchor),
+            material.leadingAnchor.constraint(equalTo: leadingAnchor),
+            material.trailingAnchor.constraint(equalTo: trailingAnchor),
+            material.bottomAnchor.constraint(equalTo: bottomAnchor)
+        ])
+    }
+}
+
+// Toolbar and playback containers share the window background and need no separate fill.
+final class NativeBarBackgroundView: NSView {}
