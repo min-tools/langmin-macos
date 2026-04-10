@@ -4221,3 +4221,191 @@ final class NativeBackgroundView: NSView {
 
 // Toolbar and playback containers share the window background and need no separate fill.
 final class NativeBarBackgroundView: NSView {}
+
+// Keep NSBox separator sizing while making light-mode section boundaries easier to see.
+final class NativeSeparator: NSBox {
+    override var isOpaque: Bool { false }
+
+    // draw(dirtyRect): Preserve native dark-mode drawing; use a crisp, stronger
+    // line on light surfaces.
+    override func draw(_ dirtyRect: NSRect) {
+        // Retain AppKit separator drawing in dark appearance.
+        guard effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) != .darkAqua else {
+            super.draw(dirtyRect)
+            return
+        }
+        let scale = window?.backingScaleFactor ?? 2
+        var line = bounds
+        // Align either separator orientation to physical pixels within its existing bounds.
+        if bounds.width >= bounds.height {
+            line.origin.y = floor(bounds.midY * scale) / scale
+            line.size.height = 1 / scale
+        } else {
+            // Align a vertical separator to a single backing pixel.
+            line.origin.x = floor(bounds.midX * scale) / scale
+            line.size.width = 1 / scale
+        }
+        langminControlBorderColor.setFill()
+        line.fill()
+    }
+
+    // viewDidChangeEffectiveAppearance(): Refresh already-open sections when
+    // the system or window appearance changes.
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        needsDisplay = true
+    }
+}
+
+// Related actions share one outline.
+final class ResultToolbarButtonGroup: NSStackView {
+    // viewDidChangeEffectiveAppearance(): Keep the shared outline and dividers
+    // in sync with the window's appearance.
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        needsDisplay = true
+    }
+
+    // addButton(button): Let the group draw a shared outline instead of
+    // separate outlines around each button.
+    func addButton(_ button: NSButton) {
+        (button as? TooltipButton)?.drawsOutline = false
+        addArrangedSubview(button)
+    }
+
+    // draw(dirtyRect): Draw one rounded group with separators and per-button
+    // hover or pressed feedback.
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        let buttons = arrangedSubviews.compactMap { $0 as? NSButton }.filter { !$0.isHidden }
+        // An empty button group has no border to draw.
+        guard let first = buttons.first, let last = buttons.last else { return }
+        let rect = first.frame.union(last.frame).insetBy(dx: 0.5, dy: 0.5)
+        let path = NSBezierPath(roundedRect: rect, xRadius: 7, yRadius: 7)
+        NSColor.windowBackgroundColor.withAlphaComponent(0.35).setFill()
+        path.fill()
+
+        // Fill each segment to its edges, rounding only the outside of the whole group.
+        NSGraphicsContext.saveGraphicsState()
+        path.addClip()
+        // Draw per-button interaction states within the shared group outline.
+        for case let button as TooltipButton in buttons {
+            // Only hovered or pressed buttons need an interaction fill.
+            if let color = button.interactionFillColor {
+                color.setFill()
+                button.frame.fill()
+            }
+        }
+        NSGraphicsContext.restoreGraphicsState()
+
+        langminControlBorderColor.setStroke()
+        path.lineWidth = 1
+        path.stroke()
+        // Separate adjacent controls without adding a divider at the group's leading edge.
+        for button in buttons.dropFirst() {
+            let divider = NSBezierPath()
+            divider.move(to: NSPoint(x: button.frame.minX, y: rect.minY))
+            divider.line(to: NSPoint(x: button.frame.minX, y: rect.maxY))
+            divider.stroke()
+        }
+    }
+
+    // layout(): Redraw the shared group background after its buttons move.
+    override func layout() {
+        super.layout()
+        needsDisplay = true
+    }
+}
+
+// Keep groups distinct, tightening the gaps when a result window is narrow.
+final class ResultToolbarView: NSView {
+    // Keep related result actions together in a stable toolbar order.
+    enum Group: CaseIterable { case copy, save, share, illustration, narration, edit }
+    let buttonStack = NSStackView()
+    private var groups: [Group: ResultToolbarButtonGroup] = [:]
+    var reservedWidth: CGFloat = 56
+    private var editingControls: NSView?
+    private var hiddenResultControls: [NSView] = []
+
+    // init(frame): Create the horizontal result toolbar and its ordered action
+    // groups.
+    override init(frame: NSRect) {
+        super.init(frame: frame)
+        buttonStack.orientation = .horizontal
+        buttonStack.alignment = .centerY
+        buttonStack.spacing = 12
+        buttonStack.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(buttonStack)
+        // Create a dedicated stack for each toolbar group so controls retain their order.
+        for group in Group.allCases {
+            let stack = ResultToolbarButtonGroup()
+            stack.orientation = .horizontal
+            stack.alignment = .centerY
+            stack.spacing = 0
+            groups[group] = stack
+            buttonStack.addArrangedSubview(stack)
+        }
+        updateGroups()
+    }
+
+    // init?(coder): Result toolbars are constructed in code with their action
+    // groups.
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    // addButton(button, group): Add an action to its group and refresh which
+    // groups are visible.
+    func addButton(_ button: NSButton, to group: Group) {
+        groups[group]?.addButton(button)
+        updateGroups()
+    }
+
+    // removeButton(button): Remove an action and hide any group left without
+    // visible buttons.
+    func removeButton(_ button: NSButton) {
+        button.removeFromSuperview()
+        updateGroups()
+    }
+
+    // setEditingControls(controls): Editing occupies the existing toolbar;
+    // retain its divider and restore each visible action afterward.
+    func setEditingControls(_ controls: NSView?) {
+        editingControls?.removeFromSuperview()
+        editingControls = nil
+        hiddenResultControls.forEach { $0.isHidden = false }
+        hiddenResultControls = []
+        // Do not hide result actions until replacement editor controls are available.
+        guard let controls else { return }
+        hiddenResultControls = subviews.filter { !$0.isHidden && !($0 is NSBox) }
+        hiddenResultControls.forEach { $0.isHidden = true }
+        editingControls = controls
+        controls.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(controls)
+        NSLayoutConstraint.activate([
+            controls.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 22),
+            controls.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -22),
+            controls.centerYAnchor.constraint(equalTo: centerYAnchor),
+            controls.heightAnchor.constraint(equalToConstant: 28)
+        ])
+    }
+
+    // updateGroups(): Hide empty groups when toolbar preferences or audio
+    // availability change.
+    private func updateGroups() {
+        // Empty groups must not leave gaps in the toolbar.
+        for stack in groups.values {
+            stack.isHidden = stack.arrangedSubviews.isEmpty
+        }
+        needsLayout = true
+    }
+
+    // layout(): Reduce group spacing as the window narrows while reserving
+    // space for trailing controls.
+    override func layout() {
+        let items = buttonStack.arrangedSubviews.filter { !$0.isHidden }
+        let width = items.reduce(CGFloat(0)) { $0 + $1.fittingSize.width }
+        let spacing = min(12, max(0, (bounds.width - reservedWidth - width) / CGFloat(max(1, items.count - 1))))
+        // Update spacing only when the available layout requires a change.
+        if abs(buttonStack.spacing - spacing) > 0.1 { buttonStack.spacing = spacing }
+        super.layout()
+    }
+}
