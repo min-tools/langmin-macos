@@ -4409,3 +4409,49 @@ final class ResultToolbarView: NSView {
         super.layout()
     }
 }
+
+// nativeTitlebarHeight(window): Height of the titlebar strip a full-size
+// content view extends under; zero for a window not set up by
+// installNativeContent.
+func nativeTitlebarHeight(of window: NSWindow) -> CGFloat {
+    // Ordinary window content already excludes the title bar.
+    guard window.styleMask.contains(.fullSizeContentView), let contentView = window.contentView else {
+        return 0
+    }
+    return max(0, contentView.bounds.height - window.contentLayoutRect.height)
+}
+
+// nativeContentSize(size, window): Add the title bar height to a requested
+// content size. Use for windows built by installNativeContent.
+func nativeContentSize(_ size: NSSize, in window: NSWindow) -> NSSize {
+    NSSize(width: size.width, height: size.height + nativeTitlebarHeight(of: window))
+}
+
+// installNativeContent(window): Use one background across the body and title
+// bar. Return the area below the title bar for layout; window.contentView
+// includes the title bar itself.
+func installNativeContent(in window: NSWindow) -> NSView {
+    configureNativeWindow(window)
+    window.styleMask.insert(.fullSizeContentView)
+    let surface = NativeBackgroundView(frame: window.contentView?.bounds ?? .zero)
+    window.contentView = surface
+
+    let content = NSView(frame: window.contentLayoutRect)
+    content.translatesAutoresizingMaskIntoConstraints = false
+    surface.addSubview(content)
+    // Fall back to the content view when AppKit provides no layout guide.
+    guard let guide = window.contentLayoutGuide as? NSLayoutGuide else {
+        return content
+    }
+    // Pin only the top to the content layout guide. Side constraints there can
+    // conflict with title bar accessories and collapse the window width.
+    NSLayoutConstraint.activate([
+        content.topAnchor.constraint(equalTo: guide.topAnchor),
+        content.leadingAnchor.constraint(equalTo: surface.leadingAnchor),
+        content.trailingAnchor.constraint(equalTo: surface.trailingAnchor),
+        content.bottomAnchor.constraint(equalTo: surface.bottomAnchor)
+    ])
+    // Anchor the separator to content, avoiding another constraint that can collapse the window width.
+    surface.pinHairline(to: content.topAnchor)
+    return content
+}
