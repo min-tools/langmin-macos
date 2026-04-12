@@ -4455,3 +4455,31 @@ func installNativeContent(in window: NSWindow) -> NSView {
     surface.pinHairline(to: content.topAnchor)
     return content
 }
+
+// White editable fields in light mode; translucent dark fields over the window material in dark mode.
+let langminFieldFillColor = NSColor(name: nil) { appearance in
+    appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        ? NSColor.black.withAlphaComponent(0.18)
+        : NSColor.textBackgroundColor
+}
+
+// Give pane and toolbar outlines enough contrast against white surfaces without thickening them.
+let langminControlBorderColor = NSColor(name: nil) { appearance in
+    appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        ? NSColor.separatorColor
+        : NSColor.black.withAlphaComponent(0.24)
+}
+
+// normalizedWindowShape(value): Normalize older or hand-edited window shape
+// values to the two supported modes.
+func normalizedWindowShape(_ value: String) -> String {
+    // Accept supported aliases while keeping stored window shapes predictable.
+    switch value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+    // Normalize vertical aspect-ratio names to the portrait setting.
+    case "portrait", "10:16", "vertical":
+        return "portrait"
+    // Unknown shapes use the standard window layout.
+    default:
+        return defaultWindowShape
+    }
+}
