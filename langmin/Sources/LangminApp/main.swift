@@ -4483,3 +4483,72 @@ func normalizedWindowShape(_ value: String) -> String {
         return defaultWindowShape
     }
 }
+
+// viewerContentSize(screen, shape): Calculate the result window size from the
+// saved landscape/portrait preference.
+func viewerContentSize(for screen: NSRect, shape: String) -> NSSize {
+    let normalizedShape = normalizedWindowShape(shape)
+    let isPortrait = normalizedShape == "portrait"
+    let aspectWidth: CGFloat = isPortrait ? 10 : 16
+    let aspectHeight: CGFloat = isPortrait ? 16 : 10
+    let longSide = (isPortrait ? screen.height : screen.width) * 0.70
+
+    var width = isPortrait ? longSide * aspectWidth / aspectHeight : longSide
+    var height = isPortrait ? longSide : longSide * aspectHeight / aspectWidth
+
+    // Clamp to the visible screen while preserving the selected aspect ratio.
+    let maximumWidth = max(screen.width - 40, 360)
+    let maximumHeight = max(screen.height - 40, 420)
+    let scale = min(1, maximumWidth / width, maximumHeight / height)
+    width *= scale
+    height *= scale
+
+    let minimumWidth = min(isPortrait ? 420 : 640, maximumWidth)
+    let minimumHeight = min(isPortrait ? 560 : 400, maximumHeight)
+
+    return NSSize(
+        width: max(width.rounded(.toNearestOrAwayFromZero), minimumWidth),
+        height: max(height.rounded(.toNearestOrAwayFromZero), minimumHeight)
+    )
+}
+
+// Title and explanation fields returned by structured text prompts.
+struct StructuredExplanation: Decodable {
+    let title: String?
+    let explanation: String?
+}
+
+// Prepared text request, with optional native conversation history.
+struct ExplanationPrompt {
+    // Select the local model's expected output format for parsing and rendering.
+    enum LocalFormat { case text, explanation, dictionary, translation }
+    // Identify source-text transformations separately from tasks that generate new content.
+    enum LocalSourceTask: String {
+        // These transforms preserve the source language and return edited text.
+        case proofread = "Proofread", rephrase = "Rephrase", humanize = "Humanize"
+        // Length changes and translation have distinct source-transform instructions.
+        case concise = "Shorten", elaborate = "Expand", summarize = "Summarize", translate = "Translate"
+    }
+    var instructions: String
+    var input: String
+    // Keep target language codes available for the local model's locale-support check.
+    var requestedOutputLanguageCodes: [String] = []
+    var conversationMessages: [TextConversationMessage] = []
+    // A per-request marker reports a skipped translation without replacing the user's text.
+    var translationSkipMarker: String? = nil
+    // Generated prose can be shorter locally; literal edits and translations must stay complete.
+    var appleResponseWordLimit: Int? = nil
+    // Explicit local variants avoid inferring the task from phrases in its instructions.
+    var appleInstructions: String? = nil
+    var appleFormat: LocalFormat = .text
+    var appleDictionaryExampleCount = 1
+    var appleSourceTask: LocalSourceTask? = nil
+
+    // Keep single-turn input unchanged and preserve speaker roles for follow-ups.
+    var messages: [TextConversationMessage] {
+        conversationMessages.isEmpty ? [TextConversationMessage(role: .user, content: input)] : conversationMessages
+    }
+    var chatMessages: [[String: String]] {
+        messages.map { ["role": $0.role.rawValue, "content": $0.content] }
+    }
+}
