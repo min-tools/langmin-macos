@@ -4552,3 +4552,38 @@ struct ExplanationPrompt {
         messages.map { ["role": $0.role.rawValue, "content": $0.content] }
     }
 }
+
+// promptApplyingCustomInstructions(prompt, [preferences =
+// loadAppPreferences()]): Append saved custom instructions to a copy of the
+// task prompt when they are present.
+func promptApplyingCustomInstructions(
+    _ prompt: ExplanationPrompt,
+    preferences: AppPreferences = loadAppPreferences()
+) -> ExplanationPrompt {
+    let customInstructions = preferences.customInstructions
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+    // Keep the built-in prompt unchanged when no custom instructions were supplied.
+    guard !customInstructions.isEmpty else {
+        return prompt
+    }
+
+    let instructions = """
+    \(prompt.instructions)
+
+    User instructions (take precedence over built-in instructions):
+    \(customInstructions)
+    """.trimmingCharacters(in: .whitespacesAndNewlines)
+
+    var result = prompt
+    result.instructions = instructions
+    return result
+}
+
+// Display a helper failure through LocalizedError.
+struct HelperFailure: LocalizedError {
+    let message: String
+
+    var errorDescription: String? {
+        message
+    }
+}
