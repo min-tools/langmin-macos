@@ -4587,3 +4587,71 @@ struct HelperFailure: LocalizedError {
         message
     }
 }
+
+// Use a distinct error type for cancellation rather than matching error text.
+struct LauncherCancellationError: LocalizedError {
+    var errorDescription: String? { "The request was cancelled." }
+}
+
+// languageName(code): Convert a language code to the English name used in model
+// instructions.
+func languageName(for code: String) -> String {
+    let names = [
+        "af": "Afrikaans", "sq": "Albanian", "am": "Amharic",
+        "ar": "Arabic", "hy": "Armenian", "az": "Azerbaijani",
+        "eu": "Basque", "be": "Belarusian", "bn": "Bengali",
+        "bs": "Bosnian", "bg": "Bulgarian", "my": "Burmese",
+        "ca": "Catalan", "yue": "Cantonese", "zh": "Chinese",
+        "hr": "Croatian", "cs": "Czech", "da": "Danish",
+        "nl": "Dutch", "en": "English", "et": "Estonian",
+        "fil": "Filipino", "tl": "Filipino", "fi": "Finnish",
+        "fr": "French", "gl": "Galician", "ka": "Georgian",
+        "de": "German", "el": "Greek", "gr": "Greek",
+        "gu": "Gujarati", "he": "Hebrew", "hi": "Hindi",
+        "hu": "Hungarian", "is": "Icelandic", "id": "Indonesian",
+        "ga": "Irish", "it": "Italian", "ja": "Japanese",
+        "jv": "Javanese", "kn": "Kannada", "kk": "Kazakh",
+        "km": "Khmer", "ko": "Korean", "ku": "Kurdish",
+        "ky": "Kyrgyz", "lo": "Lao", "la": "Latin",
+        "lv": "Latvian", "lt": "Lithuanian", "mk": "Macedonian",
+        "ms": "Malay", "ml": "Malayalam", "mt": "Maltese",
+        "mr": "Marathi", "mn": "Mongolian", "ne": "Nepali",
+        "no": "Norwegian", "ps": "Pashto", "fa": "Persian",
+        "pl": "Polish", "pt": "Portuguese", "pa": "Punjabi",
+        "ro": "Romanian", "ru": "Russian", "sr": "Serbian",
+        "si": "Sinhala", "sk": "Slovak", "sl": "Slovenian",
+        "so": "Somali", "es": "Spanish", "sw": "Swahili",
+        "sv": "Swedish", "ta": "Tamil", "te": "Telugu",
+        "th": "Thai", "tr": "Turkish", "uk": "Ukrainian",
+        "ur": "Urdu", "uz": "Uzbek", "vi": "Vietnamese",
+        "cy": "Welsh", "yi": "Yiddish", "yo": "Yoruba",
+        "zu": "Zulu"
+    ]
+
+    return names[code.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()] ?? ""
+}
+
+// detectLanguagePrefix(text): Remove a leading language prefix when it is a
+// known code.
+func detectLanguagePrefix(in text: String) -> (language: String?, input: String) {
+    // Without a colon, treat the entire input as source text.
+    guard let colon = text.firstIndex(of: ":") else {
+        return (nil, text)
+    }
+
+    let code = String(text[..<colon])
+    // Only an alphabetic prefix can name an output language.
+    // Reject malformed language codes without stripping the input text.
+    guard !code.isEmpty, code.allSatisfy({ $0.isLetter }) else {
+        return (nil, text)
+    }
+
+    let language = languageName(for: code)
+    // An unrecognized language prefix remains part of the original input.
+    guard !language.isEmpty else {
+        return (nil, text)
+    }
+
+    let afterColon = text[text.index(after: colon)...]
+    return (language, String(afterColon).trimmingCharacters(in: .whitespacesAndNewlines))
+}
