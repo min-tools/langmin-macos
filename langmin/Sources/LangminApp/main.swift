@@ -4655,3 +4655,49 @@ func detectLanguagePrefix(in text: String) -> (language: String?, input: String)
     let afterColon = text[text.index(after: colon)...]
     return (language, String(afterColon).trimmingCharacters(in: .whitespacesAndNewlines))
 }
+
+// preferredOutputLanguage(value): Resolve the saved language preference into an
+// English prompt name.
+func preferredOutputLanguage(_ value: String) -> String? {
+    let normalized = value.trimmingCharacters(in: .whitespacesAndNewlines)
+    let lowercased = normalized.lowercased()
+
+    // Resolve explicit language choices while preserving automatic selection.
+    switch lowercased {
+    // These aliases leave output language selection to the task.
+    case "", "auto", "original", "same", "detect":
+        return nil
+    // Resolve a language code or name into the supported display name.
+    default:
+        let name = languageName(for: lowercased)
+        return name.isEmpty ? normalized : name
+    }
+}
+
+// translationLanguageCode(value): Resolve a saved code or display name to the
+// language code used by Locale and FoundationModels.
+func translationLanguageCode(for value: String) -> String? {
+    let candidate = value.trimmingCharacters(in: .whitespacesAndNewlines)
+    // An empty candidate cannot match a selectable output language.
+    guard !candidate.isEmpty else { return nil }
+    return translationTargetOptions.first { option in
+        option.id.caseInsensitiveCompare(candidate) == .orderedSame ||
+            option.title.caseInsensitiveCompare(candidate) == .orderedSame ||
+            languageName(for: option.id).caseInsensitiveCompare(candidate) == .orderedSame
+    }?.id
+}
+
+// promptLanguageNames(values): Normalize selected language codes/names while
+// preserving their requested order.
+func promptLanguageNames(_ values: [String]) -> [String] {
+    var names: [String] = []
+    // Keep languages in the user's chosen order.
+    for value in values {
+        // Discard automatic choices and duplicate language names.
+        // Append each valid language only once, ignoring letter case.
+        guard let name = preferredOutputLanguage(value),
+              !names.contains(where: { $0.caseInsensitiveCompare(name) == .orderedSame }) else { continue }
+        names.append(name)
+    }
+    return names
+}
