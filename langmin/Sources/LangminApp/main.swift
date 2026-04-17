@@ -4824,3 +4824,117 @@ func textRevisionPrompt(input: String, style: String, languageLevel: String = "o
                              appleInstructions: applyLanguageLevel(to: isProofreading ? proofreadingInstructions : localInstructions, level: effectiveLevel),
                              appleSourceTask: localSourceTask)
 }
+
+// watermarkCleanedGeneratedText(text): Remove unwanted invisible characters
+// from prose, preserving Markdown code exactly.
+func watermarkCleanedGeneratedText(_ text: String) -> String {
+    // Text cleanup is opt-in; otherwise preserve the supplied text.
+    guard loadAppPreferences().textWatermarkCleaningEnabled else {
+        return text
+    }
+    return TextWatermarkCleaner.cleanMarkdown(text).text
+}
+
+// cleanedLiteralTransformOutput(output, [input = nil]): Strip common assistant
+// wrappers from literal text-transform output.
+func cleanedLiteralTransformOutput(_ output: String, preservingInput input: String? = nil) -> String {
+    let source = input?.trimmingCharacters(in: .whitespacesAndNewlines)
+    // Clean before removing an outer fence so enclosed code remains protected.
+    var text = watermarkCleanedGeneratedText(
+        output.trimmingCharacters(in: .whitespacesAndNewlines)
+    )
+
+    // Remove a model-added code wrapper only if the source was not fenced.
+    if text.hasPrefix("```"), source?.hasPrefix("```") != true {
+        var lines = text.components(separatedBy: .newlines)
+        // Drop the opening wrapper before returning the transformed text.
+        if lines.first?.hasPrefix("```") == true {
+            lines.removeFirst()
+        }
+        // Remove a matching closing fence without stripping ordinary final lines.
+        if lines.last?.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("```") == true {
+            lines.removeLast()
+        }
+        text = lines.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    let paragraphs = text.components(separatedBy: "\n\n")
+    // A separate opening paragraph may be a model-added preface.
+    if paragraphs.count > 1 {
+        let first = paragraphs[0].lowercased()
+        // Match an added boilerplate introduction, never a title or a paragraph discussing a summary.
+        let prefaces = ["sure, here is", "sure, here's", "here is the corrected", "here's the corrected",
+                        "here is the edited", "here is the rewritten", "here is the translation", "here is the summary"]
+        let looksLikePreface = first.hasSuffix(":") && first.count < 160 && prefaces.contains { prefix in
+            first.hasPrefix(prefix) && source?.lowercased().hasPrefix(prefix) != true
+        }
+
+        // Discard only a recognized short preface absent from the source.
+        if looksLikePreface {
+            text = paragraphs.dropFirst()
+                .joined(separator: "\n\n")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+    }
+
+    let lowercased = text.lowercased()
+    // Strip at most one recognized result label that the model added.
+    for prefix in [
+        "corrected version:",
+        "the corrected version:",
+        "rewritten version:",
+        "the rewritten version:",
+        "translation:",
+        "summary:"
+    ] where lowercased.hasPrefix(prefix) && source?.lowercased().hasPrefix(prefix) != true {
+        text = String(text.dropFirst(prefix.count))
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        break
+    }
+
+    let quotePairs: [(Character, Character)] = [
+        ("\"", "\""),
+        ("“", "”"),
+        ("'", "'"),
+        ("‘", "’")
+    ]
+    // Remove enclosing quotation marks only when the source did not have them.
+    if
+        let first = text.first,
+        let last = text.last,
+        quotePairs.contains(where: { $0.0 == first && $0.1 == last }),
+        !quotePairs.contains(where: { $0.0 == source?.first && $0.1 == source?.last })
+    {
+        text = String(text.dropFirst().dropLast())
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    return text
+}
+
+// cleanedAppleIntelligenceEnvelopeOutput(output, originalInput): Remove echoed
+// input wrappers only on the Apple path. Preserve tags found in the original
+// input so a text-replacement Service does not strip legitimate XML.
+func cleanedAppleIntelligenceEnvelopeOutput(_ output: String, originalInput: String) -> String {
+    var text = output.trimmingCharacters(in: .whitespacesAndNewlines)
+    let original = originalInput.lowercased()
+
+    // Strip an echoed opening envelope without removing legitimate source markup.
+    if !original.contains("<input>") {
+        text = text.replacingOccurrences(
+            of: #"(?is)^\s*<input>\s*"#,
+            with: "",
+            options: .regularExpression
+        )
+    }
+    // Apply the same source-preservation rule to the closing envelope.
+    if !original.contains("</input>") {
+        text = text.replacingOccurrences(
+            of: #"(?is)\s*</input>\s*$"#,
+            with: "",
+            options: .regularExpression
+        )
+    }
+
+    return text.trimmingCharacters(in: .whitespacesAndNewlines)
+}
