@@ -4938,3 +4938,23 @@ func cleanedAppleIntelligenceEnvelopeOutput(_ output: String, originalInput: Str
 
     return text.trimmingCharacters(in: .whitespacesAndNewlines)
 }
+
+// translationSourceLanguageInstructions(skipMarker): Let the selected model
+// identify the source language before deciding which targets to skip.
+func translationSourceLanguageInstructions(skipMarker: String) -> String {
+    """
+    - Identify the source language. Skip any target language the source text is already entirely written in; omit its heading and text, without rewriting or transliterating it.
+    - Different scripts of one language do not require translation. Names, code, URLs and loanwords alone do not make text multilingual.
+    - For meaningful passages in different languages, translate into every target, preserving passages already in that language. If the source language is uncertain, translate normally.
+    - If all targets are skipped, return only: \(skipMarker)
+    """
+}
+
+// Represent the no-translation-needed outcome with a dedicated user-facing notice.
+struct TranslationSkipped: LocalizedError {
+    static var title: String { localized("translation_skipped", "Translation skipped") }
+
+    var errorDescription: String? {
+        localized("translation_already_in_language", "Already in this language.")
+    }
+}
