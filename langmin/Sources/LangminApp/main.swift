@@ -5146,3 +5146,105 @@ func modelProviderSectionName(_ provider: TextModelProvider) -> String {
     case .openAICompatible: return "Custom"
     }
 }
+
+// A small cancellable wrapper keeps URLSession and Swift Task requests uniform.
+final class TextRequestHandle {
+    private let resumeHandler: () -> Void
+    private let cancelHandler: () -> Void
+
+    // init(resume, cancel): Wrap provider-specific request controls in a shared
+    // resumable, cancellable task interface.
+    init(resume: @escaping () -> Void, cancel: @escaping () -> Void) {
+        self.resumeHandler = resume
+        self.cancelHandler = cancel
+    }
+
+    // resume(): Start or resume the underlying provider request.
+    func resume() {
+        resumeHandler()
+    }
+
+    // cancel(): Cancel the underlying provider request through its supplied
+    // handler.
+    func cancel() {
+        cancelHandler()
+    }
+}
+
+// textProvider(model): Split a saved model ID into provider and
+// provider-specific model name.
+func textProvider(for model: String) -> (provider: TextModelProvider, model: String) {
+    let trimmed = model.trimmingCharacters(in: .whitespacesAndNewlines)
+    let normalized = trimmed.isEmpty ? defaultExplanationModel : trimmed
+
+    // Normalize the legacy Apple alias to the current on-device model ID.
+    if normalized == appleIntelligenceModelID || normalized == "apple" {
+        return (.apple, appleIntelligenceModelID)
+    }
+
+    // Explicit provider prefixes take precedence over model-name inference.
+    if normalized.hasPrefix("anthropic:") {
+        return (.anthropic, String(normalized.dropFirst("anthropic:".count)))
+    }
+
+    // Recognize unprefixed Claude model IDs from saved settings.
+    if normalized.hasPrefix("claude-") {
+        return (.anthropic, normalized)
+    }
+
+    // Remove the Gemini routing prefix before making the provider request.
+    if normalized.hasPrefix("gemini:") {
+        return (.gemini, String(normalized.dropFirst("gemini:".count)))
+    }
+
+    // Recognize Gemini model IDs that were saved without a provider prefix.
+    if normalized.hasPrefix("gemini-") {
+        return (.gemini, normalized)
+    }
+
+    // Separate xAI routing information from the requested Grok model ID.
+    if normalized.hasPrefix("grok:") {
+        return (.grok, String(normalized.dropFirst("grok:".count)))
+    }
+
+    // Recognize unprefixed Grok model IDs.
+    if normalized.hasPrefix("grok-") {
+        return (.grok, normalized)
+    }
+
+    // Remove the DeepSeek routing prefix from the provider's model name.
+    if normalized.hasPrefix("deepseek:") {
+        return (.deepSeek, String(normalized.dropFirst("deepseek:".count)))
+    }
+
+    // Accept saved DeepSeek names without requiring a prefix.
+    if normalized.hasPrefix("deepseek-") {
+        return (.deepSeek, normalized)
+    }
+
+    // Strip explicit OpenAI routing information before sending the request.
+    if normalized.hasPrefix("openai:") {
+        return (.openAI, String(normalized.dropFirst("openai:".count)))
+    }
+
+    // Route the custom model choice through its configured compatible endpoint.
+    if normalized == customModelID {
+        return (.openAICompatible, customModelID)
+    }
+
+    return (.openAI, normalized)
+}
+
+// modelSupportsWebResearch(model): Web research is implemented for OpenAI,
+// Anthropic and Gemini.
+func modelSupportsWebResearch(_ model: String) -> Bool {
+    // Offer built-in web research only for integrations that implement it.
+    switch textProvider(for: model).provider {
+    // These integrations support the app's web research request path.
+    case .openAI, .anthropic, .gemini:
+        return true
+    // Other integrations have no built-in research option.
+    case .apple, .grok, .deepSeek, .openAICompatible:
+        return false
+    }
+}
