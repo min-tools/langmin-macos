@@ -5248,3 +5248,34 @@ func modelSupportsWebResearch(_ model: String) -> Bool {
         return false
     }
 }
+
+// Identify the destination before asking for sharing consent.
+// Changing an endpoint requires new permission.
+struct RemoteAIDestination {
+    let consentID: String
+    let displayName: String
+}
+
+let remoteAIConsentPrefix = "remoteAIConsent."
+
+// remoteAIDestination(label, endpoint, [alwaysShowHost = false]): Normalize the
+// destination identity and label used when asking to share text with a
+// provider.
+func remoteAIDestination(label: String, endpoint: String, alwaysShowHost: Bool = false) -> RemoteAIDestination {
+    let normalized = endpoint.trimmingCharacters(in: .whitespacesAndNewlines)
+    let url = URL(string: normalized)
+    let host = url?.host?.lowercased() ?? normalized.lowercased()
+    let port = url?.port.map { ":\($0)" } ?? ""
+    let destinationID = host + port
+    let standardHosts: Set<String> = [
+        "api.openai.com", "api.anthropic.com", "generativelanguage.googleapis.com",
+        "api.x.ai", "api.deepseek.com"
+    ]
+    let displayName = alwaysShowHost || !standardHosts.contains(host)
+        ? "\(label) (\(destinationID))"
+        : label
+    return RemoteAIDestination(
+        consentID: "\(label.lowercased()).\(destinationID)",
+        displayName: displayName
+    )
+}
