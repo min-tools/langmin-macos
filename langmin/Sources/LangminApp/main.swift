@@ -5279,3 +5279,86 @@ func remoteAIDestination(label: String, endpoint: String, alwaysShowHost: Bool =
         displayName: displayName
     )
 }
+
+// remoteTextDestination(model): Find the actual remote destination for a text
+// model; local Apple requests have none.
+func remoteTextDestination(for model: String) -> RemoteAIDestination? {
+    let preferences = loadAppPreferences()
+    // Resolve the actual text destination used for data-sharing consent.
+    switch textProvider(for: model).provider {
+    // On-device generation has no remote destination to approve.
+    case .apple:
+        return nil
+    // Account for a configured OpenAI endpoint when identifying the destination.
+    case .openAI:
+        return remoteAIDestination(
+            label: "OpenAI",
+            endpoint: resolvedOverrideURL(
+                preferences.openAIEndpointOverride,
+                default: openAIResponsesEndpoint
+            ).absoluteString
+        )
+    // Account for an Anthropic endpoint override before asking for consent.
+    case .anthropic:
+        return remoteAIDestination(
+            label: "Anthropic",
+            endpoint: resolvedOverrideURL(
+                preferences.anthropicEndpointOverride,
+                default: anthropicMessagesEndpoint
+            ).absoluteString
+        )
+    // Use the configured Gemini API origin in its destination description.
+    case .gemini:
+        return remoteAIDestination(
+            label: "Google Gemini",
+            endpoint: resolvedOverride(
+                preferences.geminiEndpointOverride,
+                default: geminiAPIBaseURL
+            )
+        )
+    // Identify xAI by its configured built-in API endpoint.
+    case .grok:
+        return remoteAIDestination(label: "xAI", endpoint: grokAPIBaseURL)
+    // Identify DeepSeek by its built-in API endpoint.
+    case .deepSeek:
+        return remoteAIDestination(label: "DeepSeek", endpoint: deepSeekAPIBaseURL)
+    // Custom endpoints need a configured address before they have a destination.
+    case .openAICompatible:
+        // Do not invent a remote destination for an empty custom URL.
+        guard !preferences.customBaseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return nil
+        }
+        return remoteAIDestination(
+            label: "Custom endpoint",
+            endpoint: preferences.customBaseURL,
+            alwaysShowHost: true
+        )
+    }
+}
+
+// remoteNarrationDestination(provider): Find the sharing destination for cloud
+// narration while keeping Apple voices local.
+func remoteNarrationDestination(for provider: NarrationProvider) -> RemoteAIDestination? {
+    // Resolve speech destinations separately from text-generation providers.
+    switch provider {
+    // Apple speech synthesis stays on the device.
+    case .apple:
+        return nil
+    // OpenAI narration sends text to the speech endpoint.
+    case .openAI:
+        return remoteAIDestination(label: "OpenAI", endpoint: openAISpeechEndpoint.absoluteString)
+    // Grok narration uses xAI's API destination.
+    case .grok:
+        return remoteAIDestination(label: "xAI", endpoint: grokAPIBaseURL)
+    }
+}
+
+// resetRemoteAIConsents(): Remove only saved AI-sharing decisions, leaving
+// unrelated preferences intact.
+func resetRemoteAIConsents() {
+    let store = langminPreferencesStore()
+    // Clear only saved remote-sharing approvals, leaving unrelated preferences intact.
+    for key in store.dictionaryRepresentation().keys where key.hasPrefix(remoteAIConsentPrefix) {
+        store.removeObject(forKey: key)
+    }
+}
