@@ -5362,3 +5362,66 @@ func resetRemoteAIConsents() {
         store.removeObject(forKey: key)
     }
 }
+
+// runLangminModalAlert(alert, [deadline = nil]): Activate Langmin for a modal
+// alert and optionally abort it at the request deadline.
+func runLangminModalAlert(_ alert: NSAlert, before deadline: DispatchTime? = nil) -> NSApplication.ModalResponse {
+    NSApp.activate(ignoringOtherApps: true)
+    var timeoutWorkItem: DispatchWorkItem?
+    // Services can impose a deadline so a consent dialog cannot outlive the request.
+    if let deadline {
+        let workItem = DispatchWorkItem { [weak alert] in
+            // Do not close a dialog that has already been dismissed.
+            guard alert?.window.isVisible == true else { return }
+            alert?.window.orderOut(nil)
+            NSApp.abortModal()
+        }
+        timeoutWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: deadline, execute: workItem)
+    }
+    let response = alert.runModal()
+    timeoutWorkItem?.cancel()
+    return response
+}
+
+// confirmRemoteAISharingIfNeeded(destination, [deadline = nil]): Ask for
+// permission before the first request to a remote destination, then remember
+// the decision.
+func confirmRemoteAISharingIfNeeded(
+    _ destination: RemoteAIDestination?,
+    deadline: DispatchTime? = nil
+) -> Bool {
+    // A local request needs no remote data-sharing permission.
+    guard let destination else {
+        return true
+    }
+
+    let store = langminPreferencesStore()
+    let key = remoteAIConsentPrefix + destination.consentID
+    // Reuse a previously saved approval for this destination.
+    guard !store.bool(forKey: key) else {
+        return true
+    }
+
+    let alert = NSAlert()
+    alert.alertStyle = .informational
+    alert.messageText = "Send text to \(destination.displayName)?"
+    alert.informativeText = "Requests go directly from your Mac to \(destination.displayName) using your API key. The provider may process or retain your text under its policy and terms. Langmin's developer does not receive it.\n\nAlways Allow saves permission. Revoke it in Settings → Models → Reset AI Permissions."
+    alert.addButton(withTitle: localized("cancel", "Cancel"))
+    alert.addButton(withTitle: "Allow Once")
+    alert.addButton(withTitle: "Always Allow")
+
+    // Distinguish one-time permission from a persistent destination approval.
+    switch runLangminModalAlert(alert, before: deadline) {
+    // Allow this request without saving a future approval.
+    case .alertSecondButtonReturn:
+        return true
+    // Remember the destination approval before proceeding.
+    case .alertThirdButtonReturn:
+        store.set(true, forKey: key)
+        return true
+    // Cancellation or any unexpected response leaves sharing unapproved.
+    default:
+        return false
+    }
+}
