@@ -5425,3 +5425,71 @@ func confirmRemoteAISharingIfNeeded(
         return false
     }
 }
+
+// remoteSecretWarningMessage(provider, findings): Build the warning text shown
+// before a remote provider receives likely secrets.
+func remoteSecretWarningMessage(provider: String, findings: [LangminSecretFinding]) -> String {
+    """
+    Langmin found \(langminSecretSummary(findings)) in this text.
+
+    Sending this to \(provider) may expose sensitive data outside this Mac.
+
+    Cancel to remove the secret or choose Apple Intelligence. Send Anyway sends this text to the selected provider.
+    """
+}
+
+// confirmRemoteSecretWarningIfNeeded(input, provider, [deadline = nil]): Ask
+// the user before sending suspicious input to a remote provider.
+func confirmRemoteSecretWarningIfNeeded(
+    input: String,
+    provider: String?,
+    deadline: DispatchTime? = nil
+) -> Bool {
+    let preferences = loadAppPreferences()
+    // Scan only when protection is enabled and the request has a remote provider.
+    guard
+        preferences.secretProtectionEnabled,
+        let provider
+    // Local requests and disabled protection need no secret-sharing warning.
+    else {
+        return true
+    }
+
+    let findings = langminSecretFindings(in: input)
+    // Proceed directly when the input contains no recognized secret patterns.
+    guard !findings.isEmpty else {
+        return true
+    }
+
+    let alert = NSAlert()
+    alert.alertStyle = .warning
+    alert.messageText = "This text may contain a secret"
+    alert.informativeText = remoteSecretWarningMessage(
+        provider: provider,
+        findings: findings
+    )
+    alert.addButton(withTitle: localized("cancel", "Cancel"))
+    alert.addButton(withTitle: "Send Anyway")
+    return runLangminModalAlert(alert, before: deadline) == .alertSecondButtonReturn
+}
+
+// confirmRemoteTextSharingIfNeeded(input, model, [deadline = nil]): Apply
+// text-provider access and sharing checks before sending the source text
+// remotely.
+func confirmRemoteTextSharingIfNeeded(
+    input: String,
+    model: String,
+    deadline: DispatchTime? = nil
+) -> Bool {
+    let destination = remoteTextDestination(for: model)
+    // Check Pro access before asking permission to send text to a cloud model.
+    guard destination == nil || ensureProAccess(.cloudModels, deadline: deadline) else {
+        return false
+    }
+    return confirmRemoteAISharingIfNeeded(destination, deadline: deadline) &&
+        confirmRemoteSecretWarningIfNeeded(
+            input: input,
+            provider: destination?.displayName,
+            deadline: deadline
+        )
+}
