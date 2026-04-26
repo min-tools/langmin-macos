@@ -5493,3 +5493,27 @@ func confirmRemoteTextSharingIfNeeded(
             deadline: deadline
         )
 }
+
+// confirmRemoteNarrationSharingIfNeeded(provider): Check cloud-voice access and
+// sharing permission before requesting narration.
+func confirmRemoteNarrationSharingIfNeeded(provider: NarrationProvider) -> Bool {
+    // Cloud voices are a Pro feature; Apple voices need neither gate nor consent.
+    guard provider == .apple || ensureProAccess(.cloudVoices) else {
+        return false
+    }
+    return confirmRemoteAISharingIfNeeded(remoteNarrationDestination(for: provider))
+}
+
+// Decode guided dictionary output before rendering; models do not control its Markdown structure.
+struct AppleDictionaryEntry: Codable {
+    var language: String
+    var word: String
+    var partOfSpeech: String
+    var definition: String
+    var examples: [String]
+}
+
+// Decode the local model's structured translation text.
+struct AppleTranslationResponse: Codable {
+    let translatedText: String
+}
