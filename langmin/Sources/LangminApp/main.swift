@@ -5517,3 +5517,68 @@ struct AppleDictionaryEntry: Codable {
 struct AppleTranslationResponse: Codable {
     let translatedText: String
 }
+
+// Decode whether a local dictionary lookup recognized the input and produced entries.
+struct AppleDictionaryResponse: Codable {
+    let isRecognized: Bool
+    let entries: [AppleDictionaryEntry]?
+}
+
+// appleResponseSchema(prompt): Dynamic schemas enforce the requested example
+// count and bound entries to the selected languages.
+@available(macOS 26.0, *)
+func appleResponseSchema(_ prompt: ExplanationPrompt) throws -> GenerationSchema? {
+    // text(name, description): Create a described string field for the local
+    // model's generation schema.
+    func text(_ name: String, _ description: String) -> DynamicGenerationSchema.Property {
+        DynamicGenerationSchema.Property(name: name, description: description, schema: DynamicGenerationSchema(type: String.self))
+    }
+    // Use structured output only for tasks whose local result has a defined schema.
+    switch prompt.appleFormat {
+    // Plain text transforms need no generated JSON wrapper.
+    case .text: return nil
+    // Give explanations a typed result so rendering can rely on its fields.
+    case .explanation:
+        return try GenerationSchema(root: DynamicGenerationSchema(name: "Explanation", properties: [
+            text("title", "A short topic title, under 60 characters, without a newline"),
+            text("explanation", "A concise answer in the requested language and depth; Markdown is allowed")
+        ]), dependencies: [])
+    // Each local translation schema represents one target language.
+    case .translation:
+        // Reject ambiguous language selection before starting generation.
+        guard prompt.requestedOutputLanguageCodes.count == 1, let code = prompt.requestedOutputLanguageCodes.first else {
+            throw HelperFailure(message: "Apple Intelligence cannot identify the requested language. Choose another language or text model.")
+        }
+        return try GenerationSchema(root: DynamicGenerationSchema(name: "Translation", properties: [
+            text("translatedText", "The complete \(languageName(for: code)) translation of every sentence in the input")
+        ]), dependencies: [])
+    // Use a typed dictionary entry to validate meanings and language coverage.
+    case .dictionary:
+        let examples = DynamicGenerationSchema(arrayOf: DynamicGenerationSchema(type: String.self),
+            minimumElements: prompt.appleDictionaryExampleCount, maximumElements: prompt.appleDictionaryExampleCount)
+        let entry = DynamicGenerationSchema(name: "DictionaryEntry", properties: [
+            text("language", "English name of this entry's language"),
+            text("word", "The headword in this language, without IPA"),
+            text("partOfSpeech", "Part of speech for this meaning, in this language"),
+            text("definition", "Define the main meaning clearly without using the word itself"),
+            DynamicGenerationSchema.Property(name: "examples", description: "Natural example sentences for this meaning, translated consistently across languages", schema: examples)
+        ])
+        // Known words need entries; an optional field lets unknown words decline without examples.
+        // Avoid a zero minimum on this nested array: local generation fails with that schema.
+        let entries = DynamicGenerationSchema(arrayOf: entry,
+            minimumElements: 1, maximumElements: prompt.requestedOutputLanguageCodes.count + 1)
+        return try GenerationSchema(root: DynamicGenerationSchema(name: "Dictionary", properties: [
+            DynamicGenerationSchema.Property(name: "isRecognized", description: "True only for an established word or phrase you recognize. False for random letters or an unfamiliar input.", schema: DynamicGenerationSchema(type: Bool.self)),
+            DynamicGenerationSchema.Property(name: "entries", description: "For a known word: original language first, then each requested language once. Omit if unknown.", schema: entries, isOptional: true)
+        ]), dependencies: [])
+    }
+}
+
+// appleTranslationPrompt(prompt, targetCode): One target per local session
+// avoids mixing languages or extracting only matching source passages.
+func appleTranslationPrompt(_ prompt: ExplanationPrompt, targetCode: String) -> ExplanationPrompt {
+    var result = prompt
+    result.instructions = "Translate all input into \(languageName(for: targetCode)). " + prompt.instructions
+    result.requestedOutputLanguageCodes = [targetCode]
+    return result
+}
