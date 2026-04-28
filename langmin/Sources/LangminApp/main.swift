@@ -5582,3 +5582,86 @@ func appleTranslationPrompt(_ prompt: ExplanationPrompt, targetCode: String) -> 
     result.requestedOutputLanguageCodes = [targetCode]
     return result
 }
+
+// appleTranslationOutput(translations, prompt): Assemble complete translations
+// in requested order; unchanged text does not create a new result.
+func appleTranslationOutput(_ translations: [String: String], prompt: ExplanationPrompt) throws -> String {
+    // Require every requested translation before constructing a combined result.
+    guard let marker = prompt.translationSkipMarker,
+          !prompt.requestedOutputLanguageCodes.isEmpty,
+          Set(translations.keys) == Set(prompt.requestedOutputLanguageCodes) else {
+        throw HelperFailure(message: "Apple Intelligence returned incomplete translations. Try again or choose another text model.")
+    }
+    var sections: [String] = []
+    // Render translations in the user's chosen language order.
+    for code in prompt.requestedOutputLanguageCodes {
+        let text = translations[code]!.trimmingCharacters(in: .whitespacesAndNewlines)
+        // An empty translation must not appear as a successful language section.
+        guard !text.isEmpty else { throw HelperFailure(message: "Apple Intelligence returned an empty translation.") }
+        // Compare the entire source, never just the first passage of a mixed-language input.
+        if text == prompt.input.trimmingCharacters(in: .whitespacesAndNewlines) { continue }
+        sections.append(prompt.requestedOutputLanguageCodes.count == 1 ? text : "## \(languageName(for: code))\n\n\(text)")
+    }
+    return sections.isEmpty ? marker : sections.joined(separator: "\n\n")
+}
+
+// appleDictionaryMarkdown(entries, prompt): Render typed local entries using
+// the same heading and example contracts as cloud Markdown.
+@available(macOS 26.0, *)
+func appleDictionaryMarkdown(_ entries: [AppleDictionaryEntry], prompt: ExplanationPrompt) throws -> String {
+    // An unrecognized word must not become a fabricated dictionary entry.
+    guard !entries.isEmpty else {
+        throw HelperFailure(message: "Apple Intelligence could not identify an established meaning. Check the spelling or choose another text model.")
+    }
+    // plain(value): Collapse whitespace in generated dictionary fields before
+    // composing Markdown.
+    func plain(_ value: String) -> String { value.split(whereSeparator: { $0.isWhitespace }).joined(separator: " ") }
+    // escaped(value): Escape Markdown punctuation so generated field text
+    // cannot change the entry's structure.
+    func escaped(_ value: String) -> String {
+        var text = plain(value)
+        // Escape generated text that could otherwise change Markdown structure.
+        for character in ["\\", "*", "_", "`", "[", "]", "<", ">", "#"] {
+            text = text.replacingOccurrences(of: character, with: "\\" + character)
+        }
+        return text
+    }
+    let codes = entries.compactMap { translationLanguageCode(for: $0.language) }
+    // Require one unambiguous language code for every returned entry.
+    guard let sourceCode = codes.first, codes.count == entries.count, Set(codes).count == codes.count else {
+        throw HelperFailure(message: "Apple Intelligence returned incomplete dictionary languages. Try again or choose another text model.")
+    }
+    let expected = [sourceCode] + prompt.requestedOutputLanguageCodes.filter { $0 != sourceCode }
+    // Reject missing languages or essential entry fields before rendering.
+    // Reject incomplete dictionary output instead of displaying a partial entry.
+    guard Set(codes) == Set(expected), entries.allSatisfy({
+        !plain($0.word).isEmpty && !plain($0.partOfSpeech).isEmpty && !plain($0.definition).isEmpty &&
+        $0.examples.count == prompt.appleDictionaryExampleCount && $0.examples.allSatisfy { !plain($0).isEmpty }
+    }) else {
+        throw HelperFailure(message: "Apple Intelligence returned an incomplete dictionary entry. Try again or choose another text model.")
+    }
+    var sections = ["# " + escaped(entries[0].word)]
+    // Present the source entry first, followed by targets in requested order.
+    for code in expected {
+        let entry = entries[codes.firstIndex(of: code)!]
+        // Language headings are useful only when the result contains multiple languages.
+        if expected.count > 1 { sections.append("## " + languageName(for: code)) }
+        let word = code == sourceCode ? "" : ": " + escaped(entry.word)
+        sections.append("## " + escaped(entry.partOfSpeech) + word)
+        sections.append("1. " + escaped(entry.definition) + "\n> *" + entry.examples.map(escaped).joined(separator: " ") + "*")
+    }
+    return sections.joined(separator: "\n\n")
+}
+
+// validateAppleIntelligenceBudget(prompt, instructionTokens, inputTokens):
+// Reserve space for the answer before starting a local session. macOS 26 has a
+// 4,096-token context.
+func validateAppleIntelligenceBudget(prompt: ExplanationPrompt, instructionTokens: Int, inputTokens: Int) throws {
+    // Transforms need room for the full source in every target. Prose uses the selected local depth.
+    let responseReserve = prompt.appleResponseWordLimit.map { max(768, $0 * 3) }
+        ?? max(512, inputTokens * 2 * max(1, prompt.requestedOutputLanguageCodes.count))
+    // Reserve context for the response and framework overhead before generation.
+    guard instructionTokens + inputTokens + responseReserve + 256 <= 4_096 else {
+        throw HelperFailure(message: "This request is too large for Apple Intelligence. Shorten the input or custom instructions, choose fewer output languages, or use another text model.")
+    }
+}
