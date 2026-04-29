@@ -5665,3 +5665,67 @@ func validateAppleIntelligenceBudget(prompt: ExplanationPrompt, instructionToken
         throw HelperFailure(message: "This request is too large for Apple Intelligence. Shorten the input or custom instructions, choose fewer output languages, or use another text model.")
     }
 }
+
+// withAppleIntelligenceTimeout([seconds = 90], operation): Request cancellation
+// after the deadline; completed requests also cancel their deadline task.
+func withAppleIntelligenceTimeout(seconds: Double = 90, operation: @escaping @Sendable () async throws -> String) async throws -> String {
+    try await withThrowingTaskGroup(of: String.self) { group in
+        group.addTask { try await operation() }
+        group.addTask {
+            try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+            throw HelperFailure(message: "Apple Intelligence took too long. Try a shorter request or choose another text model.")
+        }
+        // Cancel the losing generation or timeout task when the race finishes.
+        defer { group.cancelAll() }
+        return try await group.next()!
+    }
+}
+
+// appleIntelligenceText(prompt): Apple Intelligence local text generation
+// through FoundationModels.
+@available(macOS 26.0, *)
+func appleIntelligenceText(prompt: ExplanationPrompt) async throws -> String {
+    try Task.checkCancellation()
+    let model = SystemLanguageModel.default
+
+    // Check system-model availability before creating a session.
+    switch model.availability {
+    // Continue only when the model is ready for requests.
+    case .available:
+        break
+    // Explain unavailability before spending time preparing a generation.
+    case .unavailable:
+        throw HelperFailure(
+            message: "Apple Intelligence is not available on this Mac. Enable it or choose another text model."
+        )
+    }
+
+    let unsupportedLanguageCodes = prompt.requestedOutputLanguageCodes.filter {
+        !model.supportsLocale(Locale(identifier: $0))
+    }
+    // Reject unsupported requested languages with their readable names.
+    if !unsupportedLanguageCodes.isEmpty {
+        let names = unsupportedLanguageCodes
+            .map { preferredOutputLanguage($0) ?? $0 }
+            .joined(separator: ", ")
+        throw HelperFailure(
+            message: "Apple Intelligence on this Mac does not support output in \(names). Remove those languages or choose another text model."
+        )
+    }
+
+    let prompt = promptApplyingCustomInstructions(appleIntelligencePrompt(prompt))
+    return try await withAppleIntelligenceTimeout {
+        // Generate each translation separately to fit the local context budget.
+        if prompt.appleFormat == .translation {
+            var translations: [String: String] = [:]
+            // Publish only after every target succeeds. Each session gets the complete original input.
+            for code in prompt.requestedOutputLanguageCodes {
+                let request = appleTranslationPrompt(prompt, targetCode: code)
+                let json = try await appleIntelligenceResponse(prompt: request, model: model)
+                translations[code] = try JSONDecoder().decode(AppleTranslationResponse.self, from: Data(json.utf8)).translatedText
+            }
+            return try appleTranslationOutput(translations, prompt: prompt)
+        }
+        return try await appleIntelligenceResponse(prompt: prompt, model: model)
+    }
+}
