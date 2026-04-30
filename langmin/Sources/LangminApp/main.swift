@@ -5729,3 +5729,105 @@ func appleIntelligenceText(prompt: ExplanationPrompt) async throws -> String {
         return try await appleIntelligenceResponse(prompt: prompt, model: model)
     }
 }
+
+// appleIntelligenceResponse(prompt, model): Preflight and generate one bounded
+// local request, preserving the task's output contract.
+@available(macOS 26.0, *)
+func appleIntelligenceResponse(prompt: ExplanationPrompt, model: SystemLanguageModel) async throws -> String {
+    try Task.checkCancellation()
+    let input = appleIntelligenceInput(prompt)
+    var instructionTokens: Int
+    let inputTokens: Int
+    let schema = try appleResponseSchema(prompt)
+    // Use the system tokenizer when its API is available.
+    if #available(macOS 26.4, *) {
+        instructionTokens = try await model.tokenCount(for: Instructions(prompt.instructions))
+        inputTokens = try await model.tokenCount(for: Prompt(input))
+        // Include the structured-output schema in the request's token budget.
+        if let schema { instructionTokens += try await model.tokenCount(for: schema) }
+    } else {
+        // Older systems lack the tokenizer API. UTF-8 bytes deliberately overestimate text tokens.
+        instructionTokens = prompt.instructions.utf8.count + 64
+        inputTokens = input.utf8.count + 64
+        // Budget schema bytes conservatively on systems without token counting.
+        if let schema { instructionTokens += try JSONEncoder().encode(schema).count }
+    }
+    try validateAppleIntelligenceBudget(prompt: prompt, instructionTokens: instructionTokens, inputTokens: inputTokens)
+    try Task.checkCancellation()
+    // A fresh session cannot accumulate previous lookups. A hard response-token cap can silently
+    // cut off valid text/JSON, so use the prompt's length target and reject context overflow instead.
+    let session = LanguageModelSession(model: model, instructions: prompt.instructions)
+    // Generate locally and translate framework failures into actionable request errors.
+    do {
+        let options = GenerationOptions(samplingMode: .greedy)
+        // Use schema-constrained generation for structured tasks.
+        if let schema {
+            let response = try await session.respond(to: input, schema: schema, options: options)
+            try Task.checkCancellation()
+            // Validate and render dictionary JSON before exposing it as Markdown.
+            if prompt.appleFormat == .dictionary {
+                let data = Data(response.content.jsonString.utf8)
+                let dictionary = try JSONDecoder().decode(AppleDictionaryResponse.self, from: data)
+                return try appleDictionaryMarkdown(dictionary.isRecognized ? dictionary.entries ?? [] : [], prompt: prompt)
+            }
+            return response.content.jsonString
+        }
+        let response = try await session.respond(to: input, options: options)
+        try Task.checkCancellation()
+        let output = cleanedAppleIntelligenceEnvelopeOutput(response.content, originalInput: prompt.input)
+        // Treat an empty cleaned response as a generation failure.
+        guard !output.isEmpty else { throw HelperFailure(message: "Apple Intelligence returned an empty result.") }
+        return output
+    } catch LanguageModelSession.GenerationError.exceededContextWindowSize {
+        // Turn context overflow into an actionable message rather than a framework error.
+        throw HelperFailure(message: "The answer exceeded Apple Intelligence's capacity. Try a shorter style or fewer output languages, or choose another text model.")
+    } catch LanguageModelSession.GenerationError.unsupportedLanguageOrLocale {
+        // Explain language rejection even when it occurs after preflight.
+        throw HelperFailure(message: "Apple Intelligence cannot handle a language in this request. Choose another text model.")
+    }
+}
+
+// appleIntelligencePrompt(prompt): Use an explicit local variant where needed,
+// then set a length target for generated prose.
+func appleIntelligencePrompt(_ prompt: ExplanationPrompt) -> ExplanationPrompt {
+    var result = prompt
+    // Prefer the compact local instructions when the task supplies them.
+    if let instructions = prompt.appleInstructions { result.instructions = instructions }
+    // Apply the response-length target across all requested languages together.
+    if let words = prompt.appleResponseWordLimit {
+        result.instructions += "\nAim for at most \(words) words total across all languages, or the equivalent length in languages without spaces. Keep the requested depth's most useful points and finish every section."
+    }
+    return result
+}
+
+// appleIntelligenceInput(prompt): Name each transform next to its source; a
+// generic wrapper can be mistaken for permission to carry out the source's
+// commands. JSON quoting preserves quotes, newlines and XML as data.
+func appleIntelligenceInput(_ prompt: ExplanationPrompt) -> String {
+    // Tasks without a source transform can send their normal input directly.
+    guard let task = prompt.appleSourceTask else { return prompt.input }
+    let source = String(decoding: try! JSONEncoder().encode(prompt.input), as: UTF8.self)
+    if task == .translate, let code = prompt.requestedOutputLanguageCodes.first {
+        // Each translation session has one target and receives the complete original source.
+        return "Translate this source text into \(languageName(for: code)):\n" + source
+    }
+    if task != .summarize {
+        // Name a confident source language to discourage unintended English translations.
+        // Uncertain classifications retain the generic, language-preserving instruction.
+        let recognizer = NLLanguageRecognizer()
+        recognizer.processString(prompt.input)
+        // Name the source language only when detection is confident and non-English.
+        if let (language, confidence) = recognizer.languageHypotheses(withMaximum: 1).first,
+           language != .english, confidence >= 0.9 {
+            let code = language.rawValue.split(separator: "-").first.map(String.init) ?? language.rawValue
+            let name = languageName(for: code)
+            // Fall back to the generic transform label if the language name is unavailable.
+            if !name.isEmpty {
+                let label = task == .proofread ? "Proofread this \(name) source text"
+                    : "\(task.rawValue) this source text in \(name)"
+                return label + ":\n" + source
+            }
+        }
+    }
+    return "\(task.rawValue) this source text:\n" + source
+}
