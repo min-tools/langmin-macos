@@ -5831,3 +5831,104 @@ func appleIntelligenceInput(_ prompt: ExplanationPrompt) -> String {
     }
     return "\(task.rawValue) this source text:\n" + source
 }
+
+// removingTrailingSourcesSection(explanation): Replace a model-written Sources
+// section with links from the provider's citation metadata.
+func removingTrailingSourcesSection(from explanation: String) -> String {
+    let normalized = explanation
+        .replacingOccurrences(of: "\r\n", with: "\n")
+        .replacingOccurrences(of: "\r", with: "\n")
+    let lines = normalized.components(separatedBy: "\n")
+
+    // Search backward so the last Sources section determines the trailing material to remove.
+    for index in stride(from: lines.count - 1, through: 0, by: -1) {
+        let line = lines[index]
+        // Keep the original result if removing the section would leave no explanation.
+        if isSourcesSectionStart(line) {
+            let before = lines[..<index]
+                .joined(separator: "\n")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            return before.isEmpty ? explanation : before
+        }
+    }
+
+    return explanation
+}
+
+// isSourcesSectionStart(line): Recognize source-section headings after removing
+// heading markers and surrounding whitespace.
+func isSourcesSectionStart(_ line: String) -> Bool {
+    var trimmed = line.trimmingCharacters(in: .whitespaces)
+
+    // Ignore Markdown heading depth when identifying a Sources label.
+    while trimmed.hasPrefix("#") {
+        trimmed.removeFirst()
+    }
+
+    trimmed = trimmed
+        .trimmingCharacters(in: .whitespaces)
+        .replacingOccurrences(of: "**", with: "")
+        .replacingOccurrences(of: "__", with: "")
+        .trimmingCharacters(in: CharacterSet(charactersIn: " :\t"))
+
+    let lowercased = trimmed.lowercased()
+    // Accept the standard standalone names for a reference section.
+    if lowercased == "sources" || lowercased == "references" {
+        return true
+    }
+
+    return (lowercased.hasPrefix("sources ") || lowercased.hasPrefix("references ")) &&
+        trimmed.range(of: "\\[[^\\]]+\\]\\([^)]+\\)", options: .regularExpression) != nil
+}
+
+// speechReadyText(explanation): Remove Markdown syntax and citations before
+// narration. Add punctuation to headings for a pause, keeping separate lines
+// for playback highlighting.
+func speechReadyText(from explanation: String) -> String {
+    // Supported editor tags are formatting, not spoken text. Strip them before finding
+    // Sources so resizing its heading does not cause references to be narrated.
+    let unstyled = explanation.replacingOccurrences(
+        of: #"(?<!\\)(?:</?(?:b|i|s|u|sup|sub|code)>|<span style="(?:font-size: [0-9.]+pt|vertical-align: baseline)">|</span>)"#,
+        with: "", options: .regularExpression)
+    var text = removingTrailingSourcesSection(from: unstyled)
+    text = text.replacingOccurrences(of: #"\\([\\`*_{}\[\]<>()#+\-.!|~])"#, with: "$1", options: .regularExpression)
+    // Images speak their caption without the Markdown exclamation mark.
+    text = text.replacingOccurrences(of: #"!\[([^\]\n]*)\]\([^)\n]+\)"#, with: "$1", options: .regularExpression)
+    // [label](url) -> label
+    text = text.replacingOccurrences(
+        of: "\\[([^\\]]+)\\]\\([^)]+\\)",
+        with: "$1",
+        options: .regularExpression
+    )
+    // Drop [1]-style citation markers along with any space before them.
+    text = text.replacingOccurrences(
+        of: " ?\\[[0-9]{1,3}\\]",
+        with: "",
+        options: .regularExpression
+    )
+    // Convert Markdown headings to spoken text with a natural pause.
+    if let headingRegex = try? NSRegularExpression(
+        pattern: "^\\s{0,3}#{1,6}\\s+(.+?)(?:\\s+#+)?\\s*$"
+    ) {
+        text = text.components(separatedBy: .newlines).map { line in
+            let source = line as NSString
+            let range = NSRange(location: 0, length: source.length)
+            // Leave lines that are not recognized headings unchanged.
+            guard
+                let match = headingRegex.firstMatch(in: line, range: range),
+                match.range(at: 1).location != NSNotFound
+            // Preserve ordinary narration lines exactly at this step.
+            else {
+                return line
+            }
+            var heading = source.substring(with: match.range(at: 1))
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            // Add a pause only when the heading lacks its own terminal punctuation.
+            if let last = heading.last, !".!?…:;".contains(last) {
+                heading.append(".")
+            }
+            return heading
+        }.joined(separator: "\n")
+    }
+    return text.trimmingCharacters(in: .whitespacesAndNewlines)
+}
