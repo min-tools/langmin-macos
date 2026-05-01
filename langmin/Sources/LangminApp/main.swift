@@ -5932,3 +5932,88 @@ func speechReadyText(from explanation: String) -> String {
     }
     return text.trimmingCharacters(in: .whitespacesAndNewlines)
 }
+
+// startExplanationRequest(question, effort, model, outputLanguage, research,
+// [extraLanguages = []], [languageLevel = "off"], completion): Start one
+// structured explanation request with the app's explanation prompt.
+func startExplanationRequest(
+    question: String,
+    effort: String,
+    model: String,
+    outputLanguage: String,
+    research: Bool,
+    extraLanguages: [String] = [],
+    languageLevel: String = "off",
+    completion: @escaping (Result<String, Error>) -> Void
+) throws -> TextRequestHandle {
+    try startTextRequest(
+        model: model,
+        prompt: explanationPrompt(
+            question: question,
+            effort: effort,
+            outputLanguage: outputLanguage,
+            research: research,
+            extraLanguages: extraLanguages,
+            languageLevel: languageLevel
+        ),
+        emptyMessage: "The selected text model returned an empty explanation.",
+        research: research,
+        completion: completion
+    )
+}
+
+// startTextRequest(model, prompt, emptyMessage, [research = false],
+// completion): Start one native text-generation request and return its
+// cancellable task.
+func startTextRequest(
+    model: String,
+    prompt: ExplanationPrompt,
+    emptyMessage: String,
+    research: Bool = false,
+    completion: @escaping (Result<String, Error>) -> Void
+) throws -> TextRequestHandle {
+    // Route remote models through their provider implementation.
+    if textProvider(for: model).provider != .apple {
+        return try startCloudTextRequest(model: model, prompt: prompt, emptyMessage: emptyMessage,
+                                         research: research, completion: completion)
+    }
+    // Reject on-device generation on systems without Foundation Models.
+    guard #available(macOS 26.0, *) else {
+        throw HelperFailure(
+            message: "Apple Intelligence requires macOS 26 or later. Choose another text model in Settings."
+        )
+    }
+
+    let task = Task {
+        // Run the Apple request asynchronously before delivering its completion.
+        do {
+            let output = try await appleIntelligenceText(prompt: prompt)
+            // Cancellation must suppress a successful but obsolete result.
+            guard !Task.isCancelled else {
+                return
+            }
+
+            completion(.success(output))
+        } catch {
+            // Deliver generation failures only while the request remains active.
+            // A canceled task should not surface a late error dialog.
+            guard !Task.isCancelled else {
+                return
+            }
+
+            completion(.failure(error))
+        }
+    }
+
+    return TextRequestHandle(resume: {}, cancel: { task.cancel() })
+}
+
+// Shared cancellation interface for network and on-device narration.
+protocol NarrationRequestTask: AnyObject, Sendable {
+    // resume(): Start the narration request through the same interface for
+    // local and cloud speech.
+    func resume()
+    // cancel(): Stop the active narration request and let its implementation
+    // report cancellation.
+    func cancel()
+}
