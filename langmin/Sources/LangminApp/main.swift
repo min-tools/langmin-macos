@@ -6017,3 +6017,130 @@ protocol NarrationRequestTask: AnyObject, Sendable {
     // report cancellation.
     func cancel()
 }
+
+// Use URLSession's existing resume and cancel methods for cloud narration tasks.
+extension URLSessionDataTask: NarrationRequestTask {}
+
+// Write on-device speech buffers to a CAF file. An empty buffer ends the stream;
+// cancellation reports a failure so the caller can clean up.
+final class AppleSpeechTask: NarrationRequestTask, @unchecked Sendable {
+    private let synthesizer = AVSpeechSynthesizer()
+    private let utterance: AVSpeechUtterance
+    private let outputURL: URL
+    private let completion: (Result<Void, Error>) -> Void
+    private var audioFile: AVAudioFile?
+    private let lock = NSLock()
+    private var didComplete = false
+
+    // init(text, voiceIdentifier, [ipa = nil], outputURL, completion): Prepare
+    // the utterance, optional pronunciation hint, destination file, and
+    // completion callback.
+    init(
+        text: String,
+        voiceIdentifier: String,
+        ipa: String? = nil,
+        outputURL: URL,
+        completion: @escaping (Result<Void, Error>) -> Void
+    ) {
+        let utterance: AVSpeechUtterance
+        // Pass IPA to Apple speech to specify the intended pronunciation.
+        if let ipa, !ipa.isEmpty {
+            let attributed = NSMutableAttributedString(string: text)
+            attributed.addAttribute(
+                NSAttributedString.Key(rawValue: AVSpeechSynthesisIPANotationAttribute),
+                value: ipa,
+                range: NSRange(location: 0, length: attributed.length)
+            )
+            utterance = AVSpeechUtterance(attributedString: attributed)
+        } else {
+            // Use ordinary speech text when no phonetic pronunciation was requested.
+            utterance = AVSpeechUtterance(string: text)
+        }
+        utterance.voice = AVSpeechSynthesisVoice(identifier: voiceIdentifier)
+        self.utterance = utterance
+        self.outputURL = outputURL
+        self.completion = completion
+    }
+
+    // resume(): Verify the requested voice before asking Apple speech synthesis
+    // for audio buffers.
+    func resume() {
+        // Reject a missing voice instead of silently substituting one or waiting for buffers that never
+        // arrive.
+        guard utterance.voice != nil else {
+            finish(.failure(HelperFailure(
+                message: "The saved narration voice is no longer installed. Choose another voice in Settings."
+            )))
+            return
+        }
+        synthesizer.write(utterance) { [weak self] buffer in
+            self?.handle(buffer: buffer)
+        }
+    }
+
+    // cancel(): Stop speech immediately and complete the request as cancelled.
+    func cancel() {
+        synthesizer.stopSpeaking(at: .immediate)
+        finish(.failure(HelperFailure(message: "Narration was cancelled.")))
+    }
+
+    // handle(buffer): Write PCM buffers to the output file and treat the empty
+    // terminal buffer as completion.
+    private func handle(buffer: AVAudioBuffer) {
+        // Ignore callback buffers that do not contain PCM audio.
+        guard let pcmBuffer = buffer as? AVAudioPCMBuffer else {
+            return
+        }
+
+        // A zero-length PCM buffer marks the end of speech synthesis.
+        guard pcmBuffer.frameLength > 0 else {
+            finish(.success(()))
+            return
+        }
+
+        // Create or reuse the audio file and append the next synthesized PCM buffer.
+        do {
+            let file = try audioFile ?? AVAudioFile(
+                forWriting: outputURL,
+                settings: pcmBuffer.format.settings
+            )
+            audioFile = file
+            try file.write(from: pcmBuffer)
+        } catch {
+            // Report audio-writing errors through the same one-shot completion path.
+            finish(.failure(error))
+        }
+    }
+
+    // finish(result): Complete at most once, even when cancellation races with
+    // the final speech buffer.
+    private func finish(_ result: Result<Void, Error>) {
+        lock.lock()
+        // Speech callbacks can arrive after completion; deliver the result only once.
+        guard !didComplete else {
+            lock.unlock()
+            return
+        }
+        didComplete = true
+        lock.unlock()
+        completion(result)
+    }
+}
+
+// startAppleSpeechRequest(text, voiceIdentifier, [ipa = nil], outputURL,
+// completion): Match the cloud narration factories' request interface.
+func startAppleSpeechRequest(
+    text: String,
+    voiceIdentifier: String,
+    ipa: String? = nil,
+    outputURL: URL,
+    completion: @escaping (Result<Void, Error>) -> Void
+) throws -> NarrationRequestTask {
+    AppleSpeechTask(
+        text: text,
+        voiceIdentifier: voiceIdentifier,
+        ipa: ipa,
+        outputURL: outputURL,
+        completion: completion
+    )
+}
