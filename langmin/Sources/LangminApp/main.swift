@@ -6144,3 +6144,41 @@ func startAppleSpeechRequest(
         completion: completion
     )
 }
+
+// Clean a generated topic title before showing it in window chrome or files.
+let titleBoundaryTrimCharacters = CharacterSet.whitespacesAndNewlines
+    .union(.punctuationCharacters)
+    .union(CharacterSet(charactersIn: "…—–"))
+
+let weakTitleTrailingWords: Set<String> = [
+    "a", "an", "and", "are", "as", "at", "be", "been", "being", "but", "by",
+    "for", "from", "he", "her", "him", "his", "i", "if", "in", "is", "it",
+    "its", "me", "my", "of", "on", "or", "our", "she", "that", "the", "their",
+    "them", "then", "these", "they", "this", "those", "to", "us", "was", "we",
+    "were", "with", "without", "you", "your"
+]
+
+// cleanTopicTitle(value): Remove title wrappers and redundant whitespace before
+// displaying a generated topic title.
+func cleanTopicTitle(_ value: String?) -> String {
+    // A missing generated title has no text to normalize.
+    guard let value else {
+        return ""
+    }
+
+    var title = watermarkCleanedGeneratedText(value)
+        .replacingOccurrences(of: "\n", with: " ")
+        .replacingOccurrences(of: "\r", with: " ")
+        .components(separatedBy: .whitespacesAndNewlines)
+        .filter { !$0.isEmpty }
+        .joined(separator: " ")
+        .trimmingCharacters(in: titleBoundaryTrimCharacters)
+
+    // Bound title length before it reaches window and Library labels.
+    if title.count > 80 {
+        title = String(title.prefix(80))
+            .trimmingCharacters(in: titleBoundaryTrimCharacters)
+    }
+
+    return title
+}
