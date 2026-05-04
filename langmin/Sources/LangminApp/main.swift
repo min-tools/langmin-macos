@@ -6182,3 +6182,28 @@ func cleanTopicTitle(_ value: String?) -> String {
 
     return title
 }
+
+// titleTrailingWordKey(word): Normalize a trailing title word for comparison
+// with words that should not end a title.
+func titleTrailingWordKey(_ word: Substring) -> String {
+    String(word)
+        .trimmingCharacters(in: titleBoundaryTrimCharacters)
+        .lowercased()
+}
+
+// compactTitlePrefix(words, [preferredCount = 6], [maximumCount = 8]): Choose a
+// short title prefix without unnecessarily ending on an incomplete phrase.
+func compactTitlePrefix(from words: [Substring], preferredCount: Int = 6, maximumCount: Int = 8) -> String {
+    let maximum = min(maximumCount, words.count)
+    var count = min(preferredCount, words.count)
+
+    // Extend a short title past a weak trailing word, within the word limit.
+    while
+        count < maximum,
+        weakTitleTrailingWords.contains(titleTrailingWordKey(words[count - 1]))
+    {
+        count += 1
+    }
+
+    return words.prefix(count).joined(separator: " ")
+}
