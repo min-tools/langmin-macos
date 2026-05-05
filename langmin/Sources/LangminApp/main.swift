@@ -6207,3 +6207,93 @@ func compactTitlePrefix(from words: [Substring], preferredCount: Int = 6, maximu
 
     return words.prefix(count).joined(separator: " ")
 }
+
+// compactContentTitle(value, fallback): Derive a short document heading from
+// generated text without another AI call.
+func compactContentTitle(from value: String, fallback: String) -> String {
+    let normalized = value
+        .replacingOccurrences(of: #"```[\s\S]*?```"#, with: " ", options: .regularExpression)
+        // Remove inline Markdown syntax from window titles.
+        .replacingOccurrences(of: #"\[([^\]]+)\]\([^)]*\)"#, with: "$1", options: .regularExpression)
+        .replacingOccurrences(of: #"(\*\*|__|\*|_|`|\\)"#, with: "", options: .regularExpression)
+        // Collapse horizontal whitespace but keep line breaks so only the first line becomes the title.
+        .replacingOccurrences(of: #"[ \t]+"#, with: " ", options: .regularExpression)
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+
+    let firstThought = normalized
+        .split(whereSeparator: { ".!?…\n".contains($0) })
+        .first
+        .map(String.init) ?? normalized
+
+    let cleaned = firstThought
+        .replacingOccurrences(of: #"^\s*(#{1,6}|[-*•>]|\d+[.)])\s*"#, with: "", options: .regularExpression)
+        .trimmingCharacters(in: .whitespacesAndNewlines.union(.punctuationCharacters))
+    let words = cleaned.split(whereSeparator: { $0.isWhitespace })
+
+    let title: String
+    // Use a short phrase when the content has multiple words.
+    if words.count >= 2 {
+        title = compactTitlePrefix(from: words)
+    } else if cleaned.count > 32 {
+        // Bound long unbroken text, including languages without word spaces.
+        title = String(cleaned.prefix(32))
+    } else {
+        // Keep an already short single-word title intact.
+        title = cleaned
+    }
+
+    let compact = cleanTopicTitle(title)
+    return compact.isEmpty ? fallback : compact
+}
+
+// fencedResponseBody(response): Return the body of a Markdown code fence when a
+// model wraps structured JSON.
+func fencedResponseBody(_ response: String) -> String? {
+    let trimmed = response.trimmingCharacters(in: .whitespacesAndNewlines)
+    // Only a fenced response needs its opening wrapper removed.
+    guard trimmed.hasPrefix("```") else {
+        return nil
+    }
+
+    var lines = trimmed.components(separatedBy: .newlines)
+    // Require an opening fence line before treating subsequent lines as its body.
+    guard
+        let opening = lines.first?.trimmingCharacters(in: .whitespacesAndNewlines),
+        opening.hasPrefix("```")
+    // Leave malformed or absent wrappers for the other parsing strategies.
+    else {
+        return nil
+    }
+
+    lines.removeFirst()
+    // Remove a closing fence only when it occupies the final line.
+    if
+        let closing = lines.last?.trimmingCharacters(in: .whitespacesAndNewlines),
+        closing == "```"
+    {
+        lines.removeLast()
+    }
+
+    let body = lines.joined(separator: "\n")
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+    return body.isEmpty ? nil : body
+}
+
+// jsonObjectBody(response): Extract one JSON object from a response that has
+// extra wrapper text.
+func jsonObjectBody(_ response: String) -> String? {
+    let trimmed = response.trimmingCharacters(in: .whitespacesAndNewlines)
+    // Require opening and closing object braces in the correct order.
+    guard
+        let start = trimmed.firstIndex(of: "{"),
+        let end = trimmed.lastIndex(of: "}"),
+        start <= end
+    // No candidate object is available when its boundaries are missing.
+    else {
+        return nil
+    }
+
+    let body = String(trimmed[start...end])
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+    return body.isEmpty ? nil : body
+}
