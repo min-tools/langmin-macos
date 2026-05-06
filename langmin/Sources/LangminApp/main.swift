@@ -6297,3 +6297,94 @@ func jsonObjectBody(_ response: String) -> String? {
         .trimmingCharacters(in: .whitespacesAndNewlines)
     return body.isEmpty ? nil : body
 }
+
+// Keep an extracted JSON object together with the text that appeared immediately before it.
+struct StructuredJSONObjectBody {
+    let body: String
+    let leadingText: String
+}
+
+// jsonObjectBodies(response): Extract balanced JSON objects while ignoring
+// braces inside strings.
+func jsonObjectBodies(in response: String) -> [StructuredJSONObjectBody] {
+    var bodies: [StructuredJSONObjectBody] = []
+    var depth = 0
+    var inString = false
+    var escaped = false
+    var objectStart: String.Index?
+    var previousObjectEnd = response.startIndex
+    var index = response.startIndex
+
+    // Scan character by character so braces inside JSON strings do not split objects.
+    while index < response.endIndex {
+        let character = response[index]
+
+        // Track escapes and closing quotes while inside a string value.
+        if inString {
+            // An escaped character cannot terminate the current JSON string.
+            if escaped {
+                escaped = false
+            } else if character == "\\" {
+                // A backslash protects the next character from quote handling.
+                escaped = true
+            } else if character == "\"" {
+                // An unescaped quotation mark ends the string value.
+                inString = false
+            }
+        } else if character == "\"" {
+            // An opening quote switches brace handling off until the string closes.
+            inString = true
+        } else if character == "{" {
+            // Track nested object braces outside strings.
+            // Remember the start of each outermost object.
+            if depth == 0 {
+                objectStart = index
+            }
+            depth += 1
+        } else if character == "}", depth > 0 {
+            // Only a matching object opener can be closed.
+            depth -= 1
+            // An outermost closing brace completes one candidate object.
+            if depth == 0, let start = objectStart {
+                let objectEnd = response.index(after: index)
+                bodies.append(
+                    StructuredJSONObjectBody(
+                        body: String(response[start..<objectEnd]),
+                        leadingText: String(response[previousObjectEnd..<start])
+                    )
+                )
+                previousObjectEnd = objectEnd
+                objectStart = nil
+            }
+        }
+
+        index = response.index(after: index)
+    }
+
+    return bodies
+}
+
+// structuredExplanationCandidates(response): Build tolerant parse candidates
+// for providers that wrap JSON in Markdown.
+func structuredExplanationCandidates(_ response: String) -> [String] {
+    var candidates: [String] = []
+
+    // append(candidate): Collect nonempty parsing candidates once, preserving
+    // their fallback order.
+    func append(_ candidate: String?) {
+        let cleaned = candidate?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        // Keep nonempty parsing candidates once, in discovery order.
+        if !cleaned.isEmpty && !candidates.contains(cleaned) {
+            candidates.append(cleaned)
+        }
+    }
+
+    append(response)
+    append(fencedResponseBody(response))
+    // Try the object body of each existing candidate as an additional recovery path.
+    for candidate in Array(candidates) {
+        append(jsonObjectBody(candidate))
+    }
+
+    return candidates
+}
