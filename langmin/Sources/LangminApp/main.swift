@@ -6388,3 +6388,34 @@ func structuredExplanationCandidates(_ response: String) -> [String] {
 
     return candidates
 }
+
+let structuredExplanationPreferredKeys = [
+    "main", "primary", "answer", "english", "chinese", "hindi", "spanish",
+    "french", "arabic", "bengali", "portuguese", "russian", "urdu",
+    "indonesian", "german", "japanese", "swahili", "turkish", "korean",
+    "italian", "serbian", "greek"
+]
+
+// normalizedStructuredExplanationKey(key): Normalize generated object keys
+// before comparing them with expected explanation fields.
+func normalizedStructuredExplanationKey(_ key: String) -> String {
+    key.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+}
+
+// orderedStructuredExplanationKeys(keys): Put familiar explanation fields first
+// and order other fields consistently.
+func orderedStructuredExplanationKeys(_ keys: Dictionary<String, Any>.Keys) -> [String] {
+    keys.sorted { lhs, rhs in
+        let lhsKey = normalizedStructuredExplanationKey(lhs)
+        let rhsKey = normalizedStructuredExplanationKey(rhs)
+        let lhsIndex = structuredExplanationPreferredKeys.firstIndex(of: lhsKey) ?? Int.max
+        let rhsIndex = structuredExplanationPreferredKeys.firstIndex(of: rhsKey) ?? Int.max
+
+        // Known explanation fields take precedence over alphabetical ordering.
+        if lhsIndex != rhsIndex {
+            return lhsIndex < rhsIndex
+        }
+
+        return lhs.localizedCaseInsensitiveCompare(rhs) == .orderedAscending
+    }
+}
