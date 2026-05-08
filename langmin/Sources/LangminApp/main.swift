@@ -6419,3 +6419,111 @@ func orderedStructuredExplanationKeys(_ keys: Dictionary<String, Any>.Keys) -> [
         return lhs.localizedCaseInsensitiveCompare(rhs) == .orderedAscending
     }
 }
+
+// markdownFromStructuredExplanationValue(value): Turn nested generated
+// explanation values into readable Markdown.
+func markdownFromStructuredExplanationValue(_ value: Any) -> String {
+    // A text value can be rendered directly after trimming its boundary whitespace.
+    if let text = value as? String {
+        return text.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    // A JSON null contributes no visible explanation.
+    if value is NSNull {
+        return ""
+    }
+
+    // Combine array values as separate readable paragraphs.
+    if let array = value as? [Any] {
+        return array
+            .map(markdownFromStructuredExplanationValue)
+            .filter { !$0.isEmpty }
+            .joined(separator: "\n\n")
+    }
+
+    // Render structured objects in a stable field order.
+    if let object = value as? [String: Any] {
+        // Unwrap an explicit explanation field without exposing its JSON key.
+        if let nestedExplanation = object["explanation"] {
+            return markdownFromStructuredExplanationValue(nestedExplanation)
+        }
+
+        return orderedStructuredExplanationKeys(object.keys)
+            .compactMap { key -> String? in
+                // Ignore fields that have no value to render.
+                guard let nested = object[key] else {
+                    return nil
+                }
+
+                let body = markdownFromStructuredExplanationValue(nested)
+                // Do not create headings for empty nested content.
+                guard !body.isEmpty else {
+                    return nil
+                }
+
+                let heading = key.trimmingCharacters(in: .whitespacesAndNewlines)
+                let normalizedHeading = normalizedStructuredExplanationKey(heading)
+                // Generic answer keys need no visible section heading.
+                if ["main", "primary", "answer"].contains(normalizedHeading) {
+                    return body
+                }
+
+                return "### \(heading)\n\n\(body)"
+            }
+            .joined(separator: "\n\n")
+    }
+
+    return ""
+}
+
+// firstCitationNumber(value): Extract the first numeric reference from a
+// provider's citation identifier.
+func firstCitationNumber(from value: String) -> String? {
+    value
+        .components(separatedBy: CharacterSet.decimalDigits.inverted)
+        .first { !$0.isEmpty }
+}
+
+// replacingProviderCitationTags(text): Replace provider-specific citation tags
+// with references the Markdown renderer understands.
+func replacingProviderCitationTags(in text: String) -> String {
+    let pattern = #"<cite\s+index=(["'])([^"']+)\1\s*>([\s\S]*?)</cite>"#
+    // Preserve the response if the citation matcher cannot be created.
+    guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else {
+        return text
+    }
+
+    var result = text
+    let matches = regex.matches(
+        in: result,
+        range: NSRange(result.startIndex..<result.endIndex, in: result)
+    )
+
+    // Replace from the end so earlier match offsets remain valid.
+    for match in matches.reversed() {
+        // Require valid text ranges for the citation wrapper, identifier, and body.
+        guard
+            let fullRange = Range(match.range(at: 0), in: result),
+            let indexRange = Range(match.range(at: 2), in: result),
+            let bodyRange = Range(match.range(at: 3), in: result)
+        // Skip an unconvertible match without damaging the surrounding text.
+        else {
+            continue
+        }
+
+        let body = String(result[bodyRange])
+        let alreadyMarked = body.range(of: "\\[[0-9]{1,3}\\]\\s*$", options: .regularExpression) != nil
+        let marker = alreadyMarked
+            ? ""
+            : firstCitationNumber(from: String(result[indexRange])).map { " [\($0)]" } ?? ""
+        result.replaceSubrange(fullRange, with: body + marker)
+    }
+
+    result = result.replacingOccurrences(
+        of: #"<cite\b[^>]*>"#,
+        with: "",
+        options: .regularExpression
+    )
+    result = result.replacingOccurrences(of: "</cite>", with: "")
+    return result
+}
