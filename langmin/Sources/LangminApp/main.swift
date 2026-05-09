@@ -6527,3 +6527,36 @@ func replacingProviderCitationTags(in text: String) -> String {
     result = result.replacingOccurrences(of: "</cite>", with: "")
     return result
 }
+
+// normalizedGeneratedMarkdown(text): Normalize line endings and citation markup
+// before rendering generated Markdown.
+func normalizedGeneratedMarkdown(_ text: String) -> String {
+    let normalized = replacingProviderCitationTags(in: text)
+        .replacingOccurrences(of: "\r\n", with: "\n")
+        .replacingOccurrences(of: "\r", with: "\n")
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+    return watermarkCleanedGeneratedText(normalized)
+}
+
+// parseStructuredExplanationCandidate(candidate): Decode one structured
+// explanation object and reject objects without usable explanation content.
+func parseStructuredExplanationCandidate(_ candidate: String) -> (topicTitle: String, explanation: String)? {
+    let data = Data(candidate.utf8)
+    // A structured explanation must contain a JSON object and its explanation field.
+    guard
+        let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+        let explanationValue = object["explanation"]
+    // Let another parsing strategy handle candidates outside that contract.
+    else {
+        return nil
+    }
+
+    let explanation = markdownFromStructuredExplanationValue(explanationValue)
+    let normalizedExplanation = normalizedGeneratedMarkdown(explanation)
+    // Reject objects whose explanation normalizes to empty text.
+    guard !normalizedExplanation.isEmpty else {
+        return nil
+    }
+
+    return (cleanTopicTitle(object["title"] as? String), normalizedExplanation)
+}
