@@ -6560,3 +6560,107 @@ func parseStructuredExplanationCandidate(_ candidate: String) -> (topicTitle: St
 
     return (cleanTopicTitle(object["title"] as? String), normalizedExplanation)
 }
+
+// structuredObjectHeading(leadingText, isFirst): Recover a heading preceding a
+// later JSON object without adding one before the first object.
+func structuredObjectHeading(from leadingText: String, isFirst: Bool) -> String? {
+    // The first object supplies the document title, not an extra section heading.
+    guard !isFirst else {
+        return nil
+    }
+
+    let lines = leadingText
+        .replacingOccurrences(of: "\r\n", with: "\n")
+        .replacingOccurrences(of: "\r", with: "\n")
+        .components(separatedBy: "\n")
+        .map {
+            $0
+                .replacingOccurrences(of: #"^\s*#{1,6}\s*"#, with: "", options: .regularExpression)
+                .trimmingCharacters(in: CharacterSet(charactersIn: " \t:"))
+        }
+        .filter { !$0.isEmpty }
+
+    // Only a short preceding line is plausible as a recovered heading.
+    guard let candidate = lines.last, candidate.count <= 60 else {
+        return nil
+    }
+
+    let lowercased = candidate.lowercased()
+    // Do not mistake a reference-section label for an explanation heading.
+    if lowercased == "sources" || lowercased == "references" {
+        return nil
+    }
+
+    return candidate
+}
+
+// parseMultipleStructuredExplanationObjects(response): Combine multiple
+// structured explanation objects into one titled Markdown result.
+func parseMultipleStructuredExplanationObjects(_ response: String) -> (topicTitle: String, explanation: String)? {
+    let bodies = jsonObjectBodies(in: response)
+    // Single-object responses belong to the simpler parsing path.
+    guard bodies.count > 1 else {
+        return nil
+    }
+
+    var segments: [(heading: String?, title: String, explanation: String)] = []
+    // Recover usable explanation objects in their original order.
+    for (index, body) in bodies.enumerated() {
+        // Skip malformed objects while examining the remaining candidates.
+        guard let parsed = parseStructuredExplanationCandidate(body.body) else {
+            continue
+        }
+
+        segments.append(
+            (
+                heading: structuredObjectHeading(from: body.leadingText, isFirst: index == 0),
+                title: parsed.topicTitle,
+                explanation: parsed.explanation
+            )
+        )
+    }
+
+    // Require multiple usable segments before returning a combined result.
+    guard let first = segments.first, segments.count > 1 else {
+        return nil
+    }
+
+    let explanation = segments.enumerated()
+        .map { index, segment in
+            // Keep the first explanation at the document's top level.
+            if index == 0 {
+                return segment.explanation
+            }
+
+            let heading = (segment.heading ?? segment.title)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            // Append an untitled segment without an empty Markdown heading.
+            guard !heading.isEmpty else {
+                return segment.explanation
+            }
+
+            return "### \(heading)\n\n\(segment.explanation)"
+        }
+        .joined(separator: "\n\n")
+
+    return (first.title, explanation)
+}
+
+// parseExplanationResponse(response): Parse the JSON helper output, falling
+// back to plain text if needed.
+func parseExplanationResponse(_ response: String) -> (topicTitle: String, explanation: String) {
+    // Try increasingly permissive wrappers before treating the response as plain Markdown.
+    for candidate in structuredExplanationCandidates(response) {
+        // Use the first candidate that satisfies the structured explanation contract.
+        if let parsed = parseStructuredExplanationCandidate(candidate) {
+            return parsed
+        }
+    }
+
+    // Recover separate generated objects when no single wrapper parsed successfully.
+    if let parsed = parseMultipleStructuredExplanationObjects(response) {
+        return parsed
+    }
+
+    return ("", normalizedGeneratedMarkdown(response))
+}
