@@ -6728,3 +6728,470 @@ struct LibraryEntry: Codable {
     var sourceImages: [SourceImageAsset]? = nil
     var conversation: ResultConversation? = nil
 }
+
+// Create Library entries on explicit save, with independent copies of their assets
+// under Application Support/Langmin/Library/<uuid>/.
+enum LibraryStore {
+    // Sync observes completed mutations on the next main-loop turn.
+    static var onChange: (() -> Void)?
+
+    // libraryDirectory(): Locate the saved Library inside Langmin's
+    // application-support directory.
+    static func libraryDirectory() -> URL {
+        langminApplicationSupportDirectory().appendingPathComponent("Library", isDirectory: true)
+    }
+
+    // entryDirectory(id): Resolve an entry's asset directory from its stable
+    // Library ID.
+    static func entryDirectory(id: String) -> URL {
+        libraryDirectory().appendingPathComponent(id, isDirectory: true)
+    }
+
+    // save(config, [pronunciations = []]): Copy the window's assets into a
+    // fresh entry folder and write entry.json. `pronunciations` are the
+    // in-session dictionary clips (cache key → temp file).
+    static func save(config: ViewerConfig, pronunciations: [(key: String, url: URL)] = []) throws -> LibraryEntry {
+        invalidateEntryCache()
+        let id = UUID().uuidString
+        let dir = entryDirectory(id: id)
+        try FileManager.default.createDirectory(
+            at: dir,
+            withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o700]
+        )
+
+        // Remove incomplete entry folders on failure; entries without valid metadata cannot appear in
+        // the Library.
+        do {
+            let textFile = "text.md"
+            try copy(fromPath: config.textPath, to: dir.appendingPathComponent(textFile))
+
+            var audioFile: String?
+            // Attach narration only when its referenced audio file is available.
+            if !config.audioPath.isEmpty, FileManager.default.fileExists(atPath: config.audioPath) {
+                let ext = (config.audioPath as NSString).pathExtension
+                let name = "audio." + (ext.isEmpty ? "m4a" : ext)
+                try copy(fromPath: config.audioPath, to: dir.appendingPathComponent(name))
+                audioFile = name
+            }
+
+            let diffOriginalFile = try copyOptional(config.diffOriginalPath, named: "diff-original.txt", into: dir)
+            let diffRevisedFile = try copyOptional(config.diffRevisedPath, named: "diff-revised.txt", into: dir)
+            let pronunciationRefs = savePronunciations(pronunciations, into: dir)
+
+            let entry = LibraryEntry(
+                id: id,
+                title: config.title,
+                mode: config.mode,
+                languageLevel: config.languageLevel,
+                createdAt: Date().timeIntervalSinceReferenceDate,
+                fontSize: Double(config.fontSize),
+                textFile: textFile,
+                audioFile: audioFile,
+                diffOriginalFile: diffOriginalFile,
+                diffRevisedFile: diffRevisedFile,
+                textModel: config.textModel,
+                narrationVoice: config.narrationVoice,
+                narrationModel: config.narrationModel,
+                dictionaryHeadword: config.dictionaryHeadword,
+                audioTimings: config.audioTimings,
+                pronunciations: pronunciationRefs.isEmpty ? nil : pronunciationRefs,
+                illustrationFile: try copyOptional(config.illustrationPath, named: "illustration.png", into: dir),
+                illustrationModel: config.illustrationModel,
+                sourceImages: try copySourceImageAssets(config.sourceImages,
+                    from: URL(fileURLWithPath: config.textPath).deletingLastPathComponent(), to: dir),
+                conversation: config.conversation
+            )
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            try encoder.encode(entry).write(to: dir.appendingPathComponent("entry.json"), options: .atomic)
+            return entry
+        } catch {
+            // Remove the incomplete new entry before propagating a save failure.
+            try? FileManager.default.removeItem(at: dir)
+            throw error
+        }
+    }
+
+    // setConversation(id, conversation): Write only conversation metadata,
+    // atomically, preserving the entry's assets and title.
+    static func setConversation(id: String, conversation: ResultConversation) throws {
+        let url = entryDirectory(id: id).appendingPathComponent("entry.json")
+        var entry = try JSONDecoder().decode(LibraryEntry.self, from: Data(contentsOf: url))
+        entry.conversation = conversation
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        try encoder.encode(entry).write(to: url, options: .atomic)
+        invalidateEntryCache()
+    }
+
+    // setIllustration(id, sourceURL, model): Commit the new image before
+    // replacing metadata; an interrupted or failed update leaves the previously
+    // saved illustration intact.
+    static func setIllustration(id: String, sourceURL: URL?, model: String?) throws {
+        let dir = entryDirectory(id: id)
+        let metadataURL = dir.appendingPathComponent("entry.json")
+        var entry = try JSONDecoder().decode(LibraryEntry.self, from: Data(contentsOf: metadataURL))
+        let previousFile = entry.illustrationFile
+        let name = sourceURL.map { _ in "illustration-\(UUID().uuidString).png" }
+        do {
+            // Copy the replacement asset only when both its source and destination name exist.
+            if let sourceURL, let name {
+                try copy(fromPath: sourceURL.path, to: dir.appendingPathComponent(name))
+            }
+            entry.illustrationFile = name
+            entry.illustrationModel = name == nil ? nil : model
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            try encoder.encode(entry).write(to: metadataURL, options: .atomic)
+        } catch {
+            // Remove an unsuccessfully saved replacement asset before reporting the error.
+            // Cleanup is needed only when this update allocated an asset filename.
+            if let name { try? FileManager.default.removeItem(at: dir.appendingPathComponent(name)) }
+            throw error
+        }
+        invalidateEntryCache()
+        // Delete only flat filenames created by this store, even if the metadata was edited externally.
+        if let previousFile, previousFile == (previousFile as NSString).lastPathComponent,
+           previousFile == "illustration.png" || previousFile.hasPrefix("illustration-") {
+            try? FileManager.default.removeItem(at: dir.appendingPathComponent(previousFile))
+        }
+    }
+
+    // savePronunciations(pronunciations, dir): Copy pronunciation clips into a
+    // pronounce/ subfolder, returning their refs.
+    private static func savePronunciations(_ pronunciations: [(key: String, url: URL)], into dir: URL) -> [PronunciationRef] {
+        // Avoid creating a pronunciation directory when there are no clips to save.
+        guard !pronunciations.isEmpty else {
+            return []
+        }
+        let pronounceDir = dir.appendingPathComponent("pronounce", isDirectory: true)
+        try? FileManager.default.createDirectory(
+            at: pronounceDir, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700]
+        )
+        var refs: [PronunciationRef] = []
+        // Save pronunciation clips with distinct indexed filenames.
+        for (index, item) in pronunciations.enumerated() {
+            // Skip clips whose temporary source file is already gone.
+            guard FileManager.default.fileExists(atPath: item.url.path) else { continue }
+            let ext = item.url.pathExtension.isEmpty ? "caf" : item.url.pathExtension
+            let name = "p\(index).\(ext)"
+            // Record a pronunciation reference only after its audio copy succeeds.
+            guard (try? copy(fromPath: item.url.path, to: pronounceDir.appendingPathComponent(name))) != nil else { continue }
+            refs.append(PronunciationRef(key: item.key, file: "pronounce/\(name)"))
+        }
+        return refs
+    }
+
+    // addPronunciation(id, key, sourceURL): Replace the cached clip when
+    // pronunciation is regenerated so reopening uses the new audio.
+    static func addPronunciation(id: String, key: String, sourceURL: URL) {
+        let dir = entryDirectory(id: id)
+        // Require an existing clip and readable entry metadata before adding pronunciation audio.
+        guard
+            FileManager.default.fileExists(atPath: sourceURL.path),
+            let data = try? Data(contentsOf: dir.appendingPathComponent("entry.json")),
+            var entry = try? JSONDecoder().decode(LibraryEntry.self, from: data)
+        // Leave the saved entry alone when its prerequisites are unavailable.
+        else {
+            return
+        }
+        let pronounceDir = dir.appendingPathComponent("pronounce", isDirectory: true)
+        try? FileManager.default.createDirectory(
+            at: pronounceDir, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700]
+        )
+        let ext = sourceURL.pathExtension.isEmpty ? "caf" : sourceURL.pathExtension
+        let name = "p-\(UUID().uuidString).\(ext)"
+        // A failed clip copy must not create a broken pronunciation reference.
+        guard (try? copy(fromPath: sourceURL.path, to: pronounceDir.appendingPathComponent(name))) != nil else {
+            return
+        }
+        var refs = entry.pronunciations ?? []
+        if let existing = refs.firstIndex(where: { $0.key == key }) {
+            // Regeneration: drop the previous clip file, repoint the ref.
+            try? FileManager.default.removeItem(at: dir.appendingPathComponent(refs[existing].file))
+            refs[existing] = PronunciationRef(key: key, file: "pronounce/\(name)")
+        } else {
+            // A new pronunciation key adds a reference alongside existing clips.
+            refs.append(PronunciationRef(key: key, file: "pronounce/\(name)"))
+        }
+        entry.pronunciations = refs
+        writeEntry(entry, to: dir)
+    }
+
+    // loadPronunciations(id): Load pronunciation cache entries whose audio
+    // files still exist.
+    static func loadPronunciations(id: String) -> [String: URL] {
+        let dir = entryDirectory(id: id)
+        // Load pronunciation mappings only from decodable saved entry metadata.
+        guard
+            let data = try? Data(contentsOf: dir.appendingPathComponent("entry.json")),
+            let entry = try? JSONDecoder().decode(LibraryEntry.self, from: data),
+            let refs = entry.pronunciations
+        // Missing or unreadable metadata has no usable pronunciation map.
+        else {
+            return [:]
+        }
+        var map: [String: URL] = [:]
+        // Resolve stored pronunciation paths against this entry's directory.
+        for ref in refs {
+            let url = dir.appendingPathComponent(ref.file)
+            // Expose only clips whose files still exist.
+            if FileManager.default.fileExists(atPath: url.path) {
+                map[ref.key] = url
+            }
+        }
+        return map
+    }
+
+    // writeEntry(entry, dir): Encode entry metadata with stable formatting and
+    // attempt an atomic write.
+    private static func writeEntry(_ entry: LibraryEntry, to dir: URL) {
+        invalidateEntryCache()
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        // Write atomically to preserve the existing entry if saving is interrupted.
+        try? encoder.encode(entry).write(to: dir.appendingPathComponent("entry.json"), options: .atomic)
+    }
+
+    // Cache decoded entries to avoid rereading every metadata file on each UI refresh.
+    // Invalidate after LibraryStore mutations.
+    private static let entryCacheLock = NSLock()
+    private static var cachedEntriesStorage: [LibraryEntry]?
+
+    // invalidateEntryCache(): Invalidate cached entries under the lock, then
+    // notify the UI on the main queue.
+    static func invalidateEntryCache() {
+        entryCacheLock.lock()
+        cachedEntriesStorage = nil
+        entryCacheLock.unlock()
+        DispatchQueue.main.async { onChange?() }
+    }
+
+    // list(): Every saved entry, newest first.
+    static func list() -> [LibraryEntry] {
+        entryCacheLock.lock()
+        // Return the cached Library snapshot without another directory scan.
+        if let cached = cachedEntriesStorage {
+            entryCacheLock.unlock()
+            return cached
+        }
+        entryCacheLock.unlock()
+
+        let dir = libraryDirectory()
+        // An unreadable Library directory yields no entries to display.
+        guard let ids = try? FileManager.default.contentsOfDirectory(atPath: dir.path) else {
+            return []
+        }
+        let entries = ids.compactMap { id -> LibraryEntry? in
+            let metaURL = dir.appendingPathComponent(id).appendingPathComponent("entry.json")
+            // Skip an entry whose metadata cannot be read.
+            guard let data = try? Data(contentsOf: metaURL) else { return nil }
+            return try? JSONDecoder().decode(LibraryEntry.self, from: data)
+        }
+        let sorted = entries.sorted { $0.createdAt > $1.createdAt }
+        entryCacheLock.lock()
+        cachedEntriesStorage = sorted
+        entryCacheLock.unlock()
+        return sorted
+    }
+
+    // delete(id): Remove an entry's directory and invalidate the cached Library
+    // listing.
+    static func delete(id: String) {
+        invalidateEntryCache()
+        try? FileManager.default.removeItem(at: entryDirectory(id: id))
+    }
+
+    // stageDeletion(id): Move the entire entry aside for deletion. Undo
+    // restores it with a move, preserving all assets.
+    static func stageDeletion(id: String) throws -> URL {
+        invalidateEntryCache()
+        let source = entryDirectory(id: id)
+        let undoDirectory = langminTemporaryDirectory()
+            .appendingPathComponent("LibraryUndo", isDirectory: true)
+        try FileManager.default.createDirectory(
+            at: undoDirectory,
+            withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o700]
+        )
+        let staged = undoDirectory.appendingPathComponent(id, isDirectory: true)
+        // Remove a stale staged file before preparing its replacement.
+        if FileManager.default.fileExists(atPath: staged.path) {
+            try FileManager.default.removeItem(at: staged)
+        }
+        try FileManager.default.moveItem(at: source, to: staged)
+        return staged
+    }
+
+    // restoreDeletion(id, staged): Move a staged deletion back into the Library
+    // when the user undoes it.
+    static func restoreDeletion(id: String, from staged: URL) throws {
+        invalidateEntryCache()
+        try FileManager.default.moveItem(at: staged, to: entryDirectory(id: id))
+    }
+
+    // finalizeDeletion(staged): Discard a staged deletion after its undo
+    // opportunity has ended.
+    static func finalizeDeletion(at staged: URL) {
+        try? FileManager.default.removeItem(at: staged)
+    }
+
+    // rename(id, title): Rename metadata only; keep the entry ID and asset
+    // paths stable for open windows.
+    static func rename(id: String, title: String) throws {
+        invalidateEntryCache()
+        let dir = entryDirectory(id: id)
+        let metadataURL = dir.appendingPathComponent("entry.json")
+        let data = try Data(contentsOf: metadataURL)
+        var entry = try JSONDecoder().decode(LibraryEntry.self, from: data)
+        entry.title = title
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        try encoder.encode(entry).write(to: metadataURL, options: .atomic)
+    }
+
+    // updateNarration(id, audioSourcePath, voice, model, timings): Update saved
+    // narration when a Library result generates audio with another voice.
+    static func updateNarration(
+        id: String,
+        audioSourcePath: String,
+        voice: String?,
+        model: String?,
+        timings: [NarrationChunkTiming]?
+    ) {
+        let dir = entryDirectory(id: id)
+        // Require existing entry metadata before attaching narration.
+        guard
+            let data = try? Data(contentsOf: dir.appendingPathComponent("entry.json")),
+            var entry = try? JSONDecoder().decode(LibraryEntry.self, from: data)
+        // Leave the Library untouched when the entry cannot be loaded.
+        else {
+            return
+        }
+
+        if !audioSourcePath.isEmpty, FileManager.default.fileExists(atPath: audioSourcePath) {
+            // Copy the new audio before replacing the old file and metadata so copy failures preserve
+            // playback.
+            let ext = (audioSourcePath as NSString).pathExtension
+            let name = "audio." + (ext.isEmpty ? "m4a" : ext)
+            let destination = dir.appendingPathComponent(name)
+            let staged = dir.appendingPathComponent("audio.incoming")
+            try? FileManager.default.removeItem(at: staged)
+            // Discard the partial staging file when copying narration fails.
+            guard (try? copy(fromPath: audioSourcePath, to: staged)) != nil else {
+                try? FileManager.default.removeItem(at: staged)
+                return
+            }
+            let previous = entry.audioFile
+            try? FileManager.default.removeItem(at: destination)
+            // Keep metadata unchanged if the staged narration cannot reach its final path.
+            guard (try? FileManager.default.moveItem(at: staged, to: destination)) != nil else {
+                try? FileManager.default.removeItem(at: staged)
+                return
+            }
+            // Remove superseded narration only after the replacement file is installed.
+            if let previous, previous != name {
+                try? FileManager.default.removeItem(at: dir.appendingPathComponent(previous))
+            }
+            entry.audioFile = name
+        }
+
+        entry.narrationVoice = voice
+        entry.narrationModel = model
+        entry.audioTimings = timings
+        writeEntry(entry, to: dir)
+    }
+
+    // viewerConfig(entry): Open saved assets in place. Leave cleanupDir empty
+    // so closing cannot delete the Library entry.
+    static func viewerConfig(for entry: LibraryEntry) -> ViewerConfig? {
+        let dir = entryDirectory(id: entry.id)
+        let textPath = dir.appendingPathComponent(entry.textFile).path
+        // Do not return a saved result whose text file is missing.
+        guard FileManager.default.fileExists(atPath: textPath) else {
+            return nil
+        }
+        return ViewerConfig(
+            textPath: textPath,
+            fontSize: CGFloat(entry.fontSize),
+            audioPath: entry.audioFile.map { dir.appendingPathComponent($0).path } ?? "",
+            title: entry.title,
+            cleanupDir: "",
+            diffOriginalPath: entry.diffOriginalFile.map { dir.appendingPathComponent($0).path },
+            diffRevisedPath: entry.diffRevisedFile.map { dir.appendingPathComponent($0).path },
+            audioTimings: entry.audioTimings,
+            textModel: entry.textModel,
+            narrationVoice: entry.narrationVoice,
+            narrationModel: entry.narrationModel,
+            dictionaryHeadword: entry.dictionaryHeadword,
+            mode: entry.mode,
+            languageLevel: entry.languageLevel ?? "off",
+            illustrationPath: entry.illustrationFile.map { dir.appendingPathComponent($0).path },
+            illustrationModel: entry.illustrationModel,
+            sourceImages: entry.sourceImages?.filter { $0.isValid },
+            conversation: entry.conversation
+        )
+    }
+
+    // copyOptional(sourcePath, named, dir): Copy an optional asset only when
+    // the source path exists.
+    private static func copyOptional(_ sourcePath: String?, named: String, into dir: URL) throws -> String? {
+        // An optional absent asset needs no copy or saved filename.
+        guard let sourcePath, FileManager.default.fileExists(atPath: sourcePath) else {
+            return nil
+        }
+        try copy(fromPath: sourcePath, to: dir.appendingPathComponent(named))
+        return named
+    }
+
+    // copy(fromPath, dest): Replace an existing destination before copying the
+    // requested asset.
+    private static func copy(fromPath: String, to dest: URL) throws {
+        // Replace an existing destination file before copying its new contents.
+        if FileManager.default.fileExists(atPath: dest.path) {
+            try FileManager.default.removeItem(at: dest)
+        }
+        try FileManager.default.copyItem(atPath: fromPath, toPath: dest.path)
+    }
+}
+
+// cleanTitle(value): Window chrome accepts one line, including when a
+// Dictionary request or an older saved title contains a whole Markdown excerpt.
+// Keep the first nonempty line and remove its heading marker.
+func cleanTitle(_ value: String?) -> String {
+    // Use the app name when no document title was supplied.
+    guard let value else {
+        return appName
+    }
+
+    let title = value.split(whereSeparator: { $0.isNewline })
+        .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+        .first(where: { !$0.isEmpty })?
+        .replacingOccurrences(of: #"^#{1,6}(?:[ \t]+|$)"#, with: "", options: .regularExpression)
+        .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    // A title containing only removable whitespace or wrappers uses the app name.
+    if title.isEmpty {
+        return appName
+    }
+
+    return title
+}
+
+// appWindowTitle(mode, title): Build result-window titles that show app, mode,
+// and generated topic.
+func appWindowTitle(mode: String, title: String) -> String {
+    let cleanMode = mode.trimmingCharacters(in: .whitespacesAndNewlines)
+    let cleanedTitle = cleanTitle(title)
+
+    // A missing mode leaves only the cleaned document title.
+    if cleanMode.isEmpty {
+        return cleanedTitle
+    }
+    // Avoid repeating the app name as both a prefix and a document title.
+    if cleanedTitle == appName {
+        return "\(appName) • \(cleanMode)"
+    }
+
+    return "\(appName) • \(cleanMode) — \(cleanedTitle)"
+}
