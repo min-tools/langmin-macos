@@ -6664,3 +6664,67 @@ func parseExplanationResponse(_ response: String) -> (topicTitle: String, explan
 
     return ("", normalizedGeneratedMarkdown(response))
 }
+
+// Text, assets and settings for one result session.
+struct ViewerConfig {
+    var textPath: String
+    let fontSize: CGFloat
+    // Allow Library snapshots to use the current on-demand audio clip.
+    var audioPath: String
+    var title: String
+    var cleanupDir: String
+    var diffOriginalPath: String?
+    var diffRevisedPath: String?
+    // Sentence timings for playback highlighting and click-to-seek.
+    var audioTimings: [NarrationChunkTiming]? = nil
+    // Model and voice details shown with the result.
+    var textModel: String? = nil
+    var narrationVoice: String? = nil
+    var narrationModel: String? = nil
+    // Looked-up word used for dictionary pronunciation.
+    var dictionaryHeadword: String? = nil
+    // Original mode, also used to group Library entries.
+    var mode: String = ""
+    // Saved response level: off, a, b or c. Follow-ups reuse it.
+    var languageLevel: String = "off"
+    // A generated illustration is a local asset, saved with a Dictionary entry.
+    var illustrationPath: String? = nil
+    var illustrationModel: String? = nil
+    var sourceImages: [SourceImageAsset]? = nil
+    var conversation: ResultConversation? = nil
+}
+
+// Pronunciation cache key and relative audio filename under pronounce/.
+struct PronunciationRef: Codable {
+    let key: String
+    let file: String
+}
+
+// Saved result metadata in entry.json, beside copies of its assets.
+// Each entry folder can be backed up on its own.
+struct LibraryEntry: Codable {
+    let id: String
+    var title: String
+    let mode: String
+    var languageLevel: String?
+    // Flat folder name; nil means unfiled, including entries saved before folders were added.
+    var folder: String?
+    let createdAt: Double          // timeIntervalSinceReferenceDate
+    let fontSize: Double
+    var textFile: String
+    var audioFile: String?
+    let diffOriginalFile: String?
+    var diffRevisedFile: String?
+    let textModel: String?
+    var narrationVoice: String?
+    var narrationModel: String?
+    let dictionaryHeadword: String?
+    var audioTimings: [NarrationChunkTiming]?
+    // Reuse saved pronunciation audio when reopening an entry.
+    var pronunciations: [PronunciationRef]?
+    // Optional for backward compatibility with existing entry.json files.
+    var illustrationFile: String? = nil
+    var illustrationModel: String? = nil
+    var sourceImages: [SourceImageAsset]? = nil
+    var conversation: ResultConversation? = nil
+}
