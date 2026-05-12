@@ -7195,3 +7195,72 @@ func appWindowTitle(mode: String, title: String) -> String {
 
     return "\(appName) • \(cleanMode) — \(cleanedTitle)"
 }
+
+// fileNameStem(title): Convert a window title into a safe, readable default
+// filename.
+func fileNameStem(from title: String) -> String {
+    var stem = title.trimmingCharacters(in: .whitespacesAndNewlines)
+
+    // File names read better without the stable app-name prefix.
+    var removedAppPrefix = false
+    // Recognize the app's supported title prefixes before deriving an export filename.
+    for prefix in ["\(appName) • ", "\(appName) - ", "\(appName) — ", "\(appName): "] {
+        // Remove only the first matching app-name prefix.
+        if stem.hasPrefix(prefix) {
+            stem.removeFirst(prefix.count)
+            removedAppPrefix = true
+            break
+        }
+    }
+
+    // Strip the mode portion only when the title included an app prefix.
+    if removedAppPrefix, let separatorRange = stem.range(of: " — ") {
+        stem = String(stem[separatorRange.upperBound...])
+    }
+
+    // Remove filename separators and control characters.
+    let blocked = CharacterSet(charactersIn: "/\\?%*|\"<>:")
+        .union(.controlCharacters)
+        .union(.newlines)
+    stem = stem
+        .components(separatedBy: blocked)
+        .joined(separator: " ")
+
+    // Collapse repeated whitespace caused by punctuation cleanup.
+    stem = stem
+        .components(separatedBy: .whitespacesAndNewlines)
+        .filter { !$0.isEmpty }
+        .joined(separator: " ")
+        .trimmingCharacters(in: CharacterSet(charactersIn: ". "))
+
+    // A fully stripped filename falls back to the app name.
+    if stem.isEmpty {
+        stem = appName
+    }
+
+    // Bound export filenames without changing the document's stored title.
+    if stem.count > 80 {
+        stem = String(stem.prefix(80))
+            .trimmingCharacters(in: CharacterSet(charactersIn: ". "))
+    }
+
+    return stem.isEmpty ? appName : stem
+}
+
+// formatPlaybackTime(seconds): Format playback time as m:ss for the compact
+// audio controls.
+func formatPlaybackTime(_ seconds: TimeInterval) -> String {
+    // Invalid or negative playback times display a safe zero duration.
+    guard seconds.isFinite && seconds >= 0 else {
+        return "0:00"
+    }
+
+    let totalSeconds = Int(seconds.rounded(.down))
+    return String(format: "%d:%02d", totalSeconds / 60, totalSeconds % 60)
+}
+
+// Start time and displayed text range for a narration chunk. Nil means the text could not be located.
+struct NarrationSegment {
+    let start: TimeInterval
+    let range: NSRange?
+}
