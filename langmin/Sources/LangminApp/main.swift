@@ -7264,3 +7264,457 @@ struct NarrationSegment {
     let start: TimeInterval
     let range: NSRange?
 }
+
+// Attributes used to draw blockquotes and code, and mark narration seek ranges.
+extension NSAttributedString.Key {
+    static let langminBlockquoteBar = NSAttributedString.Key("langminBlockquoteBar")
+    static let langminCodeBlock = NSAttributedString.Key("langminCodeBlock")
+    static let langminInlineCode = NSAttributedString.Key("langminInlineCode")
+    static let langminInlineCodeTrailingSpacing = NSAttributedString.Key("langminInlineCodeTrailingSpacing")
+}
+
+// Add result-specific cursor, selection, narration, and quotation drawing to the text view.
+class ViewerResultTextView: DictionaryIllustrationTextView {
+    // Seek only after a click without dragging or selecting text.
+    var onPlainClick: ((Int) -> Void)?
+    private var commandCursorTrackingArea: NSTrackingArea?
+
+    // updateTrackingAreas(): Keep command-link cursor tracking aligned with the
+    // visible result text.
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+
+        // Replace the previous tracking area when text-view bounds change.
+        if let commandCursorTrackingArea {
+            removeTrackingArea(commandCursorTrackingArea)
+        }
+
+        let trackingArea = NSTrackingArea(
+            rect: .zero,
+            options: [.mouseMoved, .mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect],
+            owner: self,
+            userInfo: nil
+        )
+        addTrackingArea(trackingArea)
+        commandCursorTrackingArea = trackingArea
+    }
+
+    // cursorUpdate(event): Use a hand over result actions and let AppKit choose
+    // the cursor elsewhere.
+    override func cursorUpdate(with event: NSEvent) {
+        // Keep the pointing-hand cursor when the event is over a command or link.
+        if setPointingHandIfNeeded(for: event) {
+            return
+        }
+        super.cursorUpdate(with: event)
+    }
+
+    // mouseMoved(event): Update inline action hover feedback and the cursor as
+    // the pointer moves.
+    override func mouseMoved(with event: NSEvent) {
+        updateFollowUpActionHover(at: convert(event.locationInWindow, from: nil))
+        // Command hits take precedence over the text view's normal cursor behavior.
+        if setPointingHandIfNeeded(for: event) {
+            return
+        }
+        super.mouseMoved(with: event)
+    }
+
+    // mouseEntered(event): Refresh inline action hover feedback when the
+    // pointer enters the result view.
+    override func mouseEntered(with event: NSEvent) {
+        updateFollowUpActionHover(at: convert(event.locationInWindow, from: nil))
+        // Retain command-specific cursor handling while the mouse moves.
+        if setPointingHandIfNeeded(for: event) {
+            return
+        }
+        super.mouseEntered(with: event)
+    }
+
+    // flagsChanged(event): Refresh the command cursor when modifier keys change
+    // without pointer movement.
+    override func flagsChanged(with event: NSEvent) {
+        // Refresh a command cursor before falling back to normal cursor updates.
+        if refreshCommandCursorSoon() {
+            return
+        }
+        super.flagsChanged(with: event)
+    }
+
+    @discardableResult
+    // refreshCommandCursorSoon(): Reapply the hand cursor after AppKit's next
+    // event pass when hovering a result action.
+    func refreshCommandCursorSoon() -> Bool {
+        let didSet = setPointingHandAtCurrentMouseLocation()
+        // Reapply the cursor asynchronously after AppKit's immediate cursor update.
+        if didSet {
+            DispatchQueue.main.async { [weak self] in
+                _ = self?.setPointingHandAtCurrentMouseLocation()
+            }
+        }
+        return didSet
+    }
+
+    @discardableResult
+    // setPointingHandAtCurrentMouseLocation(): Convert the current screen
+    // pointer position into this text view's coordinates.
+    private func setPointingHandAtCurrentMouseLocation() -> Bool {
+        // Cursor hit-testing needs a window coordinate system.
+        guard let window else {
+            return false
+        }
+        let windowPoint = window.convertPoint(fromScreen: NSEvent.mouseLocation)
+        return setPointingHandIfNeeded(at: convert(windowPoint, from: nil))
+    }
+
+    // setPointingHandIfNeeded(event): Test the event position using the text
+    // view's command-hit logic.
+    private func setPointingHandIfNeeded(for event: NSEvent) -> Bool {
+        setPointingHandIfNeeded(at: convert(event.locationInWindow, from: nil))
+    }
+
+    // setPointingHandIfNeeded(point): Keep the hand cursor over pronunciation
+    // and seek controls, including during Option-click regeneration.
+    private func setPointingHandIfNeeded(at point: NSPoint) -> Bool {
+        // Points outside this view cannot target a rendered command.
+        guard bounds.contains(point) else {
+            return false
+        }
+        // Show the pointing hand only over an actual interactive text range.
+        if hitsCommand(at: point) {
+            NSCursor.pointingHand.set()
+            return true
+        }
+        return false
+    }
+
+    // hitsCommand(point): Find actionable text under the pointer while
+    // excluding editable text and empty layout space.
+    private func hitsCommand(at point: NSPoint) -> Bool {
+        // Editing text uses normal text selection rather than command hit-testing.
+        guard !isEditable else { return false }
+        // Require a complete text layout before converting a point into a character index.
+        guard
+            let layoutManager,
+            let textContainer,
+            let storage = textStorage,
+            storage.length > 0
+        // Incomplete text storage or layout provides no interactive hit.
+        else {
+            return false
+        }
+
+        let origin = textContainerOrigin
+        let containerPoint = NSPoint(x: point.x - origin.x, y: point.y - origin.y)
+        // Reject points in the padding before the text container.
+        guard containerPoint.x >= 0, containerPoint.y >= 0 else {
+            return false
+        }
+
+        layoutManager.ensureLayout(for: textContainer)
+        let glyphIndex = layoutManager.glyphIndex(for: containerPoint, in: textContainer)
+        // Do not inspect a glyph beyond the laid-out text.
+        guard glyphIndex < layoutManager.numberOfGlyphs else {
+            return false
+        }
+
+        let lineRect = layoutManager.lineFragmentUsedRect(forGlyphAt: glyphIndex, effectiveRange: nil)
+            .insetBy(dx: -3, dy: -3)
+        // Blank space outside the actual line cannot activate a command.
+        guard lineRect.contains(containerPoint) else {
+            return false
+        }
+
+        var glyphRect = layoutManager.boundingRect(
+            forGlyphRange: NSRange(location: glyphIndex, length: 1),
+            in: textContainer
+        )
+        glyphRect = glyphRect.insetBy(dx: -3, dy: -3)
+        // Require the pointer to touch a glyph, not just its line's trailing space.
+        guard glyphRect.contains(containerPoint) else {
+            return false
+        }
+
+        let characterIndex = layoutManager.characterIndexForGlyph(at: glyphIndex)
+        return hitsCommand(atCharacterIndex: characterIndex, in: storage)
+            || hitsCommand(atCharacterIndex: characterIndex - 1, in: storage)
+    }
+
+    // hitsCommand(index, storage): Check whether the attributed character
+    // carries a result-command link.
+    private func hitsCommand(atCharacterIndex index: Int, in storage: NSTextStorage) -> Bool {
+        // Validate the character index before reading text attributes.
+        guard index >= 0, index < storage.length else {
+            return false
+        }
+
+        // Attributed links are interactive even without a custom command attribute.
+        if storage.attribute(.link, at: index, effectiveRange: nil) != nil {
+            return true
+        }
+
+        return (storage.attribute(.cursor, at: index, effectiveRange: nil) as? NSCursor) == NSCursor.pointingHand
+    }
+
+    // draw(dirtyRect): Draw the text first, then add quotation bars for the
+    // visible blocks.
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        drawBlockquoteBars(in: dirtyRect)
+    }
+
+    // drawBackground(rect): Draw custom backgrounds before selection and glyphs
+    // so they cannot cover either.
+    override func drawBackground(in rect: NSRect) {
+        super.drawBackground(in: rect)
+        drawCodeBlockBackgrounds(in: rect)
+        drawInlineCodeBackgrounds(in: rect)
+    }
+
+    // drawInlineCodeBackgrounds(dirtyRect): Draw inline-code padding without
+    // adding characters, preserving copy, search and narration offsets.
+    private func drawInlineCodeBackgrounds(in dirtyRect: NSRect) {
+        // Inline-code backgrounds require nonempty TextKit storage and layout.
+        guard
+            let layoutManager,
+            let textContainer,
+            let storage = textStorage,
+            storage.length > 0
+        // Skip custom drawing until text layout is available.
+        else {
+            return
+        }
+
+        let origin = textContainerOrigin
+        let fullRange = NSRange(location: 0, length: storage.length)
+        storage.enumerateAttribute(.langminInlineCode, in: fullRange) { value, range, _ in
+            // Only nonempty inline-code runs need a background.
+            guard value != nil, range.length > 0 else {
+                return
+            }
+
+            let glyphRange = layoutManager.glyphRange(
+                forCharacterRange: range,
+                actualCharacterRange: nil
+            )
+            layoutManager.enumerateLineFragments(forGlyphRange: glyphRange) {
+                _, _, _, lineGlyphRange, _ in
+                let fragmentRange = NSIntersectionRange(glyphRange, lineGlyphRange)
+                // Ignore line fragments that do not overlap the code run.
+                guard fragmentRange.length > 0 else {
+                    return
+                }
+
+                var backgroundRect = layoutManager.boundingRect(
+                    forGlyphRange: fragmentRange,
+                    in: textContainer
+                )
+                backgroundRect = backgroundRect
+                    .offsetBy(dx: origin.x, dy: origin.y)
+                    .insetBy(dx: -4, dy: -2)
+                // Exclude added trailing spacing from the final fragment's background width.
+                if NSMaxRange(fragmentRange) == NSMaxRange(glyphRange),
+                   let spacing = storage.attribute(
+                       .langminInlineCodeTrailingSpacing,
+                       at: NSMaxRange(range) - 1,
+                       effectiveRange: nil
+                   ) as? NSNumber {
+                    backgroundRect.size.width = max(
+                        0,
+                        backgroundRect.width - CGFloat(truncating: spacing)
+                    )
+                }
+                // Draw only backgrounds affected by this repaint.
+                guard backgroundRect.intersects(dirtyRect) else {
+                    return
+                }
+
+                NSColor.black.setFill()
+                NSBezierPath(roundedRect: backgroundRect, xRadius: 2, yRadius: 2).fill()
+            }
+        }
+    }
+
+    // drawCodeBlockBackgrounds(dirtyRect): Draw each code block as one
+    // background spanning blank lines and indentation. Recalculate its width
+    // when drawing so it fits after resizing.
+    private func drawCodeBlockBackgrounds(in dirtyRect: NSRect) {
+        // Code-block drawing requires laid-out, nonempty text.
+        guard
+            let layoutManager,
+            let storage = textStorage,
+            storage.length > 0
+        // Leave the normal text background when layout is unavailable.
+        else {
+            return
+        }
+
+        let origin = textContainerOrigin
+        let nsString = storage.string as NSString
+        let fullRange = NSRange(location: 0, length: storage.length)
+        storage.enumerateAttribute(.langminCodeBlock, in: fullRange) { value, range, _ in
+            // Ignore attributed runs that are not code blocks.
+            guard value != nil else {
+                return
+            }
+
+            var effective = range
+            // Remove trailing newline characters from the block's visible extent.
+            while effective.length > 0,
+                  nsString.substring(with: NSRange(
+                    location: effective.location + effective.length - 1,
+                    length: 1
+                  )) == "\n" {
+                effective.length -= 1
+            }
+            // A block containing only trailing newlines has no background to draw.
+            guard effective.length > 0 else {
+                return
+            }
+
+            let glyphRange = layoutManager.glyphRange(
+                forCharacterRange: effective,
+                actualCharacterRange: nil
+            )
+            var minY = CGFloat.greatestFiniteMagnitude
+            var maxY = -CGFloat.greatestFiniteMagnitude
+            layoutManager.enumerateLineFragments(forGlyphRange: glyphRange) { _, usedRect, _, _, _ in
+                minY = min(minY, usedRect.minY)
+                maxY = max(maxY, usedRect.maxY)
+            }
+            // Require a positive laid-out height before constructing the block rectangle.
+            guard maxY > minY else {
+                return
+            }
+
+            let rect = NSRect(
+                x: origin.x,
+                y: origin.y + minY - 7,
+                width: max(0, bounds.width - origin.x - textContainerInset.width),
+                height: maxY - minY + 14
+            )
+            // Skip invisible or zero-width block backgrounds.
+            guard rect.intersects(dirtyRect), rect.width > 0 else {
+                return
+            }
+
+            NSColor.black.setFill()
+            NSBezierPath(roundedRect: rect, xRadius: 8, yRadius: 8).fill()
+        }
+    }
+
+    // drawBlockquoteBars(dirtyRect): Draw blockquote bars with TextKit 1. If no
+    // layout manager is available, keep the indented quote text.
+    private func drawBlockquoteBars(in dirtyRect: NSRect) {
+        // Quote bars require TextKit layout and nonempty storage.
+        guard
+            let layoutManager = layoutManager,
+            let storage = textStorage,
+            storage.length > 0
+        // The indented quote text can remain visible without a custom bar.
+        else {
+            return
+        }
+
+        let origin = textContainerOrigin
+        NSColor.tertiaryLabelColor.setFill()
+        let nsString = storage.string as NSString
+        let fullRange = NSRange(location: 0, length: storage.length)
+        storage.enumerateAttribute(.langminBlockquoteBar, in: fullRange) { value, range, _ in
+            // Draw a quote bar only for runs explicitly marked as blockquotes.
+            guard (value as? Bool) == true else {
+                return
+            }
+            // Trim a trailing newline so the bar doesn't run past the last line.
+            var effective = range
+            // Keep the quote bar from extending through trailing blank lines.
+            while effective.length > 0,
+                  nsString.substring(with: NSRange(location: effective.location + effective.length - 1, length: 1)) == "\n" {
+                effective.length -= 1
+            }
+            // A quote with no remaining characters needs no bar.
+            guard effective.length > 0 else {
+                return
+            }
+            // Draw one continuous bar from the first line to the last.
+            let glyphRange = layoutManager.glyphRange(forCharacterRange: effective, actualCharacterRange: nil)
+            var minY = CGFloat.greatestFiniteMagnitude
+            var maxY = -CGFloat.greatestFiniteMagnitude
+            layoutManager.enumerateLineFragments(forGlyphRange: glyphRange) { _, usedRect, _, _, _ in
+                minY = min(minY, usedRect.minY)
+                maxY = max(maxY, usedRect.maxY)
+            }
+            // A quote without visible line height has no drawable bar.
+            guard maxY > minY else {
+                return
+            }
+            let barRect = NSRect(x: origin.x + 7, y: origin.y + minY, width: 3, height: maxY - minY)
+            // Avoid repainting bars outside the invalidated area.
+            guard barRect.intersects(dirtyRect) else {
+                return
+            }
+            NSBezierPath(roundedRect: barRect, xRadius: 1.5, yRadius: 1.5).fill()
+        }
+    }
+
+    // mouseDown(event): Distinguish a plain click from text selection before
+    // triggering a narration seek.
+    override func mouseDown(with event: NSEvent) {
+        let downPoint = event.locationInWindow
+        let clickCount = event.clickCount
+
+        NSCursor.iBeam.push()
+        // Runs NSTextView's full press-drag-release selection loop.
+        super.mouseDown(with: event)
+        NSCursor.pop()
+
+        // Narration seeking needs a plain single click with no selected text.
+        guard clickCount == 1, selectedRange().length == 0, let onPlainClick else {
+            return
+        }
+
+        let upPoint = NSApp.currentEvent?.locationInWindow ?? downPoint
+        // A drag gesture must not become a narration seek.
+        guard hypot(upPoint.x - downPoint.x, upPoint.y - downPoint.y) < 4 else {
+            return
+        }
+
+        onPlainClick(characterIndexForInsertion(at: convert(downPoint, from: nil)))
+    }
+}
+
+// narrationSpeechChunks(text, [minimumLength = 12]): Split with NLTokenizer.
+// Merge short fragments only within the same line so headings and new blocks
+// keep their own narration highlight.
+func narrationSpeechChunks(from text: String, minimumLength: Int = 12) -> [String] {
+    var chunks: [String] = []
+    // Preserve line boundaries when grouping text for spoken highlighting.
+    for rawLine in text.split(whereSeparator: \.isNewline) {
+        let line = String(rawLine).trimmingCharacters(in: .whitespacesAndNewlines)
+        // Empty lines do not create narration chunks.
+        guard !line.isEmpty else { continue }
+
+        let tokenizer = NLTokenizer(unit: .sentence)
+        tokenizer.string = line
+        var lineChunks: [String] = []
+        tokenizer.enumerateTokens(in: line.startIndex..<line.endIndex) { range, _ in
+            let sentence = String(line[range]).trimmingCharacters(in: .whitespacesAndNewlines)
+            // Ignore empty sentence tokens and continue tokenization.
+            guard !sentence.isEmpty else {
+                return true
+            }
+
+            // Attach very short sentences to the preceding chunk on the same line.
+            if sentence.count < minimumLength, !lineChunks.isEmpty {
+                lineChunks[lineChunks.count - 1] += " " + sentence
+            } else {
+                // A substantial sentence starts its own narration chunk.
+                lineChunks.append(sentence)
+            }
+            return true
+        }
+        chunks.append(contentsOf: lineChunks)
+    }
+
+    return chunks
+}
