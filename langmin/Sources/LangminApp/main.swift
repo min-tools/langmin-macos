@@ -7718,3 +7718,50 @@ func narrationSpeechChunks(from text: String, minimumLength: Int = 12) -> [Strin
 
     return chunks
 }
+
+// narrationChunkRange(chunk, displayed, location): Match spoken text to
+// displayed text by Unicode tokens, allowing differences in Markdown
+// punctuation and whitespace.
+func narrationChunkRange(for chunk: String, in displayed: NSString, from location: Int) -> NSRange? {
+    let tokenPattern = "[\\p{L}\\p{M}\\p{N}_]+"
+    // Return no match if the token-normalization expression cannot be created.
+    guard let tokenRegex = try? NSRegularExpression(pattern: tokenPattern) else {
+        return nil
+    }
+
+    let chunkString = chunk as NSString
+    let chunkRange = NSRange(location: 0, length: chunkString.length)
+    let tokens = tokenRegex.matches(in: chunk, range: chunkRange).map {
+        chunkString.substring(with: $0.range)
+    }
+    // Text with no recognizable tokens cannot be located in the displayed result.
+    guard !tokens.isEmpty else {
+        return nil
+    }
+
+    let separator = "[^\\p{L}\\p{M}\\p{N}_]*"
+    let pattern = tokens
+        .map { NSRegularExpression.escapedPattern(for: $0) }
+        .joined(separator: separator)
+    // A failed phrase matcher leaves the display range unresolved.
+    guard let regex = try? NSRegularExpression(pattern: pattern) else {
+        return nil
+    }
+
+    let start = min(max(location, 0), displayed.length)
+    let tail = NSRange(location: start, length: displayed.length - start)
+    // Prefer the next occurrence after the previous spoken range.
+    if let match = regex.firstMatch(in: displayed as String, range: tail) {
+        return match.range
+    }
+
+    // Search the whole string if a previous match advanced past this chunk.
+    let whole = NSRange(location: 0, length: displayed.length)
+    return regex.firstMatch(in: displayed as String, range: whole)?.range
+}
+
+// narrationMergeError(message): Create a narration-processing error with a
+// message suitable for presentation.
+func narrationMergeError(_ message: String) -> Error {
+    NSError(domain: "Langmin", code: 1, userInfo: [NSLocalizedDescriptionKey: message])
+}
