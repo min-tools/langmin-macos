@@ -7765,3 +7765,188 @@ func narrationChunkRange(for chunk: String, in displayed: NSString, from locatio
 func narrationMergeError(_ message: String) -> Error {
     NSError(domain: "Langmin", code: 1, userInfo: [NSLocalizedDescriptionKey: message])
 }
+
+// A spoken chunk's text and its start offset inside the merged narration.
+struct NarrationChunkTiming: Codable, Sendable {
+    let start: TimeInterval
+    let text: String
+}
+
+// synthesizeChunkedNarration(chunks, voice, apiKey, provider, model, tempDir,
+// registerTask): Generate up to three sentence clips concurrently, merge them
+// into narration.m4a, and return timings. Report request handles so the caller
+// can cancel them.
+func synthesizeChunkedNarration(
+    chunks: [String],
+    voice: String,
+    apiKey: String,
+    provider: NarrationProvider,
+    model: String,
+    tempDir: URL,
+    registerTask: @escaping @Sendable (NarrationRequestTask) -> Void
+) async throws -> (audioURL: URL, timings: [NarrationChunkTiming]) {
+    // Store Apple's PCM output in CAF; cloud providers return MP3.
+    let chunkExtension = provider == .apple ? "caf" : "mp3"
+    // synthesizeChunk(index, text): Bridge one chunk's narration request into
+    // an async result that retains its original order.
+    func synthesizeChunk(index: Int, text: String) async throws -> (Int, URL) {
+        let chunkURL = tempDir.appendingPathComponent("chunk-\(index).\(chunkExtension)")
+        return try await withCheckedThrowingContinuation { continuation in
+            let completion: (Result<Void, Error>) -> Void = { result in
+                // Resume each narration task once with an audio file or a concrete error.
+                switch result {
+                // A successful callback must also have produced its promised file.
+                case .success where FileManager.default.fileExists(atPath: chunkURL.path):
+                    continuation.resume(returning: (index, chunkURL))
+                // Treat success without an audio file as a speech-service failure.
+                case .success:
+                    continuation.resume(throwing: narrationMergeError("The speech service returned no audio."))
+                // Pass the provider's failure to the waiting narration task.
+                case .failure(let error):
+                    continuation.resume(throwing: error)
+                }
+            }
+
+            // Create one provider-specific chunk request, reporting setup errors to its continuation.
+            do {
+                let task: NarrationRequestTask
+                // Use the selected speech provider for each narration chunk.
+                switch provider {
+                // Apple synthesis writes local audio through its dedicated request path.
+                case .apple:
+                    task = try startAppleSpeechRequest(
+                        text: text,
+                        voiceIdentifier: appleVoiceIdentifier(from: voice),
+                        outputURL: chunkURL,
+                        completion: completion
+                    )
+                // Grok synthesis uses the xAI voice and model selection.
+                case .grok:
+                    task = try startGrokSpeechRequest(
+                        apiKey: apiKey,
+                        text: text,
+                        voiceID: grokVoiceID(from: voice),
+                        outputURL: chunkURL,
+                        completion: completion
+                    )
+                // OpenAI synthesis uses the configured OpenAI speech model.
+                case .openAI:
+                    task = try startSpeechRequest(
+                        apiKey: apiKey,
+                        text: text,
+                        model: model,
+                        voice: voice,
+                        outputURL: chunkURL,
+                        completion: completion
+                    )
+                }
+                registerTask(task)
+                task.resume()
+            } catch {
+                // Propagate failures that happen before the speech request starts.
+                continuation.resume(throwing: error)
+            }
+        }
+    }
+
+    var chunkURLs: [URL?] = Array(repeating: nil, count: chunks.count)
+    var batchStart = 0
+    // Limit concurrent speech generation to a small batch at a time.
+    while batchStart < chunks.count {
+        let batchEnd = min(batchStart + 3, chunks.count)
+        let completedBatch = try await withThrowingTaskGroup(
+            of: (Int, URL).self,
+            returning: [(Int, URL)].self
+        ) { group in
+            // Schedule each chunk in this batch with its original index.
+            for index in batchStart..<batchEnd {
+                group.addTask {
+                    try await synthesizeChunk(index: index, text: chunks[index])
+                }
+            }
+            var batch: [(Int, URL)] = []
+            // Collect asynchronous completions without assuming they arrive in text order.
+            for try await completed in group {
+                batch.append(completed)
+            }
+            return batch
+        }
+        // Place each finished clip in its original narration position.
+        for (index, url) in completedBatch {
+            chunkURLs[index] = url
+        }
+        batchStart = batchEnd
+    }
+
+    let completedURLs = chunkURLs.compactMap { $0 }
+    // Do not merge narration until every requested chunk has an audio file.
+    guard completedURLs.count == chunks.count else {
+        throw narrationMergeError("Some narration segments were not generated.")
+    }
+
+    let outputURL = tempDir.appendingPathComponent("narration.m4a")
+    let offsets = try await mergeNarrationChunks(completedURLs, to: outputURL)
+    let timings = zip(offsets, chunks).map { NarrationChunkTiming(start: $0, text: $1) }
+    return (outputURL, timings)
+}
+
+// mergeNarrationChunks(chunkURLs, outputURL): Merge per-chunk clips into one
+// playable file, returning each chunk's start offset in the merged timeline.
+func mergeNarrationChunks(_ chunkURLs: [URL], to outputURL: URL) async throws -> [TimeInterval] {
+    let composition = AVMutableComposition()
+    // Audio composition needs a writable track before clips can be appended.
+    guard let track = composition.addMutableTrack(
+        withMediaType: .audio,
+        preferredTrackID: kCMPersistentTrackID_Invalid
+    ) else {
+        throw narrationMergeError("Could not prepare the audio composition.")
+    }
+
+    // Add a pause between independently generated sentence clips.
+    let gap = CMTime(seconds: 0.45, preferredTimescale: 600)
+
+    var offsets: [TimeInterval] = []
+    var cursor = CMTime.zero
+    // Append clips in source order and record their playback positions.
+    for (index, url) in chunkURLs.enumerated() {
+        let asset = AVURLAsset(url: url)
+        // Reject a clip that contains no readable audio track.
+        guard let assetTrack = try await asset.loadTracks(withMediaType: .audio).first else {
+            throw narrationMergeError("A narration segment could not be read.")
+        }
+        let duration = try await asset.load(.duration)
+
+        offsets.append(cursor.seconds)
+        try track.insertTimeRange(
+            CMTimeRange(start: .zero, duration: duration),
+            of: assetTrack,
+            at: cursor
+        )
+        cursor = CMTimeAdd(cursor, duration)
+        // Add pauses between chunks without padding the end of the narration.
+        if index < chunkURLs.count - 1 {
+            cursor = CMTimeAdd(cursor, gap)
+        }
+    }
+
+    // Report an unavailable M4A exporter before starting the export.
+    guard let export = AVAssetExportSession(asset: composition, presetName: AVAssetExportPresetAppleM4A) else {
+        throw narrationMergeError("Could not create the audio exporter.")
+    }
+
+    export.outputURL = outputURL
+    export.outputFileType = .m4a
+
+    await withCheckedContinuation { continuation in
+        export.exportAsynchronously {
+            continuation.resume()
+        }
+    }
+
+    // An export must finish successfully before its audio is offered for playback.
+    guard export.status == .completed else {
+        throw export.error ?? narrationMergeError("The merged narration could not be exported.")
+    }
+
+    return offsets
+}
