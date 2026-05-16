@@ -7950,3 +7950,5506 @@ func mergeNarrationChunks(_ chunkURLs: [URL], to outputURL: URL) async throws ->
 
     return offsets
 }
+
+// Coordinate one result's display, editing, Library state, conversation, and audio lifecycle.
+final class ViewerSession: NSObject, AVAudioPlayerDelegate, NSWindowDelegate, NSTextViewDelegate, @unchecked Sendable {
+    static let narrationPlaybackRates: [Float] = [0.5, 0.75, 1, 1.25, 1.5]
+
+    weak var appDelegate: AppDelegate?
+    var config: ViewerConfig
+    var content: String
+    let diffOriginalContent: String
+    var diffRevisedContent: String
+    var textEditor: ResultTextEditorView?
+    var editingReplyID: String?
+    var editorHiddenViews: [NSView] = []
+    var window: NSWindow!
+    var audioPlayer: AVAudioPlayer?
+    var progressTimer: Timer?
+    var playButton: NSButton?
+    var copyButton: NSButton?
+    var shareButton: NSButton?
+    var resultPrintOperation: NSPrintOperation?
+    var progressSlider: NSSlider?
+    var currentTimeLabel: NSTextField?
+    var durationTimeLabel: NSTextField?
+    var playbackRate = defaultNarrationPlaybackRate
+    var modifierKeyMonitor: Any?
+    weak var textView: NSTextView?
+    var narrationTask: NarrationRequestTask?
+    var narrationTasks: [NarrationRequestTask] = []
+    var hudNarration: ClipboardHUDPlayback?
+    // Keep word pronunciation separate from full-result narration.
+    var headwordPlayer: AVAudioPlayer?
+    var headwordTask: NarrationRequestTask?
+    var headwordRunID: UUID?
+    var pronunciationCleanupDirs: Set<String> = []
+    // Cache pronunciation by voice, IPA, model and text. Option-click bypasses the cache.
+    var pronounceCache: [String: URL] = [:]
+    // Replace the clicked speaker image with a spinner during generation.
+    var pronounceSpinner: NSProgressIndicator?
+    var pronounceHiddenAttachment: NSTextAttachment?
+    var pronounceHiddenImage: NSImage?
+    // The glyph's link, removed while loading so repeat clicks can't stack.
+    var pronounceHiddenLink: (range: NSRange, value: Any)?
+    var isGeneratingNarration = false {
+        didSet {
+            updateResultActivityIndicator()
+            updateNarrationSaveButton()
+        }
+    }
+    var narrationRunID: UUID?
+    var escapeKeyMonitor: Any?
+    var lastEscapePress: TimeInterval = 0
+    // Which voice and speech model produced the current narration.
+    var narrationVoiceUsed: String?
+    var narrationModelUsed: String?
+    var statsLabel: NSTextField?
+    var narrationButton: NSButton?
+    var highlightToggleButton: NSButton?
+    var saveAudioToolbarButton: NSButton?
+    var saveToLibraryButton: NSButton?
+    weak var resultTitleLabel: NSTextField?
+    weak var resultActivitySpinner: NSProgressIndicator?
+    weak var resultTitleContainer: NSView?
+    weak var saveToLibraryTitlebarContainer: NSView?
+    var trafficLightReinsetWorkItem: DispatchWorkItem?
+    // Saved entry ID, or nil when unsaved. Used for the bookmark state and duplicate-window check.
+    var savedLibraryID: String?
+    var illustrationImage: NSImage?
+    var illustrationTask: URLSessionDataTask?
+    var illustrationRunID: UUID? {
+        didSet { updateResultActivityIndicator() }
+    }
+    var illustrationPresentation: DictionaryImagePresentation?
+    var illustrationCleanupDir = ""
+    var illustrationButton: NSButton?
+    var resourcesReleased = false
+    var followUpComposer: ResultFollowUpComposer?
+    var followUpDraft = ""
+    var followUpError: String?
+    var followUpTask: TextRequestHandle?
+    var followUpRunID: UUID?
+    var followUpPendingQuestion: String?
+    var followUpSelectedModelID: String?
+    var followUpRequestModel: (id: String, name: String)?
+    var followUpModelPanel: LauncherPalettePanel?
+    weak var resultDiffControl: ResultToolbarButtonGroup?
+    // Play newly generated narration automatically; reopen saved results paused.
+    var autoPlaysOnOpen = true
+    var audioControlsBar: NSView?
+    var generatedAudioCleanupDir = ""
+    // Playback start and display range for each narration chunk.
+    var narrationSegments: [NarrationSegment] = []
+    var currentHighlightRange: NSRange?
+    var diffShown = false
+    weak var viewerScrollView: NSScrollView?
+    // Content below the title bar; window.contentView also includes the title bar area.
+    weak var viewerRootView: NSView?
+    // Host the result in the launcher pane. Route detach and close actions through the host callbacks.
+    weak var embeddedHostView: NSView?
+    var embeddedHeaderView: NSView?
+    var onDetachRequested: (() -> Void)?
+    var onCloseRequested: (() -> Void)?
+    var isEmbedded: Bool { embeddedHostView != nil }
+    // The window the content is on screen in: its own, or the host's.
+    var hostWindow: NSWindow? { window ?? embeddedHostView?.window }
+    weak var resultToolbar: ResultToolbarView?
+    var scrollViewBottomConstraint: NSLayoutConstraint?
+
+    // Current narration file, whether supplied initially or generated later.
+    private(set) var activeAudioPath: String
+
+    var audioAvailable: Bool {
+        !activeAudioPath.isEmpty && FileManager.default.fileExists(atPath: activeAudioPath)
+    }
+
+    var canSaveAudio: Bool {
+        audioAvailable && !isGeneratingNarration
+    }
+
+    var diffAvailable: Bool {
+        config.diffOriginalPath != nil && config.diffRevisedPath != nil &&
+            diffOriginalContent != diffRevisedContent
+    }
+
+    // init(config, appDelegate): Keep the request data and app delegate link
+    // together for this window.
+    init(config: ViewerConfig, appDelegate: AppDelegate) {
+        self.config = config
+        self.appDelegate = appDelegate
+        self.activeAudioPath = config.audioPath
+        self.illustrationImage = config.illustrationPath.flatMap { NSImage(contentsOfFile: $0) }
+        self.narrationVoiceUsed = config.narrationVoice
+        self.narrationModelUsed = config.narrationModel
+        self.content = (try? String(contentsOfFile: config.textPath, encoding: .utf8)) ?? ""
+        self.diffOriginalContent = ViewerSession.readDiffText(config.diffOriginalPath)
+        self.diffRevisedContent = ViewerSession.readDiffText(config.diffRevisedPath)
+        let savedPlaybackRate = Float(preferencesStore.double(forKey: PreferenceKey.narrationPlaybackRate))
+        // Restore only a playback speed supported by the current controls.
+        if Self.narrationPlaybackRates.contains(savedPlaybackRate) {
+            self.playbackRate = savedPlaybackRate
+        }
+        super.init()
+    }
+
+    // readDiffText(path): Read optional diff files without making old manifests
+    // fail.
+    static func readDiffText(_ path: String?) -> String {
+        // An absent asset path contributes no loaded text.
+        guard let path, !path.isEmpty else {
+            return ""
+        }
+
+        return (try? String(contentsOfFile: path, encoding: .utf8)) ?? ""
+    }
+
+    // show(cascadeIndex): Build and show the native viewer window for this
+    // request.
+    func show(cascadeIndex: Int) {
+        // Fit the result window within the visible screen.
+        let detectedScreen = NSScreen.main?.visibleFrame ?? .zero
+        let fallbackScreen = NSRect(x: 0, y: 0, width: 1200, height: 800)
+        let screen = detectedScreen.width >= 640 && detectedScreen.height >= 420
+            ? detectedScreen
+            : fallbackScreen
+        let windowShape = normalizedWindowShape(loadAppPreferences().windowShape)
+        let isPortrait = windowShape == "portrait"
+        let contentSize = viewerContentSize(for: screen, shape: windowShape)
+        let width = contentSize.width
+        let height = contentSize.height
+        let minimumContentSize = NSSize(
+            width: min(width, isPortrait ? 420 : 520),
+            height: min(height, isPortrait ? 520 : 320)
+        )
+
+        // Multiple windows cascade slightly so they do not appear as one stack.
+        let cascadeOffset = CGFloat(cascadeIndex) * 28
+        let originX = min(
+            max(screen.minX + 20, screen.midX - width / 2 + cascadeOffset),
+            screen.maxX - width - 20
+        )
+        let originY = min(
+            max(screen.minY + 20, screen.midY - height / 2 - cascadeOffset),
+            screen.maxY - height - 20
+        )
+
+        // AppKit wants a concrete frame before creating the window.
+        let rect = NSRect(
+            x: originX,
+            y: originY,
+            width: width,
+            height: height
+        )
+
+        // Use a normal titled document-like window with resize and minimize.
+        let styleMask: NSWindow.StyleMask = [.titled, .closable, .resizable, .miniaturizable]
+        window = NativeWindow(
+            contentRect: rect,
+            styleMask: styleMask,
+            backing: .buffered,
+            defer: false
+        )
+
+        // Retain the session and display the result title.
+        window.title = cleanTitle(config.title)
+        configureNativeWindow(window)
+        installResultTitlebarTitle(on: window)
+        installSaveToLibraryTitlebarButton(on: window)
+        window.minSize = NSSize(
+            width: min(560, screen.width * 0.90),
+            height: min(360, screen.height * 0.85)
+        )
+        window.isReleasedWhenClosed = false
+        window.delegate = self
+
+        // Result windows always reserve a compact toolbar above the text view.
+        let controlsHeight: CGFloat = audioAvailable ? 64 : 0
+        let toolbarHeight: CGFloat = 44
+        // Lay out the window before attaching views so they get the final content frame.
+        let rootView = installNativeContent(in: window)
+        viewerRootView = rootView
+        window.contentMinSize = nativeContentSize(minimumContentSize, in: window)
+        window.setContentSize(nativeContentSize(contentSize, in: window))
+        window.layoutIfNeeded()
+        NSLayoutConstraint.activate([
+            rootView.widthAnchor.constraint(greaterThanOrEqualToConstant: minimumContentSize.width),
+            rootView.heightAnchor.constraint(greaterThanOrEqualToConstant: minimumContentSize.height)
+        ])
+        // The toolbar supplies the top separator; adding another would double its thickness.
+
+        buildResultContent(
+            in: rootView,
+            width: width,
+            height: height,
+            controlsHeight: controlsHeight,
+            toolbarHeight: toolbarHeight
+        )
+
+        window.setContentSize(nativeContentSize(contentSize, in: window))
+        updateNarrationStats()
+
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        reinsetResultTrafficLights()
+        installModifierKeyMonitor()
+    }
+
+    // buildResultContent(rootView, width, height, controlsHeight,
+    // toolbarHeight): Build the toolbar, result text, optional audio controls
+    // and follow-up composer for either host.
+    func buildResultContent(
+        in rootView: NSView,
+        width: CGFloat,
+        height: CGFloat,
+        controlsHeight: CGFloat,
+        toolbarHeight: CGFloat
+    ) {
+        let fontSize = config.fontSize
+
+        // The scroll view is pinned with constraints so text-only windows cannot collapse.
+        let scrollView = NSScrollView(frame: .zero)
+        scrollView.hasVerticalScroller = true
+        scrollView.hasHorizontalScroller = false
+        // Text sits directly on the window material, like the rest of the app.
+        scrollView.drawsBackground = false
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+
+        // NSTextView gives selection, copying, wrapping, and dynamic resizing.
+        let textFrame = NSRect(
+            x: 0,
+            y: 0,
+            width: max(width, 1),
+            height: max(height - controlsHeight - toolbarHeight, 1)
+        )
+        let textView = ViewerResultTextView(frame: textFrame)
+        textView.onPlainClick = { [weak self] index in
+            self?.seekNarration(toCharacterIndex: index)
+        }
+        textView.isEditable = false
+        textView.isSelectable = true
+        textView.isRichText = true
+        // Use AppKit's Find bar without changing result text or narration offsets.
+        textView.usesFindBar = true
+        textView.isIncrementalSearchingEnabled = true
+        textView.importsGraphics = false
+        textView.drawsBackground = false
+        textView.textColor = NSColor.labelColor
+        textView.font = NSFont.systemFont(ofSize: fontSize)
+        textView.delegate = self
+        // Set only the link cursor here. Stored text attributes control link colors,
+        // keeping pronunciation icons plain and hidden follow-up actions transparent.
+        textView.linkTextAttributes = [
+            .cursor: NSCursor.pointingHand
+        ]
+        textView.textContainerInset = NSSize(width: 32, height: 28)
+        textView.textContainer?.lineFragmentPadding = 0
+        textView.textContainer?.containerSize = NSSize(width: max(width, 1), height: CGFloat.greatestFiniteMagnitude)
+        textView.textContainer?.widthTracksTextView = true
+        textView.isHorizontallyResizable = false
+        textView.isVerticallyResizable = true
+        textView.minSize = NSSize(width: max(width, 1), height: max(height - controlsHeight - toolbarHeight, 1))
+        textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+        textView.autoresizingMask = [.width]
+
+        // Assign attributed text in one pass so font, color, and spacing match.
+        self.textView = textView
+        applyResultText()
+
+        // Attach the text view above any per-window audio controls.
+        scrollView.documentView = textView
+        rootView.addSubview(scrollView)
+        viewerScrollView = scrollView
+
+        let toolbar = makeViewerToolbar(width: width, height: toolbarHeight)
+        toolbar.translatesAutoresizingMaskIntoConstraints = false
+        rootView.addSubview(toolbar)
+
+        NSLayoutConstraint.activate([
+            toolbar.leadingAnchor.constraint(equalTo: rootView.leadingAnchor),
+            toolbar.trailingAnchor.constraint(equalTo: rootView.trailingAnchor),
+            toolbar.topAnchor.constraint(equalTo: rootView.topAnchor),
+            toolbar.heightAnchor.constraint(equalToConstant: toolbarHeight)
+        ])
+
+        installFollowUpComposer(in: rootView)
+        // Reserve the audio-controls area only when narration controls exist.
+        if let controls = makeAudioControls(width: width, height: controlsHeight) {
+            controls.translatesAutoresizingMaskIntoConstraints = false
+            rootView.addSubview(controls)
+            audioControlsBar = controls
+
+            NSLayoutConstraint.activate([
+                scrollView.leadingAnchor.constraint(equalTo: rootView.leadingAnchor),
+                scrollView.trailingAnchor.constraint(equalTo: rootView.trailingAnchor),
+                scrollView.topAnchor.constraint(equalTo: toolbar.bottomAnchor),
+                scrollView.bottomAnchor.constraint(equalTo: controls.topAnchor),
+
+                controls.leadingAnchor.constraint(equalTo: rootView.leadingAnchor),
+                controls.trailingAnchor.constraint(equalTo: rootView.trailingAnchor),
+                controls.bottomAnchor.constraint(equalTo: followUpComposer?.topAnchor ?? rootView.bottomAnchor),
+                controls.heightAnchor.constraint(equalToConstant: controlsHeight)
+            ])
+
+            // Start playback on open only when this viewer was configured to do so.
+            if autoPlaysOnOpen {
+                playAudio()
+            }
+        } else {
+            // Keep the bottom pin separate so on-demand narration can replace
+            // it with the audio-controls bar later.
+            let bottomConstraint = scrollView.bottomAnchor.constraint(equalTo: followUpComposer?.topAnchor ?? rootView.bottomAnchor)
+            scrollViewBottomConstraint = bottomConstraint
+            NSLayoutConstraint.activate([
+                scrollView.leadingAnchor.constraint(equalTo: rootView.leadingAnchor),
+                scrollView.trailingAnchor.constraint(equalTo: rootView.trailingAnchor),
+                scrollView.topAnchor.constraint(equalTo: toolbar.bottomAnchor),
+                bottomConstraint
+            ])
+        }
+
+        // Resolve sentence highlights once text is ready. Keep existing ranges when moving to a window.
+        if narrationSegments.isEmpty, audioAvailable, let timings = config.audioTimings, !timings.isEmpty {
+            narrationSegments = resolveNarrationSegments(timings)
+        }
+    }
+
+    // MARK: Embedded hosting
+
+    // embed(host): Build the result header and shared content inside the
+    // launcher pane.
+    func embed(in host: NSView) {
+        embeddedHostView = host
+        host.layoutSubtreeIfNeeded()
+
+        let header = makeEmbeddedHeader()
+        host.addSubview(header)
+        embeddedHeaderView = header
+
+        let rootView = NSView()
+        rootView.translatesAutoresizingMaskIntoConstraints = false
+        host.addSubview(rootView)
+        viewerRootView = rootView
+
+        NSLayoutConstraint.activate([
+            header.leadingAnchor.constraint(equalTo: host.leadingAnchor),
+            header.trailingAnchor.constraint(equalTo: host.trailingAnchor),
+            header.topAnchor.constraint(equalTo: host.topAnchor),
+            header.heightAnchor.constraint(equalToConstant: 40),
+            rootView.leadingAnchor.constraint(equalTo: host.leadingAnchor),
+            rootView.trailingAnchor.constraint(equalTo: host.trailingAnchor),
+            rootView.topAnchor.constraint(equalTo: header.bottomAnchor),
+            rootView.bottomAnchor.constraint(equalTo: host.bottomAnchor)
+        ])
+        host.layoutSubtreeIfNeeded()
+
+        buildResultContent(
+            in: rootView,
+            width: max(rootView.bounds.width, 320),
+            height: max(rootView.bounds.height, 200),
+            controlsHeight: audioAvailable ? 64 : 0,
+            toolbarHeight: 44
+        )
+        updateNarrationStats()
+        installModifierKeyMonitor()
+    }
+
+    // makeEmbeddedHeader(): The pane's stand-in for the result window's
+    // titlebar.
+    func makeEmbeddedHeader() -> NSView {
+        let header = NSView()
+        header.translatesAutoresizingMaskIntoConstraints = false
+
+        let title = makeResultTitleView(titleForLabel())
+        header.addSubview(title)
+
+        // Use the toolbar's grouped buttons and symbol sizes for header actions.
+        let bookmark = toolbarButton(
+            symbolName: "bookmark",
+            fallbackTitle: "Save",
+            tooltip: "",
+            symbolPointSize: 14,
+            action: #selector(saveToLibraryFromToolbar(_:))
+        )
+        saveToLibraryButton = bookmark
+        updateSaveToLibraryButton()
+
+        let detach = toolbarButton(
+            symbolName: "arrow.down.left.and.arrow.up.right",
+            fallbackTitle: "Window",
+            tooltip: localized("open_result_window", "Open in a result window"),
+            symbolPointSize: 12,
+            action: #selector(detachFromHostRequested(_:))
+        )
+        let close = toolbarButton(
+            symbolName: "xmark",
+            fallbackTitle: "Close",
+            tooltip: localized("close", "Close"),
+            symbolPointSize: 14,
+            action: #selector(closeFromHostRequested(_:))
+        )
+
+        let actions = ResultToolbarButtonGroup()
+        actions.orientation = .horizontal
+        actions.alignment = .centerY
+        actions.spacing = 0
+        [bookmark, detach, close].forEach { actions.addButton($0) }
+        actions.translatesAutoresizingMaskIntoConstraints = false
+        header.addSubview(actions)
+
+        NSLayoutConstraint.activate([
+            title.leadingAnchor.constraint(equalTo: header.leadingAnchor, constant: 21),
+            title.centerYAnchor.constraint(equalTo: header.centerYAnchor),
+            title.trailingAnchor.constraint(lessThanOrEqualTo: actions.leadingAnchor, constant: -12),
+            // Match the 6pt top/bottom inset around the 28pt buttons in this 40pt row.
+            actions.trailingAnchor.constraint(equalTo: header.trailingAnchor, constant: -6),
+            actions.centerYAnchor.constraint(equalTo: header.centerYAnchor)
+        ])
+        return header
+    }
+
+    // detachFromHostRequested(sender): Resolve any active text edit before
+    // asking the host to detach this result.
+    @objc func detachFromHostRequested(_ sender: Any?) {
+        // Resolve unsaved text edits before moving the result into another window.
+        guard confirmEndingTextEdit() else { return }
+        onDetachRequested?()
+    }
+
+    // closeFromHostRequested(sender): Resolve any active text edit before
+    // asking the host to close this result.
+    @objc func closeFromHostRequested(_ sender: Any?) {
+        // Resolve unsaved text edits before dismissing the result.
+        guard confirmEndingTextEdit() else { return }
+        onCloseRequested?()
+    }
+
+    // titleForLabel(): Omit the app-name prefix from the inline result title.
+    func titleForLabel() -> String {
+        let title = cleanTitle(config.title)
+        // Detached viewers retain their normal document title.
+        guard isEmbedded else {
+            return title
+        }
+        let prefix = "\(appName) • "
+        return title.hasPrefix(prefix) ? String(title.dropFirst(prefix.count)) : title
+    }
+
+    // leaveHost(releasing): Remove the embedded views. Release assets on close,
+    // or retain them when moving to a window.
+    func leaveHost(releasing: Bool) {
+        // Embedded dismissal has no work to do for an independent result window.
+        guard isEmbedded else {
+            return
+        }
+        followUpModelPanel?.closePalette()
+        // Release playback and temporary resources when dismissal requests cleanup.
+        if releasing {
+            releaseResources()
+        } else {
+            // Close the system image sheet before changing windows. Cloud image requests can continue.
+            if illustrationPresentation != nil { cancelIllustration() }
+            stopAudio()
+            cancelNarrationGeneration()
+            stopHeadwordPronunciation()
+            removeModifierKeyMonitor()
+        }
+        embeddedHeaderView?.removeFromSuperview()
+        viewerRootView?.removeFromSuperview()
+        followUpComposer = nil
+        resultDiffControl = nil
+        embeddedHeaderView = nil
+        embeddedHostView = nil
+        viewerRootView = nil
+        viewerScrollView = nil
+        textView = nil
+        resultToolbar = nil
+        copyButton = nil
+        shareButton = nil
+        narrationButton = nil
+        illustrationButton = nil
+        highlightToggleButton = nil
+        saveAudioToolbarButton = nil
+        statsLabel = nil
+        audioControlsBar = nil
+        playButton = nil
+        progressSlider = nil
+        currentTimeLabel = nil
+        durationTimeLabel = nil
+        scrollViewBottomConstraint = nil
+        resultTitleLabel = nil
+        resultActivitySpinner?.stopAnimation(nil)
+        resultActivitySpinner = nil
+        saveToLibraryButton = nil
+        diffShown = false
+        // Do not restart narration when moving the result to a window.
+        autoPlaysOnOpen = false
+    }
+
+    // Remember the delimiter character and length needed to close a fenced code block.
+    struct MarkdownFence {
+        let marker: Character
+        let length: Int
+    }
+
+    // Carry a parsed heading's level and visible text into attributed rendering.
+    struct MarkdownHeading {
+        let level: Int
+        let text: String
+    }
+
+    // Carry list numbering, indentation, and body text into list layout.
+    struct MarkdownListItem {
+        let ordered: Bool
+        let ordinal: Int
+        let indent: Int
+        let markerWidth: Int
+        let body: String
+    }
+
+    // Keep source titles and destinations separate from their optional reference-number formatting.
+    struct MarkdownSourceEntry {
+        let number: Int?
+        let title: String
+        let url: String
+        var numberMarkdown: String? = nil
+    }
+
+    // viewerParagraphStyle([lineSpacing = 3], [paragraphSpacing = 12],
+    // [paragraphSpacingBefore = 0], [firstLineHeadIndent = 0], [headIndent =
+    // 0], [lineBreakMode = .byWordWrapping]): Shared paragraph style for
+    // generated result and diff text.
+    func viewerParagraphStyle(
+        lineSpacing: CGFloat = 3,
+        paragraphSpacing: CGFloat = 12,
+        paragraphSpacingBefore: CGFloat = 0,
+        firstLineHeadIndent: CGFloat = 0,
+        headIndent: CGFloat = 0,
+        lineBreakMode: NSLineBreakMode = .byWordWrapping
+    ) -> NSParagraphStyle {
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.lineBreakMode = lineBreakMode
+        paragraphStyle.lineSpacing = lineSpacing
+        paragraphStyle.paragraphSpacing = paragraphSpacing
+        paragraphStyle.paragraphSpacingBefore = paragraphSpacingBefore
+        paragraphStyle.firstLineHeadIndent = firstLineHeadIndent
+        paragraphStyle.headIndent = headIndent
+        return paragraphStyle
+    }
+
+    // viewerFont([size = nil], [weight = .regular], [italic = false],
+    // [monospaced = false]): Keep Markdown typography native while allowing
+    // inline styles to compose.
+    func viewerFont(
+        size: CGFloat? = nil,
+        weight: NSFont.Weight = .regular,
+        italic: Bool = false,
+        monospaced: Bool = false
+    ) -> NSFont {
+        let pointSize = size ?? config.fontSize
+        let font = monospaced
+            ? NSFont.monospacedSystemFont(ofSize: pointSize, weight: weight)
+            : NSFont.systemFont(ofSize: pointSize, weight: weight)
+
+        // Keep the chosen font unchanged unless italic styling is needed.
+        guard italic else {
+            return font
+        }
+
+        return NSFontManager.shared.convert(font, toHaveTrait: .italicFontMask)
+    }
+
+    // viewerTextAttributes([weight = .regular], [size = nil], [color =
+    // .labelColor], [paragraphStyle = nil], [italic = false], [monospaced =
+    // false]): Shared base attributes for viewer text.
+    func viewerTextAttributes(
+        weight: NSFont.Weight = .regular,
+        size: CGFloat? = nil,
+        color: NSColor = .labelColor,
+        paragraphStyle: NSParagraphStyle? = nil,
+        italic: Bool = false,
+        monospaced: Bool = false
+    ) -> [NSAttributedString.Key: Any] {
+        [
+            .font: viewerFont(size: size, weight: weight, italic: italic, monospaced: monospaced),
+            .foregroundColor: color,
+            .paragraphStyle: paragraphStyle ?? viewerParagraphStyle()
+        ]
+    }
+
+    // applyResultText():
+    // Restore the normal generated result view.
+    func applyResultText() {
+        let text = NSMutableAttributedString(attributedString: markdownAttributedText(from: content))
+        insertPronunciationSpeakers(into: text)
+        appendFollowUps(to: text)
+        textView?.textStorage?.setAttributedString(text)
+        refreshIllustration()
+        // Follow-up edits can move narrated sentences without changing the recording.
+        if audioAvailable, let timings = config.audioTimings {
+            narrationSegments = resolveNarrationSegments(timings)
+        }
+        (textView as? ResultConversationTextView)?.updateFollowUpActivity()
+        textView?.scrollRangeToVisible(NSRange(location: 0, length: 0))
+    }
+
+    // insertPronunciationSpeakers(text): Use heading IPA when available; plain
+    // dictionary headings still offer voice pronunciation.
+    private func insertPronunciationSpeakers(into text: NSMutableAttributedString) {
+        // Pronunciation controls require a dictionary headword and rendered text.
+        guard
+            let headword = config.dictionaryHeadword?.trimmingCharacters(in: .whitespacesAndNewlines),
+            !headword.isEmpty,
+            text.length > 0
+        // Ordinary results and empty dictionary entries need no pronunciation buttons.
+        else {
+            return
+        }
+        // Show icons before a voice is chosen; the first click opens the voice picker.
+        let voiceConfigured = loadAppPreferences().dictionaryVoice != "none"
+        let ns = text.string as NSString
+        // Record insertion offset, font, text, IPA and whether to extend the blockquote bar.
+        var insertions: [(offset: Int, font: NSFont, speak: String, ipa: String, bar: Bool)] = []
+
+        // Add one speaker per IPA heading, skipping combined pronunciations handled below.
+        // Include IPA letters and modifiers such as ʲ; use literal characters because ICU
+        // does not accept Swift-style Unicode escapes.
+        if let regex = try? NSRegularExpression(pattern: #"/[^/\n]*[ˈˌːæɑɒɔəɛɪʊʌɐ-˿][^/\n]*/"#) {
+            // Find word headings and IPA lines once so extra-language sections pronounce their own word.
+            struct ScannedLine {
+                let location: Int
+                let text: String
+                let fontSize: CGFloat
+                let hasIPA: Bool
+            }
+            var scannedLines: [ScannedLine] = []
+            var scanLocation = 0
+            // Record each line once to associate pronunciation with nearby word headings.
+            while scanLocation < ns.length {
+                let lineRange = ns.lineRange(for: NSRange(location: scanLocation, length: 0))
+                let font = lineRange.length > 0
+                    ? text.attributes(at: lineRange.location, effectiveRange: nil)[.font] as? NSFont
+                    : nil
+                scannedLines.append(ScannedLine(
+                    location: lineRange.location,
+                    text: ns.substring(with: lineRange).trimmingCharacters(in: .whitespacesAndNewlines),
+                    fontSize: font?.pointSize ?? 0,
+                    hasIPA: regex.firstMatch(in: text.string, range: lineRange) != nil
+                ))
+                scanLocation = lineRange.location + max(lineRange.length, 1)
+            }
+
+            // sectionWord(location, fontSize): Use the nearest word heading
+            // above this part of speech. Map slash-separated words to their
+            // noun and verb headings in order.
+            func sectionWord(forPosHeadingAt location: Int, fontSize: CGFloat) -> String? {
+                // Find the nearest preceding word heading, excluding language labels.
+                guard let headingIndex = scannedLines.lastIndex(where: {
+                    $0.location < location && !$0.hasIPA && !$0.text.isEmpty && $0.fontSize >= fontSize
+                        // Exclude language labels from word headings.
+                        && !LanguageHeadingNames.all.contains($0.text.lowercased())
+                }) else { return nil }
+                let words = scannedLines[headingIndex].text
+                    .split(separator: "/")
+                    .map { $0.trimmingCharacters(in: .whitespaces) }
+                    .filter { !$0.isEmpty }
+                // A heading containing no word cannot supply pronunciation text.
+                guard !words.isEmpty else { return nil }
+                let posIndex = scannedLines[(headingIndex + 1)...]
+                    .prefix(while: { $0.location < location })
+                    .filter { $0.hasIPA }
+                    .count
+                return words[min(posIndex, words.count - 1)]
+            }
+
+            // Scope fallback pronunciation to the original language. Older entries may omit its
+            // language label, and original part-of-speech headings may also contain a colon.
+            var originalLanguageEnd = ns.length
+            var sawOriginalHeading = false
+            // Find the end of the original-language section among nonempty headings.
+            for line in scannedLines where !line.text.isEmpty {
+                // Only second-level headings can delimit a language section here.
+                guard (text.attribute(.resultEditorHeading, at: line.location, effectiveRange: nil) as? Int) == 2 else { continue }
+                // A later language label ends the original section's pronunciation scope.
+                if LanguageHeadingNames.all.contains(line.text.lowercased()), sawOriginalHeading {
+                    originalLanguageEnd = line.location
+                    break
+                }
+                sawOriginalHeading = true
+            }
+            let originalHasIPA = scannedLines.contains { $0.location < originalLanguageEnd && $0.hasIPA }
+            var seenLine = Set<Int>()
+            for match in regex.matches(in: text.string, range: NSRange(location: 0, length: ns.length)) {
+                // Use the first pronunciation when a heading lists variants.
+                let fullIPA = ns.substring(with: match.range).trimmingCharacters(in: CharacterSet(charactersIn: "/ "))
+                let ipa = fullIPA.split(separator: ",").first.map { $0.trimmingCharacters(in: .whitespaces) } ?? fullIPA
+                let lineRange = ns.lineRange(for: match.range)
+                var end = lineRange.location + lineRange.length
+                // Place the speaker before the line break rather than on the next line.
+                if end > lineRange.location, ns.substring(with: NSRange(location: end - 1, length: 1)) == "\n" { end -= 1 }
+                // Insert at most one pronunciation speaker per IPA line.
+                guard end > 0, seenLine.insert(lineRange.location).inserted else { continue }
+                let lineText = ns.substring(with: lineRange).trimmingCharacters(in: .whitespacesAndNewlines)
+                let posLabel = lineText.split(whereSeparator: { $0 == " " || $0 == "\t" }).first.map(String.init) ?? ""
+                let font = (text.attributes(at: end - 1, effectiveRange: nil)[.font] as? NSFont) ?? NSFont.systemFont(ofSize: 15)
+                // Use the translated word after the colon in extra-language headings;
+                // do not pair the original headword with another word's IPA.
+                var speakWord = headword
+                let beforeIPA = ns.substring(
+                    with: NSRange(
+                        location: lineRange.location,
+                        length: max(0, match.range.location - lineRange.location)
+                    )
+                ).trimmingCharacters(in: .whitespacesAndNewlines)
+                // A word after the heading's colon is the word paired with this IPA.
+                if let colon = beforeIPA.range(of: ":"),
+                   case let localWord = beforeIPA[colon.upperBound...].trimmingCharacters(in: .whitespaces),
+                   !localWord.isEmpty {
+                    speakWord = String(localWord)
+                } else if let word = sectionWord(forPosHeadingAt: lineRange.location, fontSize: font.pointSize) {
+                    // Otherwise recover the word from its nearest section heading.
+                    speakWord = word
+                }
+                // Use a grammatical hint to guide stress. Fall back to IPA, which Apple voices support.
+                if let framed = posFramedText(word: speakWord, posLabel: posLabel) {
+                    insertions.append((end, font, framed, "", false))
+                } else {
+                    // Use the word and IPA directly when no grammatical framing applies.
+                    insertions.append((end, font, speakWord, ipa, false))
+                }
+            }
+
+            // Local entries omit IPA. Give their title and translated words normal voice playback,
+            // while keeping existing IPA entries free of duplicate buttons.
+            for line in scannedLines where !line.hasIPA && !line.text.isEmpty {
+                let attributes = text.attributes(at: line.location, effectiveRange: nil)
+                let level = attributes[.resultEditorHeading] as? Int ?? 0
+                let word: String
+                // Offer normal pronunciation for the original title when it has no IPA.
+                if level == 1 && !originalHasIPA {
+                    word = headword
+                } else if level == 2, let colon = line.text.firstIndex(of: ":") {
+                    // All-ASCII IPA (such as /ete/) does not match the IPA detector above.
+                    // Keep that transcription out of a normal voice's spoken text.
+                    word = String(line.text[line.text.index(after: colon)...])
+                        .replacingOccurrences(of: #"\s+/[^/\n]+/\s*$"#, with: "", options: .regularExpression)
+                        .trimmingCharacters(in: .whitespaces)
+                } else {
+                    // Other headings do not identify a standalone word to pronounce.
+                    continue
+                }
+                // Do not create a speaker for an empty recovered word.
+                guard !word.isEmpty else { continue }
+                let range = ns.lineRange(for: NSRange(location: line.location, length: 0))
+                let end = range.location + ns.substring(with: range).trimmingCharacters(in: .newlines).utf16.count
+                let font = attributes[.font] as? NSFont ?? NSFont.systemFont(ofSize: 15)
+                insertions.append((end, font, word, "", false))
+            }
+        }
+
+        // Add a pronunciation button to each example blockquote.
+        text.enumerateAttribute(.langminBlockquoteBar, in: NSRange(location: 0, length: text.length)) { value, range, _ in
+            // Only example blockquotes receive example-playback controls.
+            guard (value as? Bool) == true else { return }
+            var eff = range
+            // Keep the example speaker inside the quote's final text line.
+            while eff.length > 0, ns.substring(with: NSRange(location: eff.location + eff.length - 1, length: 1)) == "\n" { eff.length -= 1 }
+            // Skip a quote consisting entirely of newline characters.
+            guard eff.length > 0 else { return }
+            let end = eff.location + eff.length
+            let example = ns.substring(with: eff).trimmingCharacters(in: .whitespacesAndNewlines)
+            // Whitespace-only examples have nothing to pronounce.
+            guard !example.isEmpty else { return }
+            let font = (text.attributes(at: end - 1, effectiveRange: nil)[.font] as? NSFont) ?? NSFont.systemFont(ofSize: 13)
+            insertions.append((end, font, example, "", true))
+        }
+
+        // Insert from the bottom up so earlier offsets stay valid.
+        for ins in insertions.sorted(by: { $0.offset > $1.offset }) {
+            let tooltip: String
+            // A configured voice makes the button ready for playback or regeneration.
+            if voiceConfigured {
+                tooltip = ins.bar ? "Play example (⌥-click to regenerate)" : "Pronounce (⌥-click to regenerate)"
+            } else {
+                // Explain that the first click will choose a voice.
+                tooltip = localized(
+                    "pronounce_setup_tooltip",
+                    "Pronounce — click to choose a voice first"
+                )
+            }
+            // Keep the text readable even if the system speaker symbol is unavailable.
+            guard let icon = pronounceGlyphAttributedString(alongside: ins.font, speak: ins.speak, ipa: ins.ipa, tooltip: tooltip) else { continue }
+            var spacerAttrs: [NSAttributedString.Key: Any] = [.font: ins.font]
+            // Carry the quote-bar attribute across the space before an example speaker.
+            if ins.bar { spacerAttrs[.langminBlockquoteBar] = true }
+            let spacer = NSMutableAttributedString(string: " ", attributes: spacerAttrs)
+            // Extend the quote bar through the example's speaker attachment.
+            if ins.bar {
+                let mutableIcon = NSMutableAttributedString(attributedString: icon)
+                mutableIcon.addAttribute(.langminBlockquoteBar, value: true, range: NSRange(location: 0, length: mutableIcon.length))
+                spacer.append(mutableIcon)
+            } else {
+                // Word-heading speakers need no blockquote styling.
+                spacer.append(icon)
+            }
+            text.insert(spacer, at: ins.offset)
+        }
+    }
+
+    // posFramedText(word, posLabel): Use an English grammatical hint, such as
+    // "to export" or "the export", to guide stress without IPA. Return nil for
+    // unrecognized part-of-speech labels.
+    private func posFramedText(word: String, posLabel: String) -> String? {
+        // Colon headings ("Noun: address /…/") leave the colon on the label.
+        switch posLabel.lowercased().trimmingCharacters(in: CharacterSet(charactersIn: ":")) {
+        // An infinitive marker helps voices choose verb stress.
+        case "verb", "verbs":
+            return "to \(word)"
+        // An article helps voices choose noun stress.
+        case "noun", "nouns":
+            return "the \(word)"
+        // Unrecognized grammatical labels leave pronunciation to the word or IPA.
+        default:
+            return nil
+        }
+    }
+
+    // pronounceGlyphAttributedString(font, speak, ipa, tooltip): Create a
+    // heading-sized speaker icon with the text and IPA in its action URL.
+    private func pronounceGlyphAttributedString(alongside font: NSFont, speak: String, ipa: String, tooltip: String) -> NSAttributedString? {
+        // Omit the attachment when the system cannot supply its speaker symbol.
+        guard let base = NSImage(systemSymbolName: "speaker.wave.2", accessibilityDescription: "Play") else {
+            return nil
+        }
+        let pointSize = max(font.pointSize * 0.72, 12)
+        let config = NSImage.SymbolConfiguration(pointSize: pointSize, weight: .regular)
+            .applying(NSImage.SymbolConfiguration(hierarchicalColor: .secondaryLabelColor))
+        let image = base.withSymbolConfiguration(config) ?? base
+
+        let attachment = NSTextAttachment()
+        attachment.image = image
+        // Align the icon with the visible height of nearby lowercase letters.
+        let yOffset = (font.xHeight - image.size.height) / 2 + font.pointSize * 0.06
+        attachment.bounds = CGRect(x: 0, y: yOffset, width: image.size.width, height: image.size.height)
+
+        let allowed = CharacterSet.alphanumerics
+        let encText = speak.addingPercentEncoding(withAllowedCharacters: allowed) ?? ""
+        let encIPA = ipa.addingPercentEncoding(withAllowedCharacters: allowed) ?? ""
+        let icon = NSMutableAttributedString(attachment: attachment)
+        let range = NSRange(location: 0, length: icon.length)
+        icon.addAttribute(.link, value: "langmin-say:t=\(encText)&i=\(encIPA)", range: range)
+        // Override NSTextView's default link tooltip (the raw langmin-say: URL).
+        icon.addAttribute(.toolTip, value: tooltip, range: range)
+        return icon
+    }
+
+    // textView(textView, link, charIndex): Open Markdown links from the
+    // read-only result view.
+    func textView(_ textView: NSTextView, clickedOnLink link: Any, at charIndex: Int) -> Bool {
+        let linkString = (link as? URL)?.absoluteString ?? (link as? String) ?? ""
+        // Let conversation actions consume their own links before normal URL handling.
+        if handleFollowUpLink(linkString, in: textView, at: charIndex) { return true }
+
+        // Decode pronunciation text and optional IPA from the speaker action URL.
+        if linkString.hasPrefix("langmin-say:") {
+            let query = String(linkString.dropFirst("langmin-say:".count))
+            var speak = ""
+            var ipa = ""
+            // Decode only the text and IPA fields used by pronunciation actions.
+            for pair in query.split(separator: "&") {
+                // The text query field supplies the word or example to speak.
+                if pair.hasPrefix("t=") { speak = String(pair.dropFirst(2)).removingPercentEncoding ?? "" }
+                // The IPA query field supplies an optional phonetic pronunciation.
+                else if pair.hasPrefix("i=") { ipa = String(pair.dropFirst(2)).removingPercentEncoding ?? "" }
+            }
+            // The clicked speaker glyph's range, so a spinner can cover it.
+            var markerRange = NSRange(location: charIndex, length: 1)
+            // Find the clicked link's full range so its speaker can show loading progress.
+            if let storage = textView.textStorage {
+                var effective = NSRange()
+                // Use the attributed link span rather than a single clicked character.
+                if storage.attribute(.link, at: charIndex, effectiveRange: &effective) != nil {
+                    markerRange = effective
+                }
+            }
+            // Offer a voice picker on the first pronunciation click if no voice is configured.
+            if loadAppPreferences().dictionaryVoice == "none" {
+                offerDictionaryVoicePicker(for: textView, speak: speak, ipa: ipa, markerRange: markerRange)
+                return true
+            }
+            // Option-click bypasses the pronunciation cache.
+            let regenerate = NSApp.currentEvent?.modifierFlags.contains(.option) ?? false
+            pronounce(text: speak, ipa: ipa.isEmpty ? nil : ipa, markerRange: markerRange, regenerate: regenerate)
+            return true
+        }
+
+        // Open only HTTP(S) links from model text. Consume other schemes so NSTextView
+        // cannot open local files or launch another app through a generated link.
+        let clickedURL = (link as? URL) ?? (link as? String).flatMap { URL(string: $0) }
+        // Handle a parsed external URL after internal result actions have been considered.
+        if let clickedURL {
+            // Open web links through the user's default browser.
+            if let scheme = clickedURL.scheme?.lowercased(), scheme == "http" || scheme == "https" {
+                NSWorkspace.shared.open(clickedURL)
+            }
+            return true
+        }
+
+        return false
+    }
+
+    // Pronunciation requested before voice selection; resume it after the user chooses a voice.
+    private var pendingVoicePickPronounce: (text: String, ipa: String?, markerRange: NSRange)?
+
+    // offerDictionaryVoicePicker(textView, speak, ipa, markerRange): Choose and
+    // save a pronunciation voice, then play the requested text.
+    private func offerDictionaryVoicePicker(for textView: NSTextView, speak: String, ipa: String, markerRange: NSRange) {
+        pendingVoicePickPronounce = (speak, ipa.isEmpty ? nil : ipa, markerRange)
+        let preferences = loadAppPreferences()
+        let menu = makeReaderChoiceMenu(allowed: Set(preferences.preferredReaderVoices))
+        // Route selectable voice items back to this viewer's voice handler.
+        for item in menu.items where item.representedObject is String {
+            item.target = self
+            item.action = #selector(dictionaryVoiceMenuPicked(_:))
+        }
+        // Anchor the voice menu to the event that requested pronunciation.
+        if let event = NSApp.currentEvent {
+            NSMenu.popUpContextMenu(menu, with: event, for: textView)
+        }
+    }
+
+    // dictionaryVoiceMenuPicked(sender): Save the selected dictionary
+    // pronunciation voice and refresh the result's voice controls.
+    @objc private func dictionaryVoiceMenuPicked(_ sender: NSMenuItem) {
+        // Ignore menu items without a stored voice identifier.
+        guard let id = sender.representedObject as? String else { return }
+        var preferences = loadAppPreferences()
+        preferences.dictionaryVoice = id
+        saveAppPreferences(preferences)
+        // Resume pending pronunciation only after a usable voice was chosen.
+        guard id != "none", let pending = pendingVoicePickPronounce else {
+            pendingVoicePickPronounce = nil
+            return
+        }
+        pendingVoicePickPronounce = nil
+        pronounce(text: pending.text, ipa: pending.ipa, markerRange: pending.markerRange)
+    }
+
+    // pronounce(text, [ipa = nil], [markerRange = nil], [regenerate = false]):
+    // Generate and play dictionary pronunciation separately from result
+    // narration. Pass IPA to Apple voices; other providers receive plain text.
+    func pronounce(text: String, ipa: String? = nil, markerRange: NSRange? = nil, regenerate: Bool = false) {
+        let headword = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        // An empty word or example has no pronunciation to generate.
+        guard !headword.isEmpty else {
+            return
+        }
+        let voice = loadAppPreferences().dictionaryVoice
+        // Pronunciation waits until the user selects a voice.
+        guard voice != "none" else {
+            return
+        }
+
+        headwordRunID = nil
+        headwordTask?.cancel()
+        headwordTask = nil
+        headwordPlayer?.stop()
+        headwordPlayer = nil
+
+        let provider = narrationProvider(for: voice)
+        // Include voice, IPA, model and text in the cache key because each can change the audio.
+        let ttsModelID = ttsModel(forVoice: voice, requestedModel: loadAppPreferences().ttsModel)
+        let cacheKey = [voice, ipa ?? "", ttsModelID, headword].joined(separator: "\u{1}")
+
+        // Replay cached audio unless Option-click requested regeneration.
+        if !regenerate,
+           let cachedURL = pronounceCache[cacheKey],
+           FileManager.default.fileExists(atPath: cachedURL.path),
+           let player = try? AVAudioPlayer(contentsOf: cachedURL) {
+            player.prepareToPlay()
+            headwordPlayer = player
+            player.play()
+            return
+        }
+        // Honor the user's remote narration-sharing decision before sending text.
+        guard confirmRemoteNarrationSharingIfNeeded(provider: provider) else {
+            return
+        }
+        let apiKey: String
+        // Load credentials for the selected speech provider only.
+        switch provider {
+        // Local Apple synthesis needs no API key.
+        case .apple:
+            apiKey = ""
+        // xAI narration uses its own saved credential.
+        case .grok:
+            apiKey = loadGrokAPIKey()
+        // OpenAI narration uses the saved OpenAI credential.
+        case .openAI:
+            apiKey = loadOpenAIAPIKey()
+        }
+        // Explain missing credentials before starting a remote pronunciation request.
+        guard provider == .apple || !apiKey.isEmpty else {
+            presentPronounceKeyError(provider: provider)
+            return
+        }
+
+        let runID = UUID()
+        headwordRunID = runID
+
+        let outputDirectory: URL
+        var createdCleanupDir: URL?
+        // Create a temporary output directory when the result has no cleanup directory.
+        if config.cleanupDir.isEmpty {
+            // Allocate a pronunciation directory before configuring its output file.
+            do {
+                let directory = try createLangminTemporaryDirectory(prefix: "pronunciation")
+                outputDirectory = directory
+                createdCleanupDir = directory
+                pronunciationCleanupDirs.insert(directory.path)
+            } catch {
+                // Report temporary-directory failures before attempting speech generation.
+                presentViewerError("Could not pronounce the word", details: error.localizedDescription)
+                return
+            }
+        } else {
+            // Reuse this result's existing cleanup directory for the new clip.
+            outputDirectory = URL(fileURLWithPath: config.cleanupDir, isDirectory: true)
+        }
+        let outputURL = outputDirectory
+            .appendingPathComponent("pronounce-\(UUID().uuidString).\(provider == .apple ? "caf" : "mp3")")
+
+        // Cover the clicked glyph with a spinner until the audio is ready.
+        showPronounceSpinner(at: markerRange)
+
+        let completion: (Result<Void, Error>) -> Void = { [weak self] result in
+            DispatchQueue.main.async {
+                // Delete late audio from a canceled or superseded pronunciation request.
+                guard let self, self.headwordRunID == runID else {
+                    try? FileManager.default.removeItem(at: outputURL)
+                    return
+                }
+                self.headwordRunID = nil
+                self.headwordTask = nil
+                self.hidePronounceSpinner()
+                // Only successful pronunciation requests may enter the replay cache.
+                guard case .success = result else { return }
+                // Cache the new clip for replay.
+                self.pronounceCache[cacheKey] = outputURL
+                // Do not start playback if the generated clip cannot be opened.
+                guard let player = try? AVAudioPlayer(contentsOf: outputURL) else { return }
+                player.prepareToPlay()
+                self.headwordPlayer = player
+                player.play()
+                // Save the clip with the Library entry so it can be reused on reopen.
+                if let id = self.savedLibraryID {
+                    LibraryStore.addPronunciation(id: id, key: cacheKey, sourceURL: outputURL)
+                }
+            }
+        }
+
+        // Start the chosen pronunciation provider with one shared completion handler.
+        do {
+            let task: NarrationRequestTask
+            // Create the pronunciation request through the selected speech integration.
+            switch provider {
+            // Apple voices can use the supplied IPA for pronunciation.
+            case .apple:
+                task = try startAppleSpeechRequest(
+                    text: headword,
+                    voiceIdentifier: appleVoiceIdentifier(from: voice),
+                    ipa: ipa,
+                    outputURL: outputURL,
+                    completion: completion
+                )
+            // Grok voices receive the pronunciation's plain text.
+            case .grok:
+                task = try startGrokSpeechRequest(
+                    apiKey: apiKey,
+                    text: headword,
+                    voiceID: grokVoiceID(from: voice),
+                    outputURL: outputURL,
+                    completion: completion
+                )
+            // OpenAI pronunciation uses the selected speech model and voice.
+            case .openAI:
+                task = try startSpeechRequest(
+                    apiKey: apiKey,
+                    text: headword,
+                    model: ttsModelID,
+                    voice: voice,
+                    outputURL: outputURL,
+                    completion: completion
+                )
+            }
+            headwordTask = task
+            task.resume()
+        } catch {
+            // Clean up request setup failures without disturbing a newer pronunciation run.
+            // Clear activity state only if this failed request still owns it.
+            if headwordRunID == runID {
+                headwordRunID = nil
+                headwordTask = nil
+                hidePronounceSpinner()
+            }
+            // Remove a temporary directory created solely for this failed pronunciation.
+            if let createdCleanupDir {
+                try? FileManager.default.removeItem(at: createdCleanupDir)
+                pronunciationCleanupDirs.remove(createdCleanupDir.path)
+            } else {
+                // When reusing a directory, remove only this request's output file.
+                try? FileManager.default.removeItem(at: outputURL)
+            }
+        }
+    }
+
+    // showPronounceSpinner(range): Keep the speaker's layout space and draw a
+    // spinner over it while loading.
+    private func showPronounceSpinner(at range: NSRange?) {
+        hidePronounceSpinner()
+        // Spinner placement requires the clicked range and its current text layout.
+        guard
+            let range,
+            let textView = textView,
+            let layoutManager = textView.layoutManager,
+            let container = textView.textContainer,
+            let storage = textView.textStorage
+        // Skip the visual spinner when its text geometry is unavailable.
+        else {
+            return
+        }
+        // Hide an existing speaker attachment without changing its layout size.
+        if range.location < storage.length,
+           let attachment = storage.attribute(.attachment, at: range.location, effectiveRange: nil) as? NSTextAttachment,
+           let image = attachment.image {
+            pronounceHiddenAttachment = attachment
+            pronounceHiddenImage = image
+            attachment.image = NSImage(size: image.size) // transparent, same size
+            textView.needsDisplay = true
+        }
+        // Remove the link during generation to prevent duplicate pronunciation requests.
+        if range.location < storage.length,
+           let link = storage.attribute(.link, at: range.location, effectiveRange: nil) {
+            pronounceHiddenLink = (range, link)
+            storage.removeAttribute(.link, range: range)
+        }
+        let glyphRange = layoutManager.glyphRange(forCharacterRange: range, actualCharacterRange: nil)
+        var rect = layoutManager.boundingRect(forGlyphRange: glyphRange, in: container)
+        rect.origin.x += textView.textContainerOrigin.x
+        rect.origin.y += textView.textContainerOrigin.y
+        // Match the spinner size to the speaker glyph.
+        let glyphHeight = pronounceHiddenImage?.size.height ?? (rect.height * 0.7)
+        let side = min(max(glyphHeight, 12), 22)
+        // Offset the spinner to account for attachment spacing; examples need a slightly larger
+        // adjustment.
+        let isExample = range.location < storage.length
+            && (storage.attribute(.langminBlockquoteBar, at: range.location, effectiveRange: nil) as? Bool) == true
+        let xNudge: CGFloat = isExample ? -2 : -1
+        let spinner = NSProgressIndicator(frame: NSRect(
+            x: rect.midX - side / 2 + xNudge,
+            y: rect.midY - side / 2,
+            width: side,
+            height: side
+        ))
+        spinner.style = .spinning
+        spinner.controlSize = .small
+        spinner.isIndeterminate = true
+        spinner.isDisplayedWhenStopped = false
+        textView.addSubview(spinner)
+        spinner.startAnimation(nil)
+        pronounceSpinner = spinner
+    }
+
+    // hidePronounceSpinner(): Remove the pronunciation spinner and restore any
+    // temporarily hidden attachment image.
+    private func hidePronounceSpinner() {
+        pronounceSpinner?.stopAnimation(nil)
+        pronounceSpinner?.removeFromSuperview()
+        pronounceSpinner = nil
+        // Restore the speaker image after pronunciation loading ends.
+        if let attachment = pronounceHiddenAttachment, let image = pronounceHiddenImage {
+            attachment.image = image
+            textView?.needsDisplay = true
+            pronounceHiddenAttachment = nil
+            pronounceHiddenImage = nil
+        }
+        // Restore any temporarily hidden link only if its original range remains valid.
+        if let hidden = pronounceHiddenLink,
+           let storage = textView?.textStorage,
+           hidden.range.location + hidden.range.length <= storage.length {
+            storage.addAttribute(.link, value: hidden.value, range: hidden.range)
+        }
+        pronounceHiddenLink = nil
+    }
+
+    // presentPronounceKeyError(provider): Explain the missing cloud-voice key
+    // and offer available provider alternatives.
+    private func presentPronounceKeyError(provider: NarrationProvider) {
+        let alert = NSAlert()
+        alert.messageText = "Could not pronounce the word"
+        alert.informativeText = provider == .grok
+            ? "Pronouncing with a Grok voice needs an xAI API key. Add one in Settings, or choose an OpenAI or Apple voice for Dictionary Voice."
+            : "Pronouncing with an OpenAI voice needs an OpenAI API key. Add one in Settings, or choose an Apple voice for Dictionary Voice."
+        alert.alertStyle = .warning
+        // Attach the error to this viewer when possible; otherwise show a standalone alert.
+        if let window { alert.beginSheetModal(for: window) } else { /* Use a sheet when hosted in a window, otherwise show a modal alert. */ alert.runModal() }
+    }
+
+    // markdownAttributedText(markdown, [forEditing = false]): Render generated
+    // Markdown into AppKit rich text while preserving native selection/copy
+    // behavior.
+    func markdownAttributedText(from markdown: String, forEditing: Bool = false) -> NSAttributedString {
+        let result = NSMutableAttributedString()
+        let normalized = markdown
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
+            // Move inline example blockquotes onto their own line. Require a prose-like
+            // start after the marker to avoid matching mathematical comparisons.
+            .replacingOccurrences(
+                of: #"[ \t]+>[ \t]+(?=[*_"'\p{Lu}])"#,
+                with: "\n> ",
+                options: .regularExpression
+            )
+            // Place inline Synonyms and Antonyms labels on separate rows.
+            .replacingOccurrences(
+                of: #"(\S)[ \t]+(\*\*(?:Synonyms|Antonyms):\*\*)"#,
+                with: "$1\n$2",
+                options: .regularExpression
+            )
+            // Remove a bullet before a numbered sub-sense, such as 3a., so it aligns with the other
+            // senses.
+            .replacingOccurrences(
+                of: #"(^|\n)[ \t]*[-*+•][ \t]+(?=\d+[a-z]\.[ \t])"#,
+                with: "$1",
+                options: .regularExpression
+            )
+        let lines = normalized.components(separatedBy: "\n")
+        var index = 0
+
+        // Consume one Markdown block at a time until all source lines are rendered.
+        while index < lines.count {
+            let sourceStart = index
+            let renderedStart = result.length
+            defer {
+                // Remember original block text for lossless editing when this block produced content.
+                if forEditing, index > sourceStart, result.length > renderedStart {
+                    ResultTextFormatting.rememberBlock(
+                        markdown: lines[sourceStart..<index].joined(separator: "\n"),
+                        range: NSRange(location: renderedStart, length: result.length - renderedStart), in: result
+                    )
+                }
+            }
+            // Blank lines separate blocks without becoming empty rendered paragraphs.
+            if isMarkdownBlankLine(lines[index]) {
+                index += 1
+                continue
+            }
+
+            // Fenced code has its own parser so its contents remain literal.
+            if let fence = markdownFence(in: lines[index]) {
+                index = appendMarkdownCodeFence(lines: lines, startIndex: index, fence: fence, to: result)
+                continue
+            }
+
+            // Render recognized source-image lines through the image attachment path.
+            if appendSourcePageImage(lines[index], to: result) {
+                index += 1
+                continue
+            }
+
+            // Skip legacy separators only when they lead to a valid Sources section.
+            if let sourceStart = markdownSourcesAfterLegacySeparator(lines: lines, startIndex: index) {
+                index = sourceStart
+                continue
+            }
+
+            // References use compact source-list formatting.
+            if isMarkdownSourcesStart(lines[index]) {
+                index = appendMarkdownSources(lines: lines, startIndex: index, to: result)
+                continue
+            }
+
+            // Render hash-prefixed headings at their declared level.
+            if let heading = markdownATXHeading(in: lines[index]) {
+                appendMarkdownHeading(heading, to: result)
+                index += 1
+                continue
+            }
+
+            // Underlined headings consume both the title and underline lines.
+            if let heading = markdownSetextHeading(lines: lines, startIndex: index) {
+                appendMarkdownHeading(heading, to: result)
+                index += 2
+                continue
+            }
+
+            // Horizontal rules become visual separators between blocks.
+            if isMarkdownHorizontalRule(lines[index]) {
+                appendMarkdownHorizontalRule(to: result)
+                index += 1
+                continue
+            }
+
+            // Recognized tables use the table layout path.
+            if isMarkdownTableStart(lines: lines, startIndex: index) {
+                index = appendMarkdownTable(lines: lines, startIndex: index, to: result)
+                continue
+            }
+
+            // List items are collected together to preserve markers and indentation.
+            if markdownListItem(in: lines[index]) != nil {
+                index = appendMarkdownList(lines: lines, startIndex: index, to: result)
+                continue
+            }
+
+            // Consecutive quote lines share blockquote formatting.
+            if isMarkdownBlockQuoteLine(lines[index]) {
+                index = appendMarkdownBlockQuote(lines: lines, startIndex: index, to: result)
+                continue
+            }
+
+            // Dictionary synonym and antonym labels have compact metadata styling.
+            if isMarkdownMetaLabelLine(lines[index]) {
+                index = appendMarkdownMetaLabel(lines: lines, startIndex: index, to: result)
+                continue
+            }
+
+            var paragraphLines = [lines[index]]
+            index += 1
+
+            // Collect ordinary lines until a blank line or another Markdown block begins.
+            while
+                index < lines.count,
+                !isMarkdownBlankLine(lines[index]),
+                !isMarkdownBlockStart(lines: lines, startIndex: index)
+            {
+                paragraphLines.append(lines[index])
+                index += 1
+            }
+
+            appendMarkdownParagraph(paragraphText(from: paragraphLines), to: result)
+        }
+
+        // Remove final block breaks so the result has no artificial trailing space.
+        while result.length > 0, result.string.hasSuffix("\n") {
+            result.deleteCharacters(in: NSRange(location: result.length - 1, length: 1))
+        }
+
+        // Return an empty attributed value with normal text attributes when nothing rendered.
+        if result.length == 0 {
+            return NSAttributedString(string: "", attributes: viewerTextAttributes())
+        }
+
+        return result
+    }
+
+    // isMarkdownBlockStart(lines, startIndex): Detect block boundaries so
+    // paragraph parsing stops before the next Markdown structure.
+    func isMarkdownBlockStart(lines: [String], startIndex: Int) -> Bool {
+        // A block cannot start beyond the available source lines.
+        guard startIndex < lines.count else {
+            return false
+        }
+
+        return sourceImageReferences(in: lines[startIndex]).contains(where: { $0.id != nil }) ||
+            markdownFence(in: lines[startIndex]) != nil ||
+            isMarkdownSourcesStart(lines[startIndex]) ||
+            markdownATXHeading(in: lines[startIndex]) != nil ||
+            isMarkdownHorizontalRule(lines[startIndex]) ||
+            isMarkdownTableStart(lines: lines, startIndex: startIndex) ||
+            markdownListItem(in: lines[startIndex]) != nil ||
+            isMarkdownBlockQuoteLine(lines[startIndex]) ||
+            isMarkdownMetaLabelLine(lines[startIndex])
+    }
+
+    // appendSourcePageImage(line, result): Render only local assets prepared
+    // for this result; Markdown image links cannot trigger downloads.
+    func appendSourcePageImage(_ line: String, to result: NSMutableAttributedString) -> Bool {
+        let trimmed = line.trimmingCharacters(in: .whitespaces)
+        // Treat a line as an image only when one complete internal image reference occupies it.
+        guard let reference = sourceImageReferences(in: trimmed).first,
+              reference.range.length == (trimmed as NSString).length,
+              let id = reference.id else { return false }
+        // A missing saved image can still leave its caption readable.
+        guard let asset = config.sourceImages?.first(where: { $0.id == id && $0.isValid }) else {
+            // Render available caption text instead of an unavailable attachment.
+            if !reference.caption.isEmpty { appendMarkdownParagraph(reference.caption, to: result) }
+            return true
+        }
+        let url = URL(fileURLWithPath: config.textPath).deletingLastPathComponent().appendingPathComponent(asset.file)
+        let style = (viewerParagraphStyle().mutableCopy() as? NSMutableParagraphStyle) ?? NSMutableParagraphStyle()
+        style.alignment = .center
+        style.paragraphSpacing = 10
+        // Only a successfully decoded image can become a displayed attachment.
+        if let image = NSImage(contentsOf: url) {
+            image.accessibilityDescription = reference.caption
+            let attachment = SourcePageImageAttachment()
+            attachment.image = image
+            let picture = NSMutableAttributedString(attachment: attachment)
+            picture.addAttributes([.paragraphStyle: style, .link: asset.sourceURL], range: NSRange(location: 0, length: picture.length))
+            result.append(picture)
+            result.append(NSAttributedString(string: "\n", attributes: [.paragraphStyle: style]))
+        }
+        let caption = reference.caption.isEmpty ? (asset.pageURL.host ?? "") : reference.caption
+        var attributes = viewerTextAttributes(size: max(12, config.fontSize - 2), color: .secondaryLabelColor, paragraphStyle: style)
+        attributes[.link] = asset.pageURL
+        result.append(markdownInlineText(caption, baseAttributes: attributes))
+        result.append(NSAttributedString(string: "\n\n", attributes: attributes))
+        return true
+    }
+
+    // isMarkdownMetaLabelLine(line): A dictionary sense's
+    // "**Synonyms:**"/"**Antonyms:**" line.
+    func isMarkdownMetaLabelLine(_ line: String) -> Bool {
+        let trimmed = line.trimmingCharacters(in: .whitespaces)
+        return trimmed.hasPrefix("**Synonyms:**") || trimmed.hasPrefix("**Antonyms:**")
+    }
+
+    // appendMarkdownMetaLabel(lines, startIndex, result): Indent Synonyms and
+    // Antonyms labels to the quote margin. Keep inline terms on one line; place
+    // separate terms below a colon-free label. Return the next unread line
+    // index.
+    func appendMarkdownMetaLabel(lines: [String], startIndex: Int, to result: NSMutableAttributedString) -> Int {
+        let raw = lines[startIndex].trimmingCharacters(in: .whitespaces)
+        let labelPrefix = raw.hasPrefix("**Synonyms:**") ? "**Synonyms:**" : "**Antonyms:**"
+        let inlineTerms = String(raw.dropFirst(labelPrefix.count)).trimmingCharacters(in: .whitespaces)
+        let labelWord = labelPrefix == "**Synonyms:**" ? "Synonyms" : "Antonyms"
+
+        // Keep a metadata label and inline terms together when both are on the source line.
+        if !inlineTerms.isEmpty {
+            let style = viewerParagraphStyle(lineSpacing: 3, paragraphSpacing: 7, firstLineHeadIndent: 7, headIndent: 7)
+            let attributes = viewerTextAttributes(paragraphStyle: style)
+            result.append(markdownInlineText(raw, baseAttributes: attributes))
+            appendMarkdownBlockBreak(to: result, attributes: attributes)
+            return startIndex + 1
+        }
+
+        // Find terms before rendering a split label; omit empty Synonyms or Antonyms sections.
+        var next = startIndex + 1
+        // Look past blank lines for terms belonging to a standalone metadata label.
+        while next < lines.count, isMarkdownBlankLine(lines[next]) {
+            next += 1
+        }
+        // Require ordinary terms rather than another label or block heading.
+        guard
+            next < lines.count,
+            !isMarkdownMetaLabelLine(lines[next]),
+            !isMarkdownBlockStart(lines: lines, startIndex: next)
+        // Omit an empty metadata section without consuming the following block.
+        else {
+            return startIndex + 1
+        }
+
+        // Bold label (no colon), tight spacing, then the terms one step further in.
+        let labelStyle = viewerParagraphStyle(lineSpacing: 3, paragraphSpacing: 2, firstLineHeadIndent: 7, headIndent: 7)
+        let labelAttributes = viewerTextAttributes(weight: .semibold, paragraphStyle: labelStyle)
+        result.append(NSAttributedString(string: labelWord, attributes: labelAttributes))
+        appendMarkdownBlockBreak(to: result, attributes: labelAttributes)
+
+        let termsStyle = viewerParagraphStyle(lineSpacing: 3, paragraphSpacing: 7, firstLineHeadIndent: 20, headIndent: 20)
+        let termsAttributes = viewerTextAttributes(paragraphStyle: termsStyle)
+        result.append(markdownInlineText(lines[next].trimmingCharacters(in: .whitespaces), baseAttributes: termsAttributes))
+        appendMarkdownBlockBreak(to: result, attributes: termsAttributes)
+        return next + 1
+    }
+
+    // appendMarkdownHeading(heading, result): Render a heading with a bounded
+    // level and the viewer's heading typography.
+    func appendMarkdownHeading(_ heading: MarkdownHeading, to result: NSMutableAttributedString) {
+        let clampedLevel = min(max(heading.level, 1), 6)
+        let scale: CGFloat
+
+        // Scale heading fonts by depth while keeping deeper headings compact.
+        switch clampedLevel {
+        // The top-level heading gets the strongest visual emphasis.
+        case 1:
+            scale = 1.50
+        // Section headings are smaller than the document title.
+        case 2:
+            scale = 1.30
+        // Subsection headings retain a modest size increase over body text.
+        case 3:
+            scale = 1.16
+        // Deeper headings use a small, consistent size increase.
+        default:
+            scale = 1.06
+        }
+
+        let style = viewerParagraphStyle(
+            lineSpacing: 2,
+            paragraphSpacing: clampedLevel <= 2 ? 14 : 10,
+            paragraphSpacingBefore: result.length == 0 ? 0 : 7
+        )
+        var attributes = viewerTextAttributes(
+            weight: .semibold,
+            size: config.fontSize * scale,
+            paragraphStyle: style
+        )
+        attributes[.resultEditorHeading] = clampedLevel
+        result.append(markdownInlineText(heading.text, baseAttributes: attributes))
+        appendMarkdownBlockBreak(to: result, attributes: attributes)
+    }
+
+    // appendMarkdownParagraph(text, result, [color = .labelColor],
+    // [paragraphStyle = nil], [italic = false]): Append styled inline text with
+    // paragraph spacing and the requested foreground color.
+    func appendMarkdownParagraph(
+        _ text: String,
+        to result: NSMutableAttributedString,
+        color: NSColor = .labelColor,
+        paragraphStyle: NSParagraphStyle? = nil,
+        italic: Bool = false
+    ) {
+        let attributes = viewerTextAttributes(
+            color: color,
+            paragraphStyle: paragraphStyle ?? viewerParagraphStyle(),
+            italic: italic
+        )
+        result.append(markdownInlineText(text, baseAttributes: attributes))
+        appendMarkdownBlockBreak(to: result, attributes: attributes)
+    }
+
+    // appendMarkdownList(lines, startIndex, result): Consume consecutive list
+    // items and their continuation lines, returning the next unconsumed line.
+    func appendMarkdownList(lines: [String], startIndex: Int, to result: NSMutableAttributedString) -> Int {
+        var index = startIndex
+
+        // Consume adjacent list items as one list block.
+        while index < lines.count, let item = markdownListItem(in: lines[index]) {
+            var bodyLines = [item.body]
+            index += 1
+
+            // Attach indented continuation lines to the current list item.
+            while index < lines.count {
+                // A blank line ends this item's immediate continuation text.
+                if isMarkdownBlankLine(lines[index]) {
+                    break
+                }
+
+                // A new marker starts another list item rather than continuing this one.
+                if markdownListItem(in: lines[index]) != nil {
+                    break
+                }
+
+                // Remove the item's structural indent from continuation text.
+                if leadingWhitespaceCount(in: lines[index]) > item.indent {
+                    bodyLines.append(stripMarkdownIndent(lines[index], count: item.indent + item.markerWidth))
+                    index += 1
+                } else {
+                    // Unindented text belongs to the next Markdown block.
+                    break
+                }
+            }
+
+            appendMarkdownListItem(item, body: paragraphText(from: bodyLines), to: result)
+
+            // Look beyond a blank line to decide whether the list continues.
+            if index < lines.count, isMarkdownBlankLine(lines[index]) {
+                let nextIndex = index + 1
+                // Keep a following list item in the current list block.
+                if nextIndex < lines.count, markdownListItem(in: lines[nextIndex]) != nil {
+                    index += 1
+                } else {
+                    // Leave the blank line for the outer parser when the next block is not a list.
+                    break
+                }
+            }
+        }
+
+        return index
+    }
+
+    // appendMarkdownListItem(item, body, result): Align list markers and
+    // wrapped body text with a bounded nesting indent.
+    func appendMarkdownListItem(_ item: MarkdownListItem, body: String, to result: NSMutableAttributedString) {
+        let level = min(max(item.indent / 2, 0), 6)
+        let leftIndent = CGFloat(level) * 24
+        let marker = item.ordered ? "\(item.ordinal)." : "•"
+        // Align list text and wrapped lines in a fixed column, allowing wider gutters for multi-digit
+        // markers.
+        let column = leftIndent + max(CGFloat(marker.count) * 9 + 12, 22)
+        let base = viewerParagraphStyle(
+            lineSpacing: 3,
+            paragraphSpacing: 7,
+            firstLineHeadIndent: leftIndent,
+            headIndent: column
+        )
+        let style = (base.mutableCopy() as? NSMutableParagraphStyle) ?? NSMutableParagraphStyle()
+        style.tabStops = [NSTextTab(textAlignment: .left, location: column)]
+        style.defaultTabInterval = column
+        let markerAttributes = viewerTextAttributes(weight: .semibold, paragraphStyle: style)
+        let bodyAttributes = viewerTextAttributes(paragraphStyle: style)
+
+        result.append(NSAttributedString(string: "\(marker)\t", attributes: markerAttributes))
+        result.append(markdownInlineText(body, baseAttributes: bodyAttributes))
+        appendMarkdownBlockBreak(to: result, attributes: bodyAttributes)
+    }
+
+    // isMarkdownSourcesStart(line): Recognize a Sources heading after removing
+    // inline style tags and heading punctuation.
+    func isMarkdownSourcesStart(_ line: String) -> Bool {
+        let trimmed = ResultTextFormatting.removingInlineStyleTags(line).trimmingCharacters(in: .whitespaces)
+        var normalized = trimmed
+
+        // Ignore hash heading markers when recognizing a Sources label.
+        while normalized.hasPrefix("#") {
+            normalized.removeFirst()
+        }
+
+        normalized = normalized
+            .trimmingCharacters(in: .whitespaces)
+            .replacingOccurrences(of: "**", with: "")
+            .replacingOccurrences(of: "__", with: "")
+            .trimmingCharacters(in: CharacterSet(charactersIn: " :\t"))
+
+        let lowercased = normalized.lowercased()
+        // Recognize the standard standalone source-section labels.
+        if lowercased == "sources" || lowercased == "references" {
+            return true
+        }
+
+        return (lowercased.hasPrefix("sources ") || lowercased.hasPrefix("references ")) &&
+            markdownSourceEntries(in: trimmed).isEmpty == false
+    }
+
+    // markdownSourcesAfterLegacySeparator(lines, startIndex): Older editor
+    // saves could persist the footer's long run of box-drawing glyphs as prose.
+    // Collapse only that pattern immediately before a real Sources footer;
+    // preserve literal lines elsewhere and fenced code (handled before this
+    // check).
+    func markdownSourcesAfterLegacySeparator(lines: [String], startIndex: Int) -> Int? {
+        // isSeparator(line): Recognize long box-drawing separators used by
+        // saved source footers.
+        func isSeparator(_ line: String) -> Bool {
+            let text = line.trimmingCharacters(in: .whitespaces)
+            return text.count >= 40 && text.allSatisfy { $0 == "─" }
+        }
+        // Legacy separator recovery starts only on a recognized separator line.
+        guard isSeparator(lines[startIndex]) else { return nil }
+        var next = startIndex + 1
+        // Skip blank and repeated separator lines before the source heading.
+        while next < lines.count, isMarkdownBlankLine(lines[next]) || isSeparator(lines[next]) { next += 1 }
+        // Do not remove separators unless a Sources heading follows them.
+        guard next < lines.count, isMarkdownSourcesStart(lines[next]) else { return nil }
+        var entry = next
+        // Look past repeated labels and blank lines for an actual source entry.
+        while entry < lines.count, markdownSourceEntries(in: lines[entry]).isEmpty,
+              isMarkdownBlankLine(lines[entry]) || isMarkdownSourcesStart(lines[entry]) { entry += 1 }
+        // Require a real reference before treating the separator as legacy source formatting.
+        guard entry < lines.count, !markdownSourceEntries(in: lines[entry]).isEmpty else { return nil }
+        return next
+    }
+
+    // appendMarkdownSources(lines, startIndex, result): Collect consecutive
+    // source entries and render them as one footer.
+    func appendMarkdownSources(lines: [String], startIndex: Int, to result: NSMutableAttributedString) -> Int {
+        var entries = markdownSourceEntries(in: lines[startIndex])
+        var index = startIndex + 1
+
+        // Collect source entries until another kind of content begins.
+        while index < lines.count {
+            let line = lines[index]
+            // Allow blank lines within the reference block.
+            if isMarkdownBlankLine(line) {
+                index += 1
+                continue
+            }
+
+            // Skip the initial source heading before collecting reference links.
+            if isMarkdownSourcesStart(line), entries.isEmpty {
+                index += 1
+                continue
+            }
+
+            let lineEntries = markdownSourceEntries(in: line)
+            // A line without reference entries ends this source block.
+            if lineEntries.isEmpty {
+                break
+            }
+
+            entries.append(contentsOf: lineEntries)
+            index += 1
+        }
+
+        // Preserve a Sources-like line as ordinary text when no entries followed it.
+        guard !entries.isEmpty else {
+            appendMarkdownParagraph(lines[startIndex], to: result)
+            return index
+        }
+
+        let header = lines[startIndex]
+        let customHeading = ResultTextFormatting.prepareInlineStyles(header).markers.isEmpty || !markdownSourceEntries(in: header).isEmpty ? nil
+            : header.replacingOccurrences(of: #"^\s*#{1,6}\s+"#, with: "", options: .regularExpression)
+        appendMarkdownSourcesFooter(entries, heading: customHeading, to: result)
+        return index
+    }
+
+    // appendMarkdownSourcesFooter(entries, [heading = nil], result): Render
+    // source references beneath a separator using smaller, readable footer
+    // typography.
+    func appendMarkdownSourcesFooter(_ entries: [MarkdownSourceEntry], heading: String? = nil, to result: NSMutableAttributedString) {
+        let sourceFontSize = max(config.fontSize * 0.74, 11)
+        let separatorStyle = viewerParagraphStyle(
+            lineSpacing: 0,
+            paragraphSpacing: 6,
+            paragraphSpacingBefore: result.length == 0 ? 0 : 16,
+            lineBreakMode: .byClipping
+        )
+        var separatorAttributes = viewerTextAttributes(
+            size: max(sourceFontSize * 0.8, 9),
+            color: .separatorColor,
+            paragraphStyle: separatorStyle
+        )
+        separatorAttributes[.resultEditorSeparator] = "sources"
+        result.append(NSAttributedString(
+            string: sourceSeparatorText(entries: entries, sourceFontSize: sourceFontSize),
+            attributes: separatorAttributes
+        ))
+        appendMarkdownBlockBreak(to: result, attributes: separatorAttributes)
+
+        let headingStyle = viewerParagraphStyle(lineSpacing: 1, paragraphSpacing: 4)
+        let headingAttributes = viewerTextAttributes(
+            weight: .semibold,
+            size: sourceFontSize,
+            color: .labelColor,
+            paragraphStyle: headingStyle
+        )
+        result.append(heading.map { markdownInlineText($0, baseAttributes: headingAttributes) }
+            ?? NSAttributedString(string: "Sources", attributes: headingAttributes))
+        appendMarkdownBlockBreak(to: result, attributes: headingAttributes)
+
+        let entryStyle = viewerParagraphStyle(
+            lineSpacing: 1,
+            paragraphSpacing: 3,
+            firstLineHeadIndent: 0,
+            headIndent: 30
+        )
+        var numberAttributes = viewerTextAttributes(
+            size: sourceFontSize,
+            color: .labelColor,
+            paragraphStyle: entryStyle
+        )
+        numberAttributes[.resultEditorSourceEntry] = true
+        let linkAttributes = viewerTextAttributes(
+            size: sourceFontSize,
+            color: .linkColor,
+            paragraphStyle: entryStyle
+        ).merging([
+            .underlineStyle: NSUnderlineStyle.single.rawValue,
+            .resultEditorSourceEntry: true
+        ]) { current, _ in current }
+
+        // Keep source order and fill in missing reference numbers sequentially.
+        for (offset, entry) in entries.enumerated() {
+            let number = entry.number ?? (offset + 1)
+            // Preserve a reference marker's supported inline formatting.
+            if let marker = entry.numberMarkdown {
+                result.append(markdownInlineText(marker, baseAttributes: numberAttributes))
+                result.append(NSAttributedString(string: " ", attributes: numberAttributes))
+            } else {
+                // Create a plain numbered marker when none was present in the source.
+                result.append(NSAttributedString(string: "[\(number)] ", attributes: numberAttributes))
+            }
+
+            var attributes = linkAttributes
+            // Use a URL attribute when the source address parses as a URL.
+            if let url = URL(string: entry.url) {
+                attributes[.link] = url
+            } else {
+                // Retain the raw link destination when URL construction fails.
+                attributes[.link] = entry.url
+            }
+
+            // Source labels can contain the same editable emphasis as links in the body.
+            result.append(markdownInlineText(entry.title, baseAttributes: attributes))
+            appendMarkdownBlockBreak(to: result, attributes: linkAttributes)
+        }
+    }
+
+    // sourceSeparatorText(_, sourceFontSize): Build separator text from the
+    // available width and the measured separator glyph.
+    func sourceSeparatorText(entries _: [MarkdownSourceEntry], sourceFontSize: CGFloat) -> String {
+        let separatorFontSize = max(sourceFontSize * 0.8, 9)
+        let separatorFont = viewerFont(size: separatorFontSize)
+        let glyphWidth = max(
+            ("─" as NSString).size(withAttributes: [.font: separatorFont]).width,
+            1
+        )
+        let screenWidth = window?.screen?.visibleFrame.width ?? NSScreen.main?.visibleFrame.width ?? 1400
+        let targetWidth = max(sourceSeparatorMaximumWidth(), min(screenWidth, 1800))
+        let count = max(40, Int(ceil(targetWidth / glyphWidth)) + 8)
+        return String(repeating: "─", count: count)
+    }
+
+    // sourceSeparatorWidth(entries, sourceFontSize): Fit the source separator
+    // to entry labels within the viewer's width limit.
+    func sourceSeparatorWidth(entries: [MarkdownSourceEntry], sourceFontSize: CGFloat) -> CGFloat {
+        let cap = sourceSeparatorMaximumWidth()
+        let floorWidth = min(cap, max(sourceFontSize * 12, 150))
+        let numberFont = viewerFont(size: sourceFontSize)
+        let titleFont = viewerFont(size: sourceFontSize)
+        let widestEntry = entries.enumerated().reduce(CGFloat(0)) { widest, pair in
+            let (offset, entry) = pair
+            let number = entry.number ?? (offset + 1)
+            let numberWidth = ("[\(number)] " as NSString).size(withAttributes: [.font: numberFont]).width
+            let titleWidth = (entry.title as NSString).size(withAttributes: [.font: titleFont]).width
+            return max(widest, numberWidth + titleWidth)
+        }
+
+        return min(max(widestEntry, floorWidth), cap)
+    }
+
+    // sourceSeparatorMaximumWidth(): Calculate the content width available to
+    // source separators after text insets and padding.
+    func sourceSeparatorMaximumWidth() -> CGFloat {
+        let inset = textView?.textContainerInset.width ?? 32
+        let padding = textView?.textContainer?.lineFragmentPadding ?? 0
+        // Base table width on the text view's current layout when available.
+        if let textView {
+            let currentWidth = max(textView.bounds.width, textView.frame.width)
+            // A measured text width takes precedence over the initial window estimate.
+            if currentWidth > 0 {
+                return max(140, currentWidth - (inset + padding) * 2)
+            }
+        }
+
+        let minimumContentWidth = window?.contentMinSize.width ?? 360
+        return max(140, minimumContentWidth - (inset + padding) * 2)
+    }
+
+    // markdownSourceEntries(line): Parse a source line while retaining any
+    // manually styled reference number.
+    func markdownSourceEntries(in line: String) -> [MarkdownSourceEntry] {
+        let trimmed = line.trimmingCharacters(in: .whitespaces)
+        var entries: [MarkdownSourceEntry] = []
+
+        // A manually sized or raised source number keeps its inline styling beside the
+        // ordinary Markdown link. Preserve both when rebuilding the compact Sources footer.
+        if trimmed.contains("<") {
+            var cursor = trimmed.startIndex
+            // Look for a formatted reference marker followed by a Markdown link.
+            while let bracket = trimmed[cursor...].firstIndex(of: "[") {
+                // Inspect only brackets that start a complete parsed link.
+                if let link = parseMarkdownLink(in: trimmed, from: bracket) {
+                    let marker = String(trimmed[..<bracket]).trimmingCharacters(in: .whitespaces)
+                    let plain = ResultTextFormatting.removingInlineStyleTags(marker)
+                        .replacingOccurrences(of: "\\", with: "")
+                        .replacingOccurrences(of: "*", with: "")
+                        .replacingOccurrences(of: "~~", with: "")
+                    // Preserve formatted numeric reference markers after reading their plain value.
+                    if plain.hasPrefix("["), plain.hasSuffix("]"), let number = Int(plain.dropFirst().dropLast()) {
+                        return [MarkdownSourceEntry(number: number, title: link.title, url: link.url, numberMarkdown: marker)]
+                    }
+                    break
+                }
+                cursor = trimmed.index(after: bracket)
+            }
+        }
+
+        entries.append(contentsOf: bracketedMarkdownSourceEntries(in: trimmed))
+        // Prefer explicitly numbered reference entries when found.
+        if !entries.isEmpty {
+            return entries
+        }
+
+        // Accept an ordered-list reference as a single source entry.
+        if let entry = orderedMarkdownSourceEntry(in: trimmed) {
+            return [entry]
+        }
+
+        return bareMarkdownSourceEntries(in: trimmed)
+    }
+
+    // skipMarkdownSpaces(line, start): Advance over whitespace without stepping
+    // beyond the string's end.
+    func skipMarkdownSpaces(in line: String, from start: String.Index) -> String.Index {
+        var index = start
+        // Advance past whitespace between Markdown reference components.
+        while index < line.endIndex, line[index].isWhitespace {
+            index = line.index(after: index)
+        }
+        return index
+    }
+
+    // parseMarkdownLink(line, openBracket): Parse a Markdown link from its
+    // opening bracket and return where parsing should resume.
+    func parseMarkdownLink(in line: String, from openBracket: String.Index) -> (title: String, url: String, end: String.Index)? {
+        // A Markdown link label must begin with an opening bracket.
+        guard openBracket < line.endIndex, line[openBracket] == "[" else {
+            return nil
+        }
+
+        var title = ""
+        var depth = 1
+        var escaped = false
+        var index = line.index(after: openBracket)
+
+        // Parse label text while tracking nested brackets and escapes.
+        while index < line.endIndex {
+            let character = line[index]
+
+            if escaped {
+                // Keep label escapes until the inline renderer distinguishes literal punctuation.
+                title.append("\\")
+                title.append(character)
+                escaped = false
+            } else if character == "\\" {
+                // A backslash protects the next label character from delimiter handling.
+                escaped = true
+            } else if character == "[" {
+                // Nested opening brackets become part of the label text.
+                depth += 1
+                title.append(character)
+            } else if character == "]" {
+                // Track label bracket depth until the outer label closes.
+                depth -= 1
+                // The outermost closing bracket ends the link label.
+                if depth == 0 {
+                    break
+                }
+                title.append(character)
+            } else {
+                // Ordinary label characters contribute directly to its display text.
+                title.append(character)
+            }
+
+            index = line.index(after: index)
+        }
+
+        // Reject labels with no matching closing bracket.
+        guard index < line.endIndex, line[index] == "]" else {
+            return nil
+        }
+
+        let openParen = line.index(after: index)
+        // The label must be followed by a parenthesized destination.
+        guard openParen < line.endIndex, line[openParen] == "(" else {
+            return nil
+        }
+
+        var url = ""
+        escaped = false
+        index = line.index(after: openParen)
+
+        // Read the link destination until an unescaped closing parenthesis.
+        while index < line.endIndex {
+            let character = line[index]
+
+            // Keep escaped destination characters without interpreting them as delimiters.
+            if escaped {
+                url.append(character)
+                escaped = false
+            } else if character == "\\" {
+                // Mark the next destination character as escaped.
+                escaped = true
+            } else if character == ")" {
+                // A closing destination delimiter completes the link candidate.
+                let title = title.trimmingCharacters(in: .whitespacesAndNewlines)
+                let url = url.trimmingCharacters(in: .whitespacesAndNewlines)
+                // Empty labels or destinations do not form a usable reference link.
+                guard !title.isEmpty, !url.isEmpty else {
+                    return nil
+                }
+                return (title, url, line.index(after: index))
+            } else {
+                // Append ordinary destination characters as written.
+                url.append(character)
+            }
+
+            index = line.index(after: index)
+        }
+
+        return nil
+    }
+
+    // bracketedMarkdownSourceEntries(line): Read bracket-numbered source links
+    // from a line, preserving their reference numbers.
+    func bracketedMarkdownSourceEntries(in line: String) -> [MarkdownSourceEntry] {
+        var entries: [MarkdownSourceEntry] = []
+        var index = line.startIndex
+
+        // Find numbered references from left to right within a source line.
+        while index < line.endIndex {
+            // Stop scanning when no further opening reference bracket exists.
+            guard let numberOpen = line[index...].firstIndex(of: "[") else {
+                break
+            }
+
+            // Require the reference number's closing bracket.
+            guard
+                let numberClose = line[line.index(after: numberOpen)...].firstIndex(of: "]")
+            // An unfinished reference marker ends this scan.
+            else {
+                break
+            }
+
+            let numberText = line[line.index(after: numberOpen)..<numberClose]
+            // Accept only short, valid numeric reference markers.
+            guard
+                numberText.count <= 3,
+                numberText.allSatisfy(\.isNumber),
+                let number = Int(numberText)
+            // Skip a nonnumeric bracket and keep looking for a later reference.
+            else {
+                index = line.index(after: numberOpen)
+                continue
+            }
+
+            let linkStart = skipMarkdownSpaces(in: line, from: line.index(after: numberClose))
+            // Require a complete link after the reference marker.
+            guard
+                linkStart < line.endIndex,
+                let link = parseMarkdownLink(in: line, from: linkStart)
+            // Continue after a number whose following text is not a Markdown link.
+            else {
+                index = line.index(after: numberClose)
+                continue
+            }
+
+            entries.append(
+                MarkdownSourceEntry(
+                    number: number,
+                    title: link.title,
+                    url: link.url
+                )
+            )
+            index = link.end
+        }
+
+        return entries
+    }
+
+    // orderedMarkdownSourceEntry(line): Read a numbered source entry whose
+    // number precedes the Markdown link.
+    func orderedMarkdownSourceEntry(in line: String) -> MarkdownSourceEntry? {
+        let start = skipMarkdownSpaces(in: line, from: line.startIndex)
+        var index = start
+
+        // Read the numeric prefix of an ordered source-list item.
+        while index < line.endIndex, line[index].isNumber {
+            index = line.index(after: index)
+        }
+
+        // Require a valid number and ordered-list separator before the link.
+        guard
+            start < index,
+            line[start..<index].count <= 3,
+            let number = Int(line[start..<index]),
+            index < line.endIndex,
+            line[index] == "." || line[index] == ")"
+        // Leave ordinary numbered text to the normal Markdown parser.
+        else {
+            return nil
+        }
+
+        let linkStart = skipMarkdownSpaces(in: line, from: line.index(after: index))
+        // The ordered source entry must contain a complete link.
+        guard let link = parseMarkdownLink(in: line, from: linkStart) else {
+            return nil
+        }
+
+        return MarkdownSourceEntry(
+            number: number,
+            title: link.title,
+            url: link.url
+        )
+    }
+
+    // bareMarkdownSourceEntries(line): Collect source links that do not have
+    // explicit reference numbers.
+    func bareMarkdownSourceEntries(in line: String) -> [MarkdownSourceEntry] {
+        var entries: [MarkdownSourceEntry] = []
+        var index = line.startIndex
+
+        // Collect remaining unnumbered Markdown links in source order.
+        while index < line.endIndex {
+            // Finish when the line has no more possible link labels.
+            guard let linkStart = line[index...].firstIndex(of: "[") else {
+                break
+            }
+
+            // Move beyond a malformed bracket so a later valid link can still be found.
+            guard let link = parseMarkdownLink(in: line, from: linkStart) else {
+                index = line.index(after: linkStart)
+                continue
+            }
+
+            entries.append(
+                MarkdownSourceEntry(
+                    number: nil,
+                    title: link.title,
+                    url: link.url
+                )
+            )
+            index = link.end
+        }
+
+        return entries
+    }
+
+    // appendMarkdownBlockQuote(lines, startIndex, result): Consume adjacent
+    // quoted lines and render their content with quotation styling.
+    func appendMarkdownBlockQuote(lines: [String], startIndex: Int, to result: NSMutableAttributedString) -> Int {
+        var index = startIndex
+        var quoteLines: [String] = []
+
+        // Collect adjacent quoted lines into one blockquote.
+        while index < lines.count, isMarkdownBlockQuoteLine(lines[index]) {
+            quoteLines.append(stripMarkdownBlockQuoteMarker(lines[index]))
+            index += 1
+        }
+
+        let paragraphs = markdownParagraphGroups(from: quoteLines)
+        let style = viewerParagraphStyle(
+            lineSpacing: 3,
+            paragraphSpacing: 10,
+            firstLineHeadIndent: 20,
+            headIndent: 20
+        )
+
+        let barStart = result.length
+        // Render each quote paragraph with the shared indentation and quote attributes.
+        for paragraph in paragraphs {
+            appendMarkdownParagraph(
+                paragraphText(from: paragraph),
+                to: result,
+                color: .secondaryLabelColor,
+                paragraphStyle: style,
+                italic: true
+            )
+        }
+        // Apply a quote bar only when the quote produced visible text.
+        if result.length > barStart {
+            result.addAttribute(
+                .langminBlockquoteBar,
+                value: true,
+                range: NSRange(location: barStart, length: result.length - barStart)
+            )
+        }
+
+        return index
+    }
+
+    // appendMarkdownCodeFence(lines, startIndex, fence, result): Read a fenced
+    // code block until its matching closing delimiter or the end of input.
+    func appendMarkdownCodeFence(
+        lines: [String],
+        startIndex: Int,
+        fence: MarkdownFence,
+        to result: NSMutableAttributedString
+    ) -> Int {
+        var index = startIndex + 1
+        var codeLines: [String] = []
+
+        // Keep fenced content literal until the closing fence or end of input.
+        while index < lines.count {
+            // Consume the closing fence without rendering it as code.
+            if isMarkdownFenceClose(lines[index], for: fence) {
+                index += 1
+                break
+            }
+
+            codeLines.append(lines[index])
+            index += 1
+        }
+
+        appendMarkdownCodeBlock(dedentedMarkdownCode(codeLines), to: result)
+        return index
+    }
+
+    // dedentedMarkdownCode(lines): Remove shared indentation while preserving
+    // relative indentation within code.
+    func dedentedMarkdownCode(_ lines: [String]) -> String {
+        var normalized = lines
+        // Remove empty leading lines from the displayed code block.
+        while normalized.first.map(isMarkdownBlankLine) == true {
+            normalized.removeFirst()
+        }
+        // Remove empty trailing lines while retaining internal blank lines.
+        while normalized.last.map(isMarkdownBlankLine) == true {
+            normalized.removeLast()
+        }
+
+        let commonIndent = normalized
+            .filter { !isMarkdownBlankLine($0) }
+            .map(leadingWhitespaceCount)
+            .min() ?? 0
+
+        // Code without a common indent needs no indentation adjustment.
+        guard commonIndent > 0 else {
+            return normalized.joined(separator: "\n")
+        }
+
+        return normalized
+            .map { stripMarkdownIndent($0, count: commonIndent) }
+            .joined(separator: "\n")
+    }
+
+    // appendMarkdownCodeBlock(code, result): Render code lines with shared
+    // block identity so drawing and editing preserve their grouping.
+    func appendMarkdownCodeBlock(_ code: String, to result: NSMutableAttributedString) {
+        let lines = code.isEmpty ? [" "] : code.components(separatedBy: "\n")
+        let blockID = UUID().uuidString
+        var lastAttributes: [NSAttributedString.Key: Any] = [:]
+
+        // Render each code line with spacing appropriate to its block position.
+        for (index, line) in lines.enumerated() {
+            let isFirst = index == 0
+            let isLast = index == lines.count - 1
+            var attributes = viewerTextAttributes(
+                size: max(config.fontSize * 0.88, 11),
+                color: NSColor(calibratedWhite: 0.94, alpha: 1),
+                paragraphStyle: viewerParagraphStyle(
+                    lineSpacing: 2,
+                    paragraphSpacing: isLast ? 18 : 0,
+                    paragraphSpacingBefore: isFirst ? (result.length == 0 ? 8 : 12) : 0,
+                    firstLineHeadIndent: 12,
+                    headIndent: 12
+                ),
+                monospaced: true
+            )
+            // Group lines into one background per fenced block.
+            attributes[.langminCodeBlock] = blockID
+            result.append(NSAttributedString(string: line, attributes: attributes))
+            lastAttributes = attributes
+
+            // Separate code lines without appending a newline after the last one.
+            if !isLast {
+                result.append(NSAttributedString(string: "\n", attributes: attributes))
+            }
+        }
+
+        appendMarkdownBlockBreak(to: result, attributes: lastAttributes)
+    }
+
+    // appendMarkdownHorizontalRule(result): Append a horizontal separator with
+    // spacing that separates neighboring text blocks.
+    func appendMarkdownHorizontalRule(to result: NSMutableAttributedString) {
+        let separatorFontSize = max(config.fontSize * 0.74, 11)
+        let style = viewerParagraphStyle(
+            lineSpacing: 1,
+            paragraphSpacing: 14,
+            paragraphSpacingBefore: result.length == 0 ? 0 : 6,
+            lineBreakMode: .byClipping
+        )
+        var attributes = viewerTextAttributes(size: separatorFontSize, color: .separatorColor, paragraphStyle: style)
+        attributes[.resultEditorSeparator] = "rule"
+        result.append(NSAttributedString(
+            string: sourceSeparatorText(entries: [], sourceFontSize: separatorFontSize),
+            attributes: attributes
+        ))
+        appendMarkdownBlockBreak(to: result, attributes: attributes)
+    }
+
+    // appendMarkdownTable(lines, startIndex, result): Collect a Markdown table
+    // and render aligned columns in the result text.
+    func appendMarkdownTable(lines: [String], startIndex: Int, to result: NSMutableAttributedString) -> Int {
+        var rows = [markdownTableCells(in: lines[startIndex])]
+        var index = startIndex + 2
+
+        // Collect table rows while they still contain enough cells.
+        while index < lines.count {
+            let cells = markdownTableCells(in: lines[index])
+            // A line with fewer than two cells ends this table block.
+            guard cells.count >= 2 else {
+                break
+            }
+
+            rows.append(cells)
+            index += 1
+        }
+
+        let columnCount = rows.map(\.count).max() ?? 0
+        var widths = Array(repeating: 0, count: columnCount)
+
+        // Measure all rows before choosing aligned table-column widths.
+        for row in rows {
+            // Account for missing cells when measuring each column.
+            for column in 0..<columnCount {
+                let cell = column < row.count ? row[column] : ""
+                widths[column] = max(widths[column], cell.count)
+            }
+        }
+
+        let renderedRows = rows.enumerated().flatMap { rowIndex, row -> [String] in
+            let rendered = markdownTableRow(row, widths: widths)
+
+            // Separate the header row from the table body with a matching divider.
+            if rowIndex == 0 {
+                let divider = markdownTableRow(widths.map { String(repeating: "-", count: max($0, 3)) }, widths: widths)
+                return [rendered, divider]
+            }
+
+            return [rendered]
+        }
+
+        appendMarkdownCodeBlock(renderedRows.joined(separator: "\n"), to: result)
+        return index
+    }
+
+    // appendMarkdownBlockBreak(result, attributes): Append a block-ending
+    // newline carrying the intended paragraph attributes.
+    func appendMarkdownBlockBreak(
+        to result: NSMutableAttributedString,
+        attributes: [NSAttributedString.Key: Any]
+    ) {
+        result.append(NSAttributedString(string: "\n", attributes: attributes))
+    }
+
+    // markdownInlineText(text, baseAttributes): Parse inline Markdown while
+    // preserving the editor's supported size and script formatting.
+    func markdownInlineText(
+        _ text: String,
+        baseAttributes: [NSAttributedString.Key: Any]
+    ) -> NSAttributedString {
+        let styles = ResultTextFormatting.prepareInlineStyles(text)
+        let rendered: NSAttributedString
+        // Prefer Foundation's inline Markdown parser when it accepts the source.
+        if
+            let parsed = try? AttributedString(
+                markdown: styles.source,
+                options: AttributedString.MarkdownParsingOptions(
+                    interpretedSyntax: .inlineOnlyPreservingWhitespace,
+                    failurePolicy: .returnPartiallyParsedIfPossible
+                )
+            )
+        {
+            rendered = styledMarkdownInlineText(NSAttributedString(parsed), baseAttributes: baseAttributes)
+        } else {
+            // Use the app's inline parser when Foundation cannot parse this fragment.
+            rendered = fallbackInlineMarkdownText(styles.source, baseAttributes: baseAttributes)
+        }
+
+        let spaced = NSMutableAttributedString(attributedString: rendered)
+        ResultTextFormatting.applyInlineStyles(in: spaced, markers: styles.markers)
+        addInlineCodeTrailingSpacing(to: spaced)
+        return raisedCitationMarkers(in: spaced)
+    }
+
+    // addInlineCodeTrailingSpacing(text): Use kerning to separate inline code
+    // from following text without adding copied or searchable characters.
+    func addInlineCodeTrailingSpacing(to text: NSMutableAttributedString) {
+        // Spacing after inline code requires at least one following character.
+        guard text.length > 1 else {
+            return
+        }
+
+        let string = text.string as NSString
+        let fullRange = NSRange(location: 0, length: text.length)
+        var codeRanges: [NSRange] = []
+        text.enumerateAttribute(.langminInlineCode, in: fullRange) { value, range, _ in
+            // Collect only code runs that have text after them.
+            if value != nil, range.length > 0, NSMaxRange(range) < text.length {
+                codeRanges.append(range)
+            }
+        }
+
+        // Inspect the character after each code run before adding visual spacing.
+        for range in codeRanges {
+            let nextCharacter = string.substring(
+                with: NSRange(location: NSMaxRange(range), length: 1)
+            )
+            let followsWhitespace = nextCharacter.rangeOfCharacter(
+                from: .whitespacesAndNewlines
+            ) != nil
+            let spacing: CGFloat = followsWhitespace ? 4 : 8
+            let lastCharacter = NSRange(location: NSMaxRange(range) - 1, length: 1)
+            text.addAttribute(.kern, value: spacing, range: lastCharacter)
+            text.addAttribute(
+                .langminInlineCodeTrailingSpacing,
+                value: NSNumber(value: Double(spacing)),
+                range: lastCharacter
+            )
+        }
+    }
+
+    // raisedCitationMarkers(attributed): Display citation markers such as [1]
+    // as small superscripts.
+    func raisedCitationMarkers(in attributed: NSAttributedString) -> NSAttributedString {
+        // Leave citation typography unchanged if the marker matcher cannot be created.
+        guard let regex = try? NSRegularExpression(pattern: "\\[[0-9]{1,3}\\]") else {
+            return attributed
+        }
+
+        let mutable = NSMutableAttributedString(attributedString: attributed)
+        let fullRange = NSRange(location: 0, length: (mutable.string as NSString).length)
+        let matches = regex.matches(in: mutable.string, range: fullRange)
+        // Avoid copying and restyling text with no numeric citation markers.
+        guard !matches.isEmpty else {
+            return attributed
+        }
+
+        // Apply citation styling from the end while preserving the original marker text.
+        for match in matches.reversed() {
+            let range = match.range
+            let original = mutable.attributedSubstring(from: range)
+            original.enumerateAttributes(in: NSRange(location: 0, length: original.length)) { attributes, run, _ in
+                // Respect each run's size and explicit baseline choice. Links, code and
+                // Sources numbers are not automatic inline citations.
+                guard attributes[.link] == nil, attributes[.langminInlineCode] == nil,
+                      attributes[.resultEditorScript] == nil, attributes[.resultEditorSourceEntry] == nil else { return }
+                var raised = ResultTextFormatting.typography(attributes, script: 1)
+                raised.removeValue(forKey: .resultEditorScript)
+                mutable.setAttributes(raised, range: NSRange(location: range.location + run.location, length: run.length))
+            }
+        }
+
+        return mutable
+    }
+
+    // styledMarkdownInlineText(parsed, baseAttributes): Merge parsed Markdown
+    // runs with the viewer's base typography and colors.
+    func styledMarkdownInlineText(
+        _ parsed: NSAttributedString,
+        baseAttributes: [NSAttributedString.Key: Any]
+    ) -> NSAttributedString {
+        let result = NSMutableAttributedString()
+        let fullRange = NSRange(location: 0, length: parsed.length)
+
+        parsed.enumerateAttributes(in: fullRange) { attributes, range, _ in
+            let text = parsed.attributedSubstring(from: range).string
+            result.append(NSAttributedString(
+                string: text,
+                attributes: markdownInlineAttributes(from: attributes, baseAttributes: baseAttributes)
+            ))
+        }
+
+        return result
+    }
+
+    // markdownInlineAttributes([markdownAttributes = [:]], baseAttributes,
+    // [strong = false], [emphasis = false], [code = false], [strikethrough =
+    // false], [link = nil]): Combine Markdown traits and viewer defaults into
+    // one set of text attributes.
+    func markdownInlineAttributes(
+        from markdownAttributes: [NSAttributedString.Key: Any] = [:],
+        baseAttributes: [NSAttributedString.Key: Any],
+        strong: Bool = false,
+        emphasis: Bool = false,
+        code: Bool = false,
+        strikethrough: Bool = false,
+        link: Any? = nil
+    ) -> [NSAttributedString.Key: Any] {
+        var attributes = baseAttributes
+        let inlineIntentKey = NSAttributedString.Key(rawValue: "NSInlinePresentationIntent")
+        let rawIntent = (markdownAttributes[inlineIntentKey] as? NSNumber)?.intValue ?? 0
+        let isStrong = strong || (rawIntent & 2) != 0
+        let isEmphasis = emphasis || (rawIntent & 1) != 0
+        let isCode = code || (rawIntent & 4) != 0
+        let isStrikethrough = strikethrough || (rawIntent & 32) != 0
+        let baseFont = (baseAttributes[.font] as? NSFont) ?? viewerFont()
+
+        // Inline code uses a compact monospaced font and its own background attributes.
+        if isCode {
+            attributes[.font] = viewerFont(size: max(baseFont.pointSize * 0.92, 11), monospaced: true)
+            attributes[.foregroundColor] = NSColor(calibratedWhite: 0.94, alpha: 1)
+            attributes[.langminInlineCode] = true
+        } else {
+            // Ordinary prose combines bold and italic traits with the viewer's base font.
+            var font = baseFont
+
+            // Bold runs use semibold weight at the surrounding text size.
+            if isStrong {
+                font = viewerFont(size: baseFont.pointSize, weight: .semibold)
+            }
+
+            // Apply italics after choosing the run's weight.
+            if isEmphasis {
+                font = NSFontManager.shared.convert(font, toHaveTrait: .italicFontMask)
+            }
+
+            attributes[.font] = font
+        }
+
+        // Preserve strikethrough independently of the run's font traits.
+        if isStrikethrough {
+            attributes[.strikethroughStyle] = NSUnderlineStyle.single.rawValue
+        }
+
+        let resolvedLink = link ?? markdownAttributes[.link]
+        // Restore link behavior and styling after normalizing the text attributes.
+        if let resolvedLink {
+            attributes[.link] = resolvedLink
+            attributes[.foregroundColor] = NSColor.linkColor
+            attributes[.underlineStyle] = NSUnderlineStyle.single.rawValue
+        }
+
+        return attributes
+    }
+
+    // fallbackInlineMarkdownText(text, baseAttributes): Render supported inline
+    // Markdown when the primary parser cannot produce usable text.
+    func fallbackInlineMarkdownText(
+        _ text: String,
+        baseAttributes: [NSAttributedString.Key: Any]
+    ) -> NSAttributedString {
+        let result = NSMutableAttributedString()
+        var index = text.startIndex
+        var plainStart = index
+
+        // flushPlain(end): Append pending literal text before consuming the
+        // next formatting token.
+        func flushPlain(upTo end: String.Index) {
+            // Do not append an empty plain-text span between markup runs.
+            guard plainStart < end else {
+                return
+            }
+
+            result.append(NSAttributedString(
+                string: String(text[plainStart..<end]),
+                attributes: markdownInlineAttributes(baseAttributes: baseAttributes)
+            ))
+        }
+
+        // appendToken(start, end, [strong = false], [emphasis = false], [code =
+        // false], [strikethrough = false], [link = nil]): Append a token's
+        // content with the requested emphasis or code style.
+        func appendToken(
+            from start: String.Index,
+            to end: String.Index,
+            strong: Bool = false,
+            emphasis: Bool = false,
+            code: Bool = false,
+            strikethrough: Bool = false,
+            link: Any? = nil
+        ) {
+            result.append(NSAttributedString(
+                string: String(text[start..<end]),
+                attributes: markdownInlineAttributes(
+                    baseAttributes: baseAttributes,
+                    strong: strong,
+                    emphasis: emphasis,
+                    code: code,
+                    strikethrough: strikethrough,
+                    link: link
+                )
+            ))
+        }
+
+        // Scan inline markup while leaving unmatched delimiters as ordinary text.
+        while index < text.endIndex {
+            let remainder = text[index...]
+
+            // Backtick pairs preserve their contents as inline code.
+            if remainder.hasPrefix("`"), let close = text.range(of: "`", range: text.index(after: index)..<text.endIndex) {
+                flushPlain(upTo: index)
+                appendToken(from: text.index(after: index), to: close.lowerBound, code: true)
+                index = close.upperBound
+                plainStart = index
+                continue
+            }
+
+            // Triple asterisks combine bold and italic formatting.
+            if remainder.hasPrefix("***"), let close = text.range(of: "***", range: text.index(index, offsetBy: 3)..<text.endIndex) {
+                flushPlain(upTo: index)
+                appendToken(from: text.index(index, offsetBy: 3), to: close.lowerBound, strong: true, emphasis: true)
+                index = close.upperBound
+                plainStart = index
+                continue
+            }
+
+            // Double asterisks mark bold text.
+            if remainder.hasPrefix("**"), let close = text.range(of: "**", range: text.index(index, offsetBy: 2)..<text.endIndex) {
+                flushPlain(upTo: index)
+                appendToken(from: text.index(index, offsetBy: 2), to: close.lowerBound, strong: true)
+                index = close.upperBound
+                plainStart = index
+                continue
+            }
+
+            // Double underscores provide the alternate bold delimiter.
+            if remainder.hasPrefix("__"), let close = text.range(of: "__", range: text.index(index, offsetBy: 2)..<text.endIndex) {
+                flushPlain(upTo: index)
+                appendToken(from: text.index(index, offsetBy: 2), to: close.lowerBound, strong: true)
+                index = close.upperBound
+                plainStart = index
+                continue
+            }
+
+            // Paired tildes mark strikethrough text.
+            if remainder.hasPrefix("~~"), let close = text.range(of: "~~", range: text.index(index, offsetBy: 2)..<text.endIndex) {
+                flushPlain(upTo: index)
+                appendToken(from: text.index(index, offsetBy: 2), to: close.lowerBound, strikethrough: true)
+                index = close.upperBound
+                plainStart = index
+                continue
+            }
+
+            // Recognize a complete label and destination before treating brackets as a link.
+            if
+                remainder.hasPrefix("["),
+                let closeBracket = text[index...].firstIndex(of: "]"),
+                closeBracket < text.index(before: text.endIndex),
+                text[text.index(after: closeBracket)] == "(",
+                let closeParen = text[text.index(after: closeBracket)..<text.endIndex].firstIndex(of: ")")
+            {
+                let labelStart = text.index(after: index)
+                let urlStart = text.index(closeBracket, offsetBy: 2)
+                let urlText = String(text[urlStart..<closeParen])
+
+                // Apply link formatting only when the destination forms a URL.
+                if let url = URL(string: urlText) {
+                    flushPlain(upTo: index)
+                    appendToken(from: labelStart, to: closeBracket, link: url)
+                    index = text.index(after: closeParen)
+                    plainStart = index
+                    continue
+                }
+            }
+
+            // Single asterisks mark an italic span.
+            if remainder.hasPrefix("*"), let close = text.range(of: "*", range: text.index(after: index)..<text.endIndex) {
+                flushPlain(upTo: index)
+                appendToken(from: text.index(after: index), to: close.lowerBound, emphasis: true)
+                index = close.upperBound
+                plainStart = index
+                continue
+            }
+
+            // Single underscores provide the alternate italic delimiter.
+            if remainder.hasPrefix("_"), let close = text.range(of: "_", range: text.index(after: index)..<text.endIndex) {
+                flushPlain(upTo: index)
+                appendToken(from: text.index(after: index), to: close.lowerBound, emphasis: true)
+                index = close.upperBound
+                plainStart = index
+                continue
+            }
+
+            index = text.index(after: index)
+        }
+
+        flushPlain(upTo: text.endIndex)
+        return result
+    }
+
+    // viewerAdaptiveColor(light, dark): Choose the supplied color pair using
+    // the result window's effective appearance.
+    func viewerAdaptiveColor(light: NSColor, dark: NSColor) -> NSColor {
+        let appearanceName = window?.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua])
+        return appearanceName == .darkAqua ? dark : light
+    }
+
+    // markdownFence(line): Recognize a backtick or tilde code fence and record
+    // its delimiter length.
+    func markdownFence(in line: String) -> MarkdownFence? {
+        let trimmed = line.trimmingCharacters(in: .whitespaces)
+
+        // Only backticks or tildes can open a fenced code block.
+        guard let marker = trimmed.first, marker == "`" || marker == "~" else {
+            return nil
+        }
+
+        var length = 0
+        // Measure the opening run of identical fence markers.
+        for character in trimmed {
+            // Each matching marker extends the fence length.
+            if character == marker {
+                length += 1
+            } else {
+                // The first different character ends the marker run.
+                break
+            }
+        }
+
+        // Short marker runs are inline text rather than block fences.
+        guard length >= 3 else {
+            return nil
+        }
+
+        return MarkdownFence(marker: marker, length: length)
+    }
+
+    // isMarkdownFenceClose(line, fence): Require a closing fence to use the
+    // opening marker and a sufficient marker count.
+    func isMarkdownFenceClose(_ line: String, for fence: MarkdownFence) -> Bool {
+        let trimmed = line.trimmingCharacters(in: .whitespaces)
+        var length = 0
+
+        // Measure the candidate closing fence using the opening marker type.
+        for character in trimmed {
+            // Count matching closing markers before checking the required length.
+            if character == fence.marker {
+                length += 1
+            } else {
+                // Stop counting at the first nonmatching character.
+                break
+            }
+        }
+
+        // A closing fence cannot be shorter than its opener.
+        guard length >= fence.length else {
+            return false
+        }
+
+        return trimmed.dropFirst(length).trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    // markdownATXHeading(line): Parse hash-prefixed headings while separating
+    // their marker from visible text.
+    func markdownATXHeading(in line: String) -> MarkdownHeading? {
+        let trimmed = line.trimmingCharacters(in: .whitespaces)
+        var level = 0
+
+        // Count heading markers up to Markdown's supported heading depth.
+        for character in trimmed {
+            // Each leading hash increases the heading level until level six.
+            if character == "#", level < 6 {
+                level += 1
+            } else {
+                // Stop at the heading text or an unsupported extra marker.
+                break
+            }
+        }
+
+        // A line without heading markers is ordinary text.
+        guard level > 0 else {
+            return nil
+        }
+
+        let afterMarkers = trimmed.dropFirst(level)
+        // Require whitespace after heading markers so words containing hashes stay literal.
+        guard afterMarkers.isEmpty || afterMarkers.first?.isWhitespace == true else {
+            return nil
+        }
+
+        var text = String(afterMarkers).trimmingCharacters(in: .whitespaces)
+        text = text.replacingOccurrences(
+            of: #"[\t ]+#{1,}[\t ]*$"#,
+            with: "",
+            options: .regularExpression
+        )
+
+        // Do not render an empty heading after removing its markers.
+        guard !text.isEmpty else {
+            return nil
+        }
+
+        return MarkdownHeading(level: level, text: text)
+    }
+
+    // markdownSetextHeading(lines, startIndex): Recognize a heading whose
+    // underline is on the following line.
+    func markdownSetextHeading(lines: [String], startIndex: Int) -> MarkdownHeading? {
+        // An underlined heading needs a second source line.
+        guard startIndex + 1 < lines.count else {
+            return nil
+        }
+
+        let text = lines[startIndex].trimmingCharacters(in: .whitespaces)
+        let underline = lines[startIndex + 1].trimmingCharacters(in: .whitespaces)
+
+        // Require a title and a sufficiently long underline.
+        guard !text.isEmpty, underline.count >= 3 else {
+            return nil
+        }
+
+        // An equals-sign underline creates a top-level heading.
+        if underline.allSatisfy({ $0 == "=" }) {
+            return MarkdownHeading(level: 1, text: text)
+        }
+
+        // A hyphen underline creates a second-level heading.
+        if underline.allSatisfy({ $0 == "-" }) {
+            return MarkdownHeading(level: 2, text: text)
+        }
+
+        return nil
+    }
+
+    // isMarkdownHorizontalRule(line): Recognize a Markdown horizontal rule
+    // after ignoring spaces and tabs.
+    func isMarkdownHorizontalRule(_ line: String) -> Bool {
+        let compact = line
+            .trimmingCharacters(in: .whitespaces)
+            .replacingOccurrences(of: " ", with: "")
+            .replacingOccurrences(of: "\t", with: "")
+
+        // Horizontal rules require a supported marker repeated at least three times.
+        guard compact.count >= 3, let marker = compact.first, marker == "-" || marker == "*" || marker == "_" else {
+            return false
+        }
+
+        return compact.allSatisfy { $0 == marker }
+    }
+
+    // markdownListItem(line): Parse bullet or numbered list markers along with
+    // their indentation and body text.
+    func markdownListItem(in line: String) -> MarkdownListItem? {
+        let indent = leadingWhitespaceCount(in: line)
+        let rest = stripMarkdownIndent(line, count: indent)
+
+        // Recognize bullet markers only when followed by whitespace.
+        if
+            let marker = rest.first,
+            (marker == "-" || marker == "*" || marker == "+"),
+            rest.count >= 2,
+            rest[rest.index(after: rest.startIndex)].isWhitespace
+        {
+            let body = String(rest.dropFirst(2)).trimmingCharacters(in: .whitespaces)
+            return MarkdownListItem(ordered: false, ordinal: 0, indent: indent, markerWidth: 2, body: body)
+        }
+
+        var digitEnd = rest.startIndex
+        var digits = ""
+
+        // Read the numeric prefix before validating an ordered-list delimiter.
+        while digitEnd < rest.endIndex, rest[digitEnd].isNumber {
+            digits.append(rest[digitEnd])
+            digitEnd = rest.index(after: digitEnd)
+        }
+
+        // Require a number and an accepted ordered-list separator.
+        guard
+            !digits.isEmpty,
+            digits.count <= 9,
+            digitEnd < rest.endIndex,
+            rest[digitEnd] == "." || rest[digitEnd] == ")"
+        // Unrecognized numeric prefixes remain ordinary paragraph text.
+        else {
+            return nil
+        }
+
+        let afterMarker = rest.index(after: digitEnd)
+        // A list marker must be separated from its body by whitespace.
+        guard afterMarker < rest.endIndex, rest[afterMarker].isWhitespace else {
+            return nil
+        }
+
+        let bodyStart = rest.index(after: afterMarker)
+        let body = String(rest[bodyStart...]).trimmingCharacters(in: .whitespaces)
+        return MarkdownListItem(
+            ordered: true,
+            ordinal: Int(digits) ?? 1,
+            indent: indent,
+            markerWidth: digits.count + 2,
+            body: body
+        )
+    }
+
+    // isMarkdownBlockQuoteLine(line): Recognize a quotation marker after
+    // leading indentation.
+    func isMarkdownBlockQuoteLine(_ line: String) -> Bool {
+        stripMarkdownIndent(line, count: leadingWhitespaceCount(in: line)).hasPrefix(">")
+    }
+
+    // stripMarkdownBlockQuoteMarker(line): Remove one quotation marker while
+    // preserving non-quote input unchanged.
+    func stripMarkdownBlockQuoteMarker(_ line: String) -> String {
+        let trimmed = stripMarkdownIndent(line, count: leadingWhitespaceCount(in: line))
+        // Leave lines without a quote marker unchanged.
+        guard trimmed.hasPrefix(">") else {
+            return line
+        }
+
+        return String(trimmed.dropFirst()).trimmingCharacters(in: .whitespaces)
+    }
+
+    // isMarkdownTableStart(lines, startIndex): Require a header row followed by
+    // a valid divider before treating text as a table.
+    func isMarkdownTableStart(lines: [String], startIndex: Int) -> Bool {
+        // Table detection needs both a header and its delimiter row.
+        guard startIndex + 1 < lines.count else {
+            return false
+        }
+
+        return markdownTableCells(in: lines[startIndex]).count >= 2 &&
+            isMarkdownTableDivider(lines[startIndex + 1])
+    }
+
+    // markdownTableCells(line): Split a pipe-delimited table row after removing
+    // optional outer separators.
+    func markdownTableCells(in line: String) -> [String] {
+        var trimmed = line.trimmingCharacters(in: .whitespaces)
+
+        // Ignore an optional opening table border when splitting cells.
+        if trimmed.hasPrefix("|") {
+            trimmed.removeFirst()
+        }
+
+        // Ignore an optional closing border without creating an empty final cell.
+        if trimmed.hasSuffix("|") {
+            trimmed.removeLast()
+        }
+
+        // A line without an internal cell separator is not a table row.
+        guard trimmed.contains("|") else {
+            return []
+        }
+
+        return trimmed.split(separator: "|", omittingEmptySubsequences: false)
+            .map { String($0).trimmingCharacters(in: .whitespaces) }
+    }
+
+    // isMarkdownTableDivider(line): Validate the cells that distinguish a table
+    // divider from ordinary text.
+    func isMarkdownTableDivider(_ line: String) -> Bool {
+        let cells = markdownTableCells(in: line)
+
+        // A delimiter row needs at least two columns.
+        guard cells.count >= 2 else {
+            return false
+        }
+
+        return cells.allSatisfy { cell in
+            let stripped = cell
+                .trimmingCharacters(in: .whitespaces)
+                .trimmingCharacters(in: CharacterSet(charactersIn: ":"))
+
+            return stripped.count >= 3 && stripped.allSatisfy { $0 == "-" }
+        }
+    }
+
+    // markdownTableRow(row, widths): Pad table cells to their column widths,
+    // including missing cells in short rows.
+    func markdownTableRow(_ row: [String], widths: [Int]) -> String {
+        let cells = widths.enumerated().map { column, width -> String in
+            let cell = column < row.count ? row[column] : ""
+            return " \(cell)\(String(repeating: " ", count: max(width - cell.count, 0))) "
+        }
+
+        return "|\(cells.joined(separator: "|"))|"
+    }
+
+    // leadingWhitespaceCount(line): Measure leading spaces and tabs using the
+    // renderer's indentation rules.
+    func leadingWhitespaceCount(in line: String) -> Int {
+        var count = 0
+
+        // Measure indentation until the first non-whitespace character.
+        for character in line {
+            // A leading space contributes one indentation column.
+            if character == " " {
+                count += 1
+            } else if character == "\t" {
+                // Treat a tab as four columns for Markdown indentation.
+                count += 4
+            } else {
+                // Text content ends the indentation prefix.
+                break
+            }
+        }
+
+        return count
+    }
+
+    // stripMarkdownIndent(line, count): Remove up to the requested indentation
+    // without consuming body text.
+    func stripMarkdownIndent(_ line: String, count: Int) -> String {
+        var remaining = count
+        var index = line.startIndex
+
+        // Remove only the requested amount of leading indentation.
+        while index < line.endIndex, remaining > 0 {
+            // Consume one indentation column for a space.
+            if line[index] == " " {
+                remaining -= 1
+            } else if line[index] == "\t" {
+                // Consume four indentation columns for a tab.
+                remaining -= 4
+            } else {
+                // Never strip non-whitespace content to meet an indent target.
+                break
+            }
+
+            index = line.index(after: index)
+        }
+
+        return String(line[index...])
+    }
+
+    // isMarkdownBlankLine(line): Treat whitespace-only lines as Markdown block
+    // separators.
+    func isMarkdownBlankLine(_ line: String) -> Bool {
+        line.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    // paragraphText(lines): Join paragraph lines while retaining explicit
+    // Markdown line breaks.
+    func paragraphText(from lines: [String]) -> String {
+        var result = ""
+        var previousLineForcedBreak = false
+
+        // Join source lines according to Markdown's soft- and hard-break rules.
+        for rawLine in lines {
+            let line = rawLine.trimmingCharacters(in: .whitespaces)
+            // Empty lines do not contribute words to this paragraph.
+            guard !line.isEmpty else {
+                continue
+            }
+
+            let forcedBreak = rawLine.hasSuffix("  ") || rawLine.hasSuffix("\\")
+            let cleanLine = forcedBreak && line.hasSuffix("\\")
+                ? String(line.dropLast())
+                : line
+
+            // Start the paragraph without an extra leading separator.
+            if result.isEmpty {
+                result = cleanLine
+            } else if previousLineForcedBreak {
+                // Preserve an explicit Markdown hard break between lines.
+                result += "\n\(cleanLine)"
+            } else {
+                // A soft line break becomes a space within the paragraph.
+                result += " \(cleanLine)"
+            }
+
+            previousLineForcedBreak = forcedBreak
+        }
+
+        return result
+    }
+
+    // markdownParagraphGroups(lines): Split lines into nonempty paragraph
+    // groups at blank-line boundaries.
+    func markdownParagraphGroups(from lines: [String]) -> [[String]] {
+        var groups: [[String]] = []
+        var current: [String] = []
+
+        // Split quote or paragraph content at blank source lines.
+        for line in lines {
+            // A blank line finishes the current group when it contains text.
+            if isMarkdownBlankLine(line) {
+                // Store nonempty groups without creating empty paragraphs.
+                if !current.isEmpty {
+                    groups.append(current)
+                    current = []
+                }
+            } else {
+                // Keep ordinary lines in the current paragraph group.
+                current.append(line)
+            }
+        }
+
+        // Retain the final group when the source has no trailing blank line.
+        if !current.isEmpty {
+            groups.append(current)
+        }
+
+        return groups
+    }
+
+    // makeViewerToolbar(width, height):
+    // Build the always-visible result toolbar.
+    func makeViewerToolbar(width: CGFloat, height: CGFloat) -> NSView {
+        let preferences = loadAppPreferences()
+        let bar = ResultToolbarView(frame: NSRect(x: 0, y: 0, width: width, height: height))
+        bar.reservedWidth = diffAvailable ? 202 : 56
+        bar.autoresizingMask = [.width, .maxYMargin]
+
+        let buttonStack = bar.buttonStack
+        resultToolbar = bar
+        let editButton = toolbarButton(
+            symbolName: "square.and.pencil", fallbackTitle: localized("edit_text", "Edit Text"),
+            tooltip: localized("edit_text", "Edit Text"), symbolPointSize: 14,
+            action: #selector(editTextFromToolbar(_:))
+        )
+        // Lift the glyph to center it visually within the shared toolbar button size.
+        (editButton as? TooltipButton)?.contentOffset.y = 1
+        bar.addButton(editButton, to: .edit)
+
+        // Include Copy only when enabled in toolbar preferences.
+        if preferences.resultToolbarShowsCopy {
+            let copyButton = toolbarButton(
+                symbolName: "doc.on.doc",
+                fallbackTitle: "Copy",
+                tooltip: "Copy Text",
+                symbolPointSize: 12.5,
+                action: #selector(copyTextFromToolbar(_:))
+            )
+            self.copyButton = copyButton
+            bar.addButton(copyButton, to: .copy)
+            updateCopyButtonMode()
+        }
+
+        // Include text export only when requested by the toolbar settings.
+        if preferences.resultToolbarShowsSaveText {
+            bar.addButton(toolbarButton(
+                image: saveGlyphImage(audio: false),
+                fallbackTitle: "Save",
+                tooltip: "Save Text",
+                action: #selector(saveTextFromToolbar(_:))
+            ), to: .save)
+        }
+
+        // Audio export needs both an enabled control and available narration.
+        if preferences.resultToolbarShowsSaveAudio && audioAvailable {
+            let saveAudioButton = toolbarButton(
+                image: saveGlyphImage(audio: true),
+                fallbackTitle: "Audio",
+                tooltip: "Save Audio",
+                action: #selector(saveAudioFromToolbar(_:))
+            )
+            saveAudioToolbarButton = saveAudioButton
+            saveAudioButton.isEnabled = canSaveAudio
+            bar.addButton(saveAudioButton, to: .save)
+        }
+
+        // Respect the user's preference to show the Share action.
+        if preferences.resultToolbarShowsShare {
+            let shareButton = toolbarButton(
+                symbolName: "square.and.arrow.up",
+                fallbackTitle: "Share",
+                tooltip: "Share",
+                symbolPointSize: 14,
+                action: #selector(shareFromToolbar(_:))
+            )
+            self.shareButton = shareButton
+            bar.addButton(shareButton, to: .share)
+        }
+
+        // Allow illustration changes independently of text generation, including for saved entries.
+        if config.dictionaryHeadword != nil {
+            let button = toolbarButton(
+                symbolName: "photo.badge.plus",
+                fallbackTitle: localized("illustration", "Illustration"),
+                tooltip: localized("illustration", "Illustration"),
+                symbolPointSize: 13,
+                action: #selector(showIllustrationMenu(_:))
+            )
+            illustrationButton = button
+            button.contentTintColor = illustrationImage == nil ? .secondaryLabelColor : .controlAccentColor
+            bar.addButton(button, to: .illustration)
+        }
+
+        // Offer narration generation, replacement and removal. Hide the highlight toggle
+        // when narration controls are hidden.
+        if preferences.resultToolbarShowsNarration,
+           !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            let narrationButton = toolbarButton(
+                symbolName: "speaker.wave.2",
+                fallbackTitle: "Read",
+                tooltip: narrationTooltip(),
+                symbolPointSize: 13.5,
+                action: #selector(showNarrationMenu(_:))
+            )
+            self.narrationButton = narrationButton
+            bar.addButton(narrationButton, to: .narration)
+
+            // Generate narration by sentence when highlighting is enabled.
+            if preferences.resultToolbarShowsHighlight {
+                let highlightButton = toolbarButton(
+                    symbolName: "highlighter",
+                    fallbackTitle: "HL",
+                    tooltip: narrationHighlightTooltip(),
+                    symbolPointSize: 13,
+                    action: #selector(toggleNarrationHighlightMode(_:))
+                )
+                highlightToggleButton = highlightButton
+                bar.addButton(highlightButton, to: .narration)
+                updateHighlightToggleAppearance()
+            }
+        }
+
+        let separator = NativeSeparator()
+        separator.boxType = .separator
+        separator.translatesAutoresizingMaskIntoConstraints = false
+        bar.addSubview(separator)
+
+        // Use the shared title bar separator; keep the toolbar background transparent.
+
+        // Show model and narration details on the right.
+        let stats = NSTextField(labelWithString: "")
+        stats.font = NSFont.systemFont(ofSize: 11)
+        stats.textColor = .tertiaryLabelColor
+        stats.alignment = .right
+        stats.lineBreakMode = .byTruncatingHead
+        stats.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        stats.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        stats.translatesAutoresizingMaskIntoConstraints = false
+        statsLabel = stats
+        bar.addSubview(stats)
+
+        var constraints = [
+            buttonStack.leadingAnchor.constraint(equalTo: bar.leadingAnchor, constant: 22),
+            buttonStack.centerYAnchor.constraint(equalTo: bar.centerYAnchor),
+            separator.leadingAnchor.constraint(equalTo: bar.leadingAnchor),
+            separator.trailingAnchor.constraint(equalTo: bar.trailingAnchor),
+            separator.bottomAnchor.constraint(equalTo: bar.bottomAnchor),
+            stats.centerYAnchor.constraint(equalTo: bar.centerYAnchor),
+            stats.leadingAnchor.constraint(greaterThanOrEqualTo: buttonStack.trailingAnchor, constant: 12)
+        ]
+
+        // Offer Result and Diff views only when comparison content exists.
+        if diffAvailable {
+            let viewButtons = ResultToolbarButtonGroup()
+            viewButtons.orientation = .horizontal
+            viewButtons.alignment = .centerY
+            viewButtons.spacing = 0
+            viewButtons.setAccessibilityRole(.radioGroup)
+            viewButtons.translatesAutoresizingMaskIntoConstraints = false
+            // Create equal-sized controls for the result and difference views.
+            for (index, title) in ["Result", "Diff"].enumerated() {
+                let button = TooltipButton(title: title, target: self, action: #selector(changeDisplayedText(_:)))
+                button.tag = index
+                button.setButtonType(.pushOnPushOff)
+                button.isBordered = false
+                // Selection uses text color; the group supplies hover and pressed fills.
+                (button.cell as? NSButtonCell)?.showsStateBy = []
+                (button.cell as? NSButtonCell)?.highlightsBy = []
+                button.setAccessibilityRole(.radioButton)
+                button.font = NSFont.systemFont(ofSize: 13)
+                button.contentOffset.y = 0.75
+                button.translatesAutoresizingMaskIntoConstraints = false
+                NSLayoutConstraint.activate([
+                    button.widthAnchor.constraint(equalToConstant: 66),
+                    button.heightAnchor.constraint(equalToConstant: 28)
+                ])
+                viewButtons.addButton(button)
+            }
+            resultDiffControl = viewButtons
+            updateResultViewButtons()
+            bar.addSubview(viewButtons)
+
+            constraints.append(contentsOf: [
+                viewButtons.trailingAnchor.constraint(equalTo: bar.trailingAnchor, constant: -22),
+                viewButtons.centerYAnchor.constraint(equalTo: bar.centerYAnchor),
+                stats.trailingAnchor.constraint(equalTo: viewButtons.leadingAnchor, constant: -14),
+                buttonStack.trailingAnchor.constraint(lessThanOrEqualTo: viewButtons.leadingAnchor, constant: -12)
+            ])
+        } else {
+            // Without a diff switch, align the remaining trailing toolbar content directly.
+            constraints.append(contentsOf: [
+                stats.trailingAnchor.constraint(equalTo: bar.trailingAnchor, constant: -22),
+                buttonStack.trailingAnchor.constraint(lessThanOrEqualTo: bar.trailingAnchor, constant: -22)
+            ])
+        }
+
+        NSLayoutConstraint.activate(constraints)
+
+        return bar
+    }
+
+    // toolbarButton(symbolName, fallbackTitle, tooltip, [symbolPointSize = 16],
+    // action): Create one compact icon button for the result toolbar.
+    func toolbarButton(
+        symbolName: String,
+        fallbackTitle: String,
+        tooltip: String,
+        symbolPointSize: CGFloat = 16,
+        action: Selector
+    ) -> NSButton {
+        let button = makeToolbarButton(fallbackTitle: fallbackTitle, tooltip: tooltip, action: action)
+        // Use a system icon when the requested toolbar symbol is available.
+        if let image = toolbarSymbolImage(symbolName, tooltip: tooltip, pointSize: symbolPointSize) {
+            button.image = image
+            button.imagePosition = .imageOnly
+            button.title = ""
+        }
+        return button
+    }
+
+    // toolbarButton(image, fallbackTitle, tooltip, action): Toolbar button
+    // backed by a custom-drawn template image instead of an SF Symbol.
+    func toolbarButton(
+        image: NSImage,
+        fallbackTitle: String,
+        tooltip: String,
+        action: Selector
+    ) -> NSButton {
+        let button = makeToolbarButton(fallbackTitle: fallbackTitle, tooltip: tooltip, action: action)
+        button.image = image
+        button.imagePosition = .imageOnly
+        button.title = ""
+        return button
+    }
+
+    // makeToolbarButton(fallbackTitle, tooltip, action): Shared configuration
+    // for both toolbar-button variants.
+    private func makeToolbarButton(fallbackTitle: String, tooltip: String, action: Selector) -> TooltipButton {
+        let button = TooltipButton(title: fallbackTitle, target: self, action: action)
+        button.isBordered = false
+        button.toolTip = nil
+        button.tooltipMessage = tooltip
+        button.tooltipContainerView = embeddedHostView
+        button.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            button.widthAnchor.constraint(equalToConstant: 28),
+            button.heightAnchor.constraint(equalToConstant: 28)
+        ])
+        return button
+    }
+
+    // toolbarSymbolImage(symbolName, tooltip, pointSize): Load an accessible
+    // toolbar symbol at the requested visual size.
+    func toolbarSymbolImage(_ symbolName: String, tooltip: String, pointSize: CGFloat) -> NSImage? {
+        // Let callers use a text fallback when the system symbol is unavailable.
+        guard let image = NSImage(systemSymbolName: symbolName, accessibilityDescription: tooltip) else {
+            return nil
+        }
+
+        let configuration = NSImage.SymbolConfiguration(pointSize: pointSize, weight: .regular)
+        let configured = image.withSymbolConfiguration(configuration) ?? image
+        configured.isTemplate = true
+        return configured
+    }
+
+    // saveGlyphImage(audio, [side = 21]):
+    // Draw matching document icons, with a text or music badge.
+    func saveGlyphImage(audio: Bool, side: CGFloat = 21) -> NSImage {
+        let image = NSImage(size: NSSize(width: side, height: side), flipped: false) { rect in
+            let s = rect.width
+            NSColor.black.set()
+
+            // Draw a folded page, leaving room for the badge.
+            let doc = NSBezierPath()
+            let l: CGFloat = 0.21, r: CGFloat = 0.63, b: CGFloat = 0.17, t: CGFloat = 0.86, ear: CGFloat = 0.17
+            doc.move(to: NSPoint(x: l * s, y: b * s))
+            doc.line(to: NSPoint(x: l * s, y: t * s))
+            doc.line(to: NSPoint(x: (r - ear) * s, y: t * s))
+            doc.line(to: NSPoint(x: r * s, y: (t - ear) * s))
+            doc.line(to: NSPoint(x: r * s, y: b * s))
+            doc.close()
+            doc.lineCapStyle = .round
+            doc.lineJoinStyle = .round
+            doc.lineWidth = 0.048 * s // matches the copy icon's ~1pt stroke
+            doc.stroke()
+
+            // Separate the badge from the page with a transparent gap.
+            let cx: CGFloat = 0.66 * s, cy: CGFloat = 0.32 * s, badgeR: CGFloat = 0.255 * s
+            let context = NSGraphicsContext.current
+            context?.compositingOperation = .destinationOut
+            let moat = badgeR + 0.055 * s
+            NSBezierPath(ovalIn: NSRect(x: cx - moat, y: cy - moat, width: moat * 2, height: moat * 2)).fill()
+            context?.compositingOperation = .sourceOver
+            NSBezierPath(ovalIn: NSRect(x: cx - badgeR, y: cy - badgeR, width: badgeR * 2, height: badgeR * 2)).fill()
+
+            // Cut the text or note shape out of the badge.
+            context?.compositingOperation = .destinationOut
+            if audio {
+                // Eighth note.
+                let note = NSBezierPath()
+                note.move(to: NSPoint(x: cx - 0.02 * s, y: cy - 0.06 * s))
+                note.line(to: NSPoint(x: cx - 0.02 * s, y: cy + 0.13 * s))
+                note.move(to: NSPoint(x: cx - 0.02 * s, y: cy + 0.13 * s))
+                note.curve(
+                    to: NSPoint(x: cx + 0.10 * s, y: cy + 0.03 * s),
+                    controlPoint1: NSPoint(x: cx + 0.07 * s, y: cy + 0.13 * s),
+                    controlPoint2: NSPoint(x: cx + 0.10 * s, y: cy + 0.08 * s)
+                )
+                note.lineCapStyle = .round
+                note.lineJoinStyle = .round
+                note.lineWidth = 0.045 * s
+                note.stroke()
+                NSBezierPath(ovalIn: NSRect(x: cx - 0.10 * s, y: cy - 0.085 * s, width: 0.105 * s, height: 0.075 * s)).fill()
+            } else {
+                // Three text lines.
+                let lines = NSBezierPath()
+                let widths: [CGFloat] = [0.15, 0.15, 0.11]
+                // Draw the paragraph symbol's short strokes at consistent vertical intervals.
+                for (i, w) in widths.enumerated() {
+                    let y = cy + (0.075 - CGFloat(i) * 0.075) * s
+                    lines.move(to: NSPoint(x: cx - w / 2 * s, y: y))
+                    lines.line(to: NSPoint(x: cx + w / 2 * s, y: y))
+                }
+                lines.lineCapStyle = .round
+                lines.lineWidth = 0.045 * s
+                lines.stroke()
+            }
+            context?.compositingOperation = .sourceOver
+            return true
+        }
+        image.isTemplate = true
+        return image
+    }
+
+    // optionKeyIsPressed([flags = NSEvent.modifierFlags]): Recognize Option
+    // after excluding modifier flags that are irrelevant to toolbar actions.
+    func optionKeyIsPressed(_ flags: NSEvent.ModifierFlags = NSEvent.modifierFlags) -> Bool {
+        let activeFlags = flags
+            .intersection(.deviceIndependentFlagsMask)
+            .subtracting([.numericPad, .capsLock, .function])
+
+        return activeFlags == [.option]
+    }
+
+    // installModifierKeyMonitor(): Install one modifier monitor to keep
+    // alternate toolbar actions and result cursors current.
+    func installModifierKeyMonitor() {
+        // Install only one set of event monitors per viewer.
+        guard modifierKeyMonitor == nil else {
+            return
+        }
+
+        modifierKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
+            let commandHover = (self?.textView as? ViewerResultTextView)?.refreshCommandCursorSoon() ?? false
+            // Keep copy-mode modifier tracking separate from command-hover handling.
+            if !commandHover {
+                self?.updateCopyButtonMode(flags: event.modifierFlags)
+            }
+            return event
+        }
+
+        // Route keys to an open child menu even if its parent remains key.
+        // Otherwise, Escape can cancel generation.
+        escapeKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            // Only the key result window may consume its viewer shortcuts.
+            guard let self, self.hostWindow?.isKeyWindow == true else {
+                return event
+            }
+            // A follow-up model panel gets first chance to handle its navigation keys.
+            if let panel = self.followUpModelPanel {
+                let mods = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+                let key = event.charactersIgnoringModifiers?.lowercased() ?? ""
+                // Forward ordinary keys and panel commands to the open model picker.
+                if !mods.contains(.command) || key == "k" || key == "," {
+                    panel.sendEvent(event)
+                    return nil
+                }
+            }
+            // Leave non-Escape keys to their normal responder.
+            guard event.keyCode == 53 else { return event }
+            return self.handleEscapeKey() ? nil : event
+        }
+    }
+
+    // removeModifierKeyMonitor(): Remove the modifier event monitor when the
+    // result no longer needs it.
+    func removeModifierKeyMonitor() {
+        // Remove modifier monitoring when the viewer no longer owns keyboard input.
+        if let modifierKeyMonitor {
+            NSEvent.removeMonitor(modifierKeyMonitor)
+            self.modifierKeyMonitor = nil
+        }
+
+        // Remove Escape monitoring along with the viewer's other event hooks.
+        if let escapeKeyMonitor {
+            NSEvent.removeMonitor(escapeKeyMonitor)
+            self.escapeKeyMonitor = nil
+        }
+    }
+
+    // updateCopyButtonMode([flags = NSEvent.modifierFlags]): Switch the Copy
+    // action's icon and tooltip between plain text and Markdown.
+    func updateCopyButtonMode(flags: NSEvent.ModifierFlags = NSEvent.modifierFlags) {
+        let wantsMarkdown = optionKeyIsPressed(flags)
+        let symbolName = wantsMarkdown ? "chevron.left.forwardslash.chevron.right" : "doc.on.doc"
+        let fallbackTitle = wantsMarkdown ? "MD" : "Copy"
+        let tooltip = wantsMarkdown ? "Copy Markdown" : "Copy Text"
+
+        copyButton?.toolTip = nil
+        (copyButton as? TooltipButton)?.tooltipMessage = tooltip
+
+        // Adjust the two Copy symbols to match the other toolbar icons' visible size.
+        let pointSize: CGFloat = wantsMarkdown ? 12 : 12.5
+
+        // Update the copy icon to match its current modifier-dependent action.
+        if let image = toolbarSymbolImage(symbolName, tooltip: tooltip, pointSize: pointSize) {
+            copyButton?.image = image
+            copyButton?.imagePosition = .imageOnly
+            copyButton?.title = ""
+        } else {
+            // Keep the text fallback when the alternate copy symbol is unavailable.
+            copyButton?.image = nil
+            copyButton?.title = fallbackTitle
+        }
+    }
+
+    // copyToClipboard(value): Replace the clipboard contents with the
+    // explicitly requested text export.
+    func copyToClipboard(_ value: String) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(value, forType: .string)
+    }
+
+    // plainTextForClipboard(): Export the result and completed conversation
+    // text without viewer-only controls or status.
+    func plainTextForClipboard() -> String {
+        // Export completed exchanges without the viewer's copy links or status.
+        var text = markdownAttributedText(from: content).string
+        // Include saved conversation turns in the copied plain-text result.
+        for turn in config.conversation?.turns ?? [] {
+            // Append only nonempty follow-up questions.
+            if !turn.question.isEmpty { text += "\n\n" + turn.question }
+            // Render each nonempty answer before adding it to plain-text output.
+            if !turn.answer.isEmpty { text += "\n\n" + markdownAttributedText(from: turn.answer).string }
+        }
+        return text.replacingOccurrences(of: "\u{fffc}", with: "")
+    }
+
+    // saveTextFromToolbar(sender): Route the toolbar's text-save action to the
+    // shared export flow.
+    @objc func saveTextFromToolbar(_ sender: Any?) {
+        saveText()
+    }
+
+    // saveAudioFromToolbar(sender): Route the toolbar's audio-save action to
+    // the shared audio export flow.
+    @objc func saveAudioFromToolbar(_ sender: Any?) {
+        saveAudio()
+    }
+
+    // saveToLibraryFromToolbar(sender): Toggle Library membership using the
+    // result's current text and assets.
+    @objc func saveToLibraryFromToolbar(_ sender: Any?) {
+        // Library membership cannot change while the result has an unsaved editor draft.
+        guard textEditor == nil else { return }
+        // Wait for transferred audio so saving cannot keep only part of the HUD result.
+        guard hudNarration == nil else { return }
+        // A filled bookmark removes the saved copy; an outline bookmark saves it.
+        if let id = savedLibraryID {
+            // Preserve the open result's assets before removing its saved Library copy.
+            do {
+                try detachLibraryBackedAssetsIfNeeded()
+            } catch {
+                // Keep the Library copy when the open viewer's assets cannot be preserved.
+                let alert = NSAlert()
+                alert.messageText = "Could not remove from Library"
+                alert.informativeText = "The saved copy was kept because Langmin could not preserve the open result: \(error.localizedDescription)"
+                alert.alertStyle = .warning
+                alert.runModal()
+                return
+            }
+            LibraryStore.delete(id: id)
+            savedLibraryID = nil
+            updateSaveToLibraryButton()
+            appDelegate?.launcherController.libraryDidChange()
+            return
+        }
+        // Save the current recording with its sentence timings and voice details.
+        var snapshot = config
+        snapshot.audioPath = audioAvailable ? activeAudioPath : ""
+        snapshot.audioTimings = audioAvailable ? config.audioTimings : nil
+        snapshot.narrationVoice = audioAvailable ? narrationVoiceUsed : nil
+        snapshot.narrationModel = audioAvailable ? narrationModelUsed : nil
+        do {
+            // Save pronunciation clips for reuse on reopen.
+            let clips = pronounceCache.map { (key: $0.key, url: $0.value) }
+            let entry = try LibraryStore.save(config: snapshot, pronunciations: clips)
+            savedLibraryID = entry.id
+            updateSaveToLibraryButton()
+            appDelegate?.launcherController.libraryDidChange()
+        } catch {
+            // Report a failed save without marking the result as saved.
+            let alert = NSAlert()
+            alert.messageText = "Could not save to Library"
+            alert.informativeText = error.localizedDescription
+            alert.alertStyle = .warning
+            alert.runModal()
+        }
+    }
+
+    // detachLibraryBackedAssetsIfNeeded(): Before removing a saved entry, copy
+    // its assets to a session-owned folder so the open result can still play
+    // audio and be saved again.
+    func detachLibraryBackedAssetsIfNeeded() throws {
+        // Session-owned results already have independent assets and need no detachment.
+        guard config.cleanupDir.isEmpty else { return }
+
+        let directory = try createLangminTemporaryDirectory(prefix: "viewer")
+        // Copy all required assets before switching the viewer to its own session directory.
+        do {
+            let textURL = directory.appendingPathComponent("text.md")
+            try content.write(to: textURL, atomically: true, encoding: .utf8)
+
+            var detachedOriginalPath: String?
+            // Preserve the original side of an available text comparison.
+            if config.diffOriginalPath != nil {
+                let url = directory.appendingPathComponent("diff-original.txt")
+                try diffOriginalContent.write(to: url, atomically: true, encoding: .utf8)
+                detachedOriginalPath = url.path
+            }
+
+            var detachedRevisedPath: String?
+            // Preserve the revised side so the detached result keeps its diff view.
+            if config.diffRevisedPath != nil {
+                let url = directory.appendingPathComponent("diff-revised.txt")
+                try diffRevisedContent.write(to: url, atomically: true, encoding: .utf8)
+                detachedRevisedPath = url.path
+            }
+
+            var detachedAudioPath = ""
+            // Copy narration before removing the Library directory that owns it.
+            if audioAvailable {
+                let source = URL(fileURLWithPath: activeAudioPath)
+                let ext = source.pathExtension.isEmpty ? "m4a" : source.pathExtension
+                let destination = directory.appendingPathComponent("audio.\(ext)")
+                try FileManager.default.copyItem(at: source, to: destination)
+                detachedAudioPath = destination.path
+            }
+
+            var detachedPronunciations: [String: URL] = [:]
+            // Create a pronunciation folder only when cached clips need to be retained.
+            if !pronounceCache.isEmpty {
+                let pronunciationDirectory = directory.appendingPathComponent("pronounce", isDirectory: true)
+                try FileManager.default.createDirectory(
+                    at: pronunciationDirectory,
+                    withIntermediateDirectories: true,
+                    attributes: [.posixPermissions: 0o700]
+                )
+                // Copy existing pronunciation files under unique session-owned names.
+                for (key, source) in pronounceCache where FileManager.default.fileExists(atPath: source.path) {
+                    let ext = source.pathExtension.isEmpty ? "caf" : source.pathExtension
+                    let destination = pronunciationDirectory
+                        .appendingPathComponent("\(UUID().uuidString).\(ext)")
+                    try FileManager.default.copyItem(at: source, to: destination)
+                    detachedPronunciations[key] = destination
+                }
+            }
+
+            // Preserve the picture before removing the saved Library folder.
+            let detachedIllustration = config.illustrationPath.map { _ in directory.appendingPathComponent("illustration.png") }
+            // Retain the illustration when moving the open result off Library storage.
+            if let source = config.illustrationPath, let destination = detachedIllustration {
+                try FileManager.default.copyItem(atPath: source, toPath: destination.path)
+            }
+            let detachedSourceImages = try copySourceImageAssets(config.sourceImages,
+                from: URL(fileURLWithPath: config.textPath).deletingLastPathComponent(), to: directory)
+            config.sourceImages = detachedSourceImages
+            config.illustrationPath = detachedIllustration?.path
+            config.textPath = textURL.path
+            config.cleanupDir = directory.path
+            config.diffOriginalPath = detachedOriginalPath
+            config.diffRevisedPath = detachedRevisedPath
+            config.audioPath = detachedAudioPath
+            activeAudioPath = detachedAudioPath
+            pronounceCache = detachedPronunciations
+        } catch {
+            // Discard partial detached assets if any required copy fails.
+            try? FileManager.default.removeItem(at: directory)
+            throw error
+        }
+    }
+
+    // updateSaveToLibraryButton(): Fill the bookmark when the result is saved
+    // to the Library.
+    func updateSaveToLibraryButton() {
+        // A viewer without a bookmark control needs no button-state update.
+        guard let button = saveToLibraryButton else {
+            return
+        }
+        button.isEnabled = hudNarration == nil && textEditor == nil
+        let saved = savedLibraryID != nil
+        // Describe what clicking the bookmark will do: save or remove the result.
+        let tooltip = saved ? "Remove this result from your Library" : "Save this result to your Library"
+        if let image = toolbarSymbolImage(saved ? "bookmark.fill" : "bookmark", tooltip: tooltip, pointSize: 14) {
+            // Widen by 3 Retina pixels, keeping the outer edge fixed in each host.
+            // Extra transparent space anchors the embedded glyph left and the titlebar glyph right.
+            let expansion: CGFloat = 1.5
+            let extendsRight = button is TooltipButton
+            let size = NSSize(width: image.size.width + expansion * 2, height: image.size.height)
+            let widened = NSImage(size: size, flipped: false) { _ in
+                image.draw(in: NSRect(
+                    x: extendsRight ? expansion : 0, y: 0,
+                    width: image.size.width + expansion, height: image.size.height
+                ))
+                return true
+            }
+            widened.isTemplate = true
+            widened.accessibilityDescription = tooltip
+            button.image = widened
+        }
+        // The embedded square and native titlebar bookmark share the save action.
+        (button as? TooltipButton)?.tooltipMessage = tooltip
+        (button as? TitlebarTooltipButton)?.tooltipMessage = tooltip
+    }
+
+    // makeResultTitleView(text): Keep one loader beside the title in both
+    // result hosts.
+    func makeResultTitleView(_ text: String) -> NSStackView {
+        let titleLabel = NSTextField(labelWithString: cleanTitle(text))
+        titleLabel.font = NSFont.systemFont(ofSize: 13, weight: .semibold)
+        titleLabel.textColor = .labelColor
+        titleLabel.alignment = .left
+        titleLabel.usesSingleLineMode = true
+        titleLabel.maximumNumberOfLines = 1
+        titleLabel.lineBreakMode = .byTruncatingTail
+        titleLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        resultTitleLabel = titleLabel
+
+        let spinner = NSProgressIndicator()
+        spinner.style = .spinning
+        spinner.controlSize = .mini
+        spinner.isIndeterminate = true
+        spinner.isDisplayedWhenStopped = false
+        spinner.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            spinner.widthAnchor.constraint(equalToConstant: 12),
+            spinner.heightAnchor.constraint(equalToConstant: 12)
+        ])
+        resultActivitySpinner = spinner
+
+        let title = NSStackView(views: [titleLabel, spinner])
+        title.orientation = .horizontal
+        title.alignment = .centerY
+        title.spacing = 8
+        title.translatesAutoresizingMaskIntoConstraints = false
+        updateResultActivityIndicator()
+        return title
+    }
+
+    // updateResultActivityIndicator(): Finishing either task leaves the loader
+    // running while the other is still active.
+    func updateResultActivityIndicator() {
+        // Activity updates have no visible work until the spinner exists.
+        guard let spinner = resultActivitySpinner else { return }
+        var tasks: [String] = []
+        // Include illustration generation in the combined activity description.
+        if illustrationRunID != nil {
+            tasks.append(localized("illustration_generating", "Creating illustration…"))
+        }
+        // Include narration preparation while audio generation is active.
+        if isGeneratingNarration {
+            tasks.append(localized("preparing_narration", "Preparing narration…"))
+        }
+        let status = tasks.joined(separator: "\n")
+        spinner.toolTip = tasks.isEmpty ? nil : status
+        spinner.setAccessibilityLabel(status)
+        spinner.isHidden = tasks.isEmpty
+        // Stop animating when all tracked result tasks have finished.
+        if tasks.isEmpty { spinner.stopAnimation(nil) }
+        // Animate while at least one result-generation task remains active.
+        else { spinner.startAnimation(nil) }
+    }
+
+    // installResultTitlebarTitle(window): Match result title spacing to the
+    // launcher using a custom label.
+    func installResultTitlebarTitle(on window: NSWindow) {
+        window.titleVisibility = .hidden
+        let controller = NSTitlebarAccessoryViewController()
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: 520, height: 40))
+        let title = makeResultTitleView(config.title)
+        resultTitleContainer = container
+        container.addSubview(title)
+        NSLayoutConstraint.activate([
+            title.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: plainTitleGap),
+            title.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            title.trailingAnchor.constraint(lessThanOrEqualTo: container.trailingAnchor)
+        ])
+        controller.view = container
+        controller.layoutAttribute = .left
+        window.addTitlebarAccessoryViewController(controller)
+    }
+
+    // updateResultTitlebarWidth(): Measure the space between title bar
+    // accessories so the title fits at any window width.
+    func updateResultTitlebarWidth() {
+        // Title-width measurement needs both title-bar accessory containers.
+        guard
+            let window,
+            let titleContainer = resultTitleContainer,
+            let trailingContainer = saveToLibraryTitlebarContainer
+        // Leave the existing title layout until the window accessories exist.
+        else {
+            return
+        }
+
+        window.contentView?.superview?.layoutSubtreeIfNeeded()
+        let titleStart = titleContainer.convert(titleContainer.bounds, to: nil).minX
+        let trailingStart = trailingContainer.convert(trailingContainer.bounds, to: nil).minX
+        let availableWidth = max(160, trailingStart - titleStart - 8)
+
+        // Avoid relayout for subpixel changes in available title width.
+        guard abs(titleContainer.frame.width - availableWidth) > 0.5 else {
+            return
+        }
+
+        titleContainer.setFrameSize(NSSize(width: availableWidth, height: titleContainer.frame.height))
+        titleContainer.needsLayout = true
+    }
+
+    // setResultTitleMessage(message): Show temporary status in the custom
+    // title. Updating a hidden native subtitle triggers title bar layout and
+    // resets the window-button inset.
+    func setResultTitleMessage(_ message: String?) {
+        let trimmed = message?.split(whereSeparator: { $0.isWhitespace }).joined(separator: " ") ?? ""
+        let title = titleForLabel()
+        resultTitleLabel?.stringValue = trimmed.isEmpty ? title : "\(title) — \(trimmed)"
+    }
+
+    // applyRenamedLibraryTitle(title): Apply a Library rename to its open
+    // result, preserving any temporary narration status.
+    func applyRenamedLibraryTitle(_ title: String) {
+        let previousLabel = titleForLabel()
+        config.title = title
+        window?.title = cleanTitle(title)
+        // Refresh the custom title label as well as the native window title.
+        if let resultTitleLabel {
+            let current = resultTitleLabel.stringValue
+            // Preserve a temporary status suffix while replacing the document title.
+            if current.hasPrefix(previousLabel + " — ") {
+                resultTitleLabel.stringValue = titleForLabel() + String(current.dropFirst(previousLabel.count))
+            } else {
+                // Use the renamed result title directly when no status suffix is present.
+                resultTitleLabel.stringValue = titleForLabel()
+            }
+        }
+        updateResultTitlebarWidth()
+    }
+
+    // reinsetResultTrafficLights(): Reapply window-button insets after AppKit's
+    // final title bar layout pass.
+    func reinsetResultTrafficLights() {
+        // Traffic-light positioning requires an attached result window.
+        guard let window else { return }
+        insetNativeTrafficLights(in: window)
+        trafficLightReinsetWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak window] in
+            // Ignore title-bar layout callbacks after the window has been released.
+            guard let window else { return }
+            insetNativeTrafficLights(in: window)
+        }
+        trafficLightReinsetWorkItem = workItem
+        DispatchQueue.main.async(execute: workItem)
+    }
+
+    // installSaveToLibraryTitlebarButton(window): Place the Library bookmark at
+    // the trailing edge of the title bar.
+    func installSaveToLibraryTitlebarButton(on window: NSWindow) {
+        let controller = NSTitlebarAccessoryViewController()
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: 48, height: 40))
+        saveToLibraryTitlebarContainer = container
+        let button = TitlebarTooltipButton()
+        button.isBordered = false
+        button.bezelStyle = .regularSquare
+        button.imagePosition = .imageOnly
+        button.title = ""
+        button.target = self
+        button.action = #selector(saveToLibraryFromToolbar(_:))
+        button.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(button)
+        NSLayoutConstraint.activate([
+            button.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -7),
+            button.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            button.widthAnchor.constraint(equalToConstant: 24),
+            button.heightAnchor.constraint(equalToConstant: 24)
+        ])
+        saveToLibraryButton = button
+        controller.view = container
+        controller.layoutAttribute = .right
+        window.addTitlebarAccessoryViewController(controller)
+        updateSaveToLibraryButton()
+        updateResultTitlebarWidth()
+        DispatchQueue.main.async { [weak self] in
+            self?.updateResultTitlebarWidth()
+        }
+    }
+
+    // copyTextFromToolbar(sender): Copy plain text normally, or exported
+    // Markdown while Option is held.
+    @objc func copyTextFromToolbar(_ sender: Any?) {
+        let wantsMarkdown = optionKeyIsPressed()
+        copyToClipboard(wantsMarkdown ? sourceImageMarkdownForExport(exportedResultMarkdown, assets: config.sourceImages) : plainTextForClipboard())
+    }
+
+    // shareFromToolbar(sender): Anchor the result's sharing choices beneath the
+    // Share button.
+    @objc func shareFromToolbar(_ sender: Any?) {
+        // Anchor the Share menu to an available toolbar button.
+        guard let button = (sender as? NSButton) ?? shareButton else { return }
+        makeShareMenu().popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.minY - 4), in: button)
+    }
+
+    // makeShareMenu(): Offer sharing and printing from one menu, with audio
+    // only when it is available.
+    func makeShareMenu() -> NSMenu {
+        let menu = NSMenu()
+        let textItem = NSMenuItem(
+            title: "Text…",
+            action: #selector(shareTextOnlyFromToolbar(_:)),
+            keyEquivalent: ""
+        )
+        textItem.target = self
+        menu.addItem(textItem)
+
+        // Offer combined text-and-audio sharing only when narration exists.
+        if audioAvailable {
+            let textAndAudioItem = NSMenuItem(
+                title: "Text + Audio…",
+                action: #selector(shareTextAndAudioFromToolbar(_:)),
+                keyEquivalent: ""
+            )
+            textAndAudioItem.target = self
+            menu.addItem(textAndAudioItem)
+        }
+
+        menu.addItem(.separator())
+        let printItem = NSMenuItem(
+            title: localized("print", "Print…"),
+            action: #selector(printResult(_:)),
+            keyEquivalent: "p"
+        )
+        printItem.keyEquivalentModifierMask = .command
+        printItem.target = self
+        menu.addItem(printItem)
+        return menu
+    }
+
+    // shareTextOnlyFromToolbar(sender): Open the system share picker with only
+    // the exported result text.
+    @objc func shareTextOnlyFromToolbar(_ sender: Any?) {
+        presentSharePicker(items: [plainTextForClipboard()], from: sender)
+    }
+
+    // shareTextAndAudioFromToolbar(sender): Include available narration
+    // alongside the result text in the system share picker.
+    @objc func shareTextAndAudioFromToolbar(_ sender: Any?) {
+        var items: [Any] = [plainTextForClipboard()]
+
+        // Include the narration file in share items only while it is available.
+        if audioAvailable {
+            items.append(URL(fileURLWithPath: activeAudioPath))
+        }
+
+        presentSharePicker(items: items, from: sender)
+    }
+
+    // presentSharePicker(items, sender): Present sharing from an available view
+    // so AppKit can position its picker correctly.
+    func presentSharePicker(items: [Any], from sender: Any?) {
+        // The system sharing picker needs a visible view to anchor its popover.
+        guard
+            let anchor = (sender as? NSView) ?? shareButton ?? window?.contentView ?? viewerRootView
+        // Do not open an unanchored picker after the viewer has disappeared.
+        else {
+            return
+        }
+
+        let picker = NSSharingServicePicker(items: items)
+        picker.show(relativeTo: anchor.bounds, of: anchor, preferredEdge: .minY)
+    }
+
+    // updateResultViewButtons(): Match toolbar accents: blue for the current
+    // view, muted text for the other.
+    func updateResultViewButtons() {
+        // Keep each result/diff button's selected state consistent with the displayed content.
+        for case let button as NSButton in resultDiffControl?.arrangedSubviews ?? [] {
+            let selected = button.tag == (diffShown ? 1 : 0)
+            button.state = selected ? .on : .off
+            button.setAccessibilityValue(selected ? 1 : 0)
+            button.attributedTitle = NSAttributedString(string: button.title, attributes: [
+                .font: NSFont.systemFont(ofSize: 13),
+                .foregroundColor: selected ? NSColor.controlAccentColor : NSColor.secondaryLabelColor
+            ])
+        }
+    }
+
+    // changeDisplayedText(sender): Switch between the generated result and an
+    // inline word diff.
+    @objc func changeDisplayedText(_ sender: NSButton) {
+        // Clear narration highlights before changing text; playback reapplies them when Result is
+        // restored.
+        clearNarrationHighlight()
+        diffShown = sender.tag == 1
+        updateResultViewButtons()
+        // Render the comparison when Diff is selected.
+        if diffShown {
+            textView?.textStorage?.setAttributedString(diffAttributedText())
+            (textView as? ResultConversationTextView)?.updateFollowUpActivity()
+            textView?.scrollRangeToVisible(NSRange(location: 0, length: 0))
+        } else {
+            // Restore the normal result and its interactive content when leaving Diff.
+            applyResultText()
+            // Re-rendering the result text drops the .cursor attributes.
+            applyNarrationCursorAttributes(for: narrationSegments)
+        }
+    }
+
+    // diffAttributedText(): Use the same Markdown layout as Result, then mark
+    // edits in the rendered text.
+    func diffAttributedText() -> NSAttributedString {
+        ResultTextDiff.render(
+            original: markdownAttributedText(from: diffOriginalContent),
+            revised: markdownAttributedText(from: diffRevisedContent)
+        )
+    }
+
+    // prepareAudioPlayer(): Prepare the result's audio player once.
+    func prepareAudioPlayer() -> Bool {
+        // Reuse an existing player; create one only when audio is available.
+        guard audioPlayer == nil, audioAvailable else {
+            return audioPlayer != nil
+        }
+
+        // Open the narration file and configure a player as one recoverable operation.
+        do {
+            let player = try AVAudioPlayer(contentsOf: URL(fileURLWithPath: activeAudioPath))
+            player.delegate = self
+            player.enableRate = true
+            player.rate = playbackRate
+            player.prepareToPlay()
+            audioPlayer = player
+            return true
+        } catch {
+            // A player that cannot open its file leaves audio controls unavailable.
+            return false
+        }
+    }
+
+    // makeAudioControls(width, height): Build visible playback controls for
+    // windows that have audio.
+    func makeAudioControls(width: CGFloat, height: CGFloat) -> NSView? {
+        // Audio controls require layout space and a successfully prepared player.
+        guard height > 0, prepareAudioPlayer(), let player = audioPlayer else {
+            return nil
+        }
+
+        let bar = NativeBarBackgroundView(frame: NSRect(x: 0, y: 0, width: width, height: height))
+        bar.autoresizingMask = [.width, .maxYMargin]
+
+        // Separate playback controls from the result text.
+        let separator = NativeSeparator()
+        separator.boxType = .separator
+        separator.translatesAutoresizingMaskIntoConstraints = false
+        bar.addSubview(separator)
+
+        let stack = NSStackView()
+        stack.orientation = .horizontal
+        stack.alignment = .centerY
+        stack.spacing = 10
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        bar.addSubview(stack)
+
+        let backButton = audioButton(
+            symbolName: "gobackward.5",
+            fallbackTitle: "-5",
+            tooltip: "Rewind 5 seconds",
+            action: #selector(rewindAudio(_:))
+        )
+        playButton = audioButton(
+            symbolName: "pause.fill",
+            fallbackTitle: "Pause",
+            tooltip: "Play or pause",
+            action: #selector(togglePlayback(_:))
+        )
+        let forwardButton = audioButton(
+            symbolName: "goforward.5",
+            fallbackTitle: "+5",
+            tooltip: "Forward 5 seconds",
+            action: #selector(forwardAudio(_:))
+        )
+        let rateButton = NSButton(
+            title: playbackRateTitle,
+            target: self,
+            action: #selector(cyclePlaybackRate(_:))
+        )
+        rateButton.bezelStyle = .texturedRounded
+        rateButton.font = NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .medium)
+        updatePlaybackRateButton(rateButton)
+        rateButton.translatesAutoresizingMaskIntoConstraints = false
+        rateButton.widthAnchor.constraint(equalToConstant: 54).isActive = true
+        rateButton.heightAnchor.constraint(equalToConstant: 30).isActive = true
+
+        currentTimeLabel = timeLabel("0:00")
+        durationTimeLabel = timeLabel(formatPlaybackTime(player.duration))
+
+        let slider = NSSlider(value: 0, minValue: 0, maxValue: max(player.duration, 1), target: self, action: #selector(scrubAudio(_:)))
+        slider.isContinuous = true
+        slider.translatesAutoresizingMaskIntoConstraints = false
+        slider.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        progressSlider = slider
+
+        [backButton, playButton!, forwardButton, rateButton, currentTimeLabel!, slider, durationTimeLabel!].forEach {
+            stack.addArrangedSubview($0)
+        }
+
+        NSLayoutConstraint.activate([
+            separator.leadingAnchor.constraint(equalTo: bar.leadingAnchor),
+            separator.trailingAnchor.constraint(equalTo: bar.trailingAnchor),
+            separator.topAnchor.constraint(equalTo: bar.topAnchor),
+
+            stack.leadingAnchor.constraint(equalTo: bar.leadingAnchor, constant: 18),
+            stack.trailingAnchor.constraint(equalTo: bar.trailingAnchor, constant: -18),
+            stack.centerYAnchor.constraint(equalTo: bar.centerYAnchor),
+
+            slider.widthAnchor.constraint(greaterThanOrEqualToConstant: 160)
+        ])
+
+        updateAudioControls()
+        return bar
+    }
+
+    // audioButton(symbolName, fallbackTitle, tooltip, action): Create one
+    // compact toolbar-style audio button.
+    func audioButton(symbolName: String, fallbackTitle: String, tooltip: String, action: Selector) -> NSButton {
+        let button = NSButton(title: fallbackTitle, target: self, action: action)
+        button.bezelStyle = .texturedRounded
+        button.toolTip = tooltip
+        button.translatesAutoresizingMaskIntoConstraints = false
+
+        // Use a system playback symbol when available.
+        if let image = NSImage(systemSymbolName: symbolName, accessibilityDescription: tooltip) {
+            button.image = image
+            button.imagePosition = .imageOnly
+            button.title = ""
+        }
+
+        NSLayoutConstraint.activate([
+            button.widthAnchor.constraint(equalToConstant: 34),
+            button.heightAnchor.constraint(equalToConstant: 30)
+        ])
+
+        return button
+    }
+
+    // timeLabel(value): Create a fixed-width timestamp label for the audio bar.
+    func timeLabel(_ value: String) -> NSTextField {
+        let label = NSTextField(labelWithString: value)
+        label.alignment = .center
+        label.textColor = .secondaryLabelColor
+        label.font = NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .regular)
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.widthAnchor.constraint(equalToConstant: 46).isActive = true
+        return label
+    }
+
+    // playAudio(): Start or resume the window-owned audio player.
+    func playAudio() {
+        // Playback needs an initialized audio player.
+        guard let player = audioPlayer else {
+            return
+        }
+
+        // Restart from the beginning when Play is pressed at the end of the clip.
+        if player.currentTime >= player.duration {
+            player.currentTime = 0
+        }
+
+        player.rate = playbackRate
+        player.play()
+        startProgressTimer()
+        updateAudioControls()
+    }
+
+    // pauseAudio(): Pause playback without losing the current position.
+    func pauseAudio() {
+        audioPlayer?.pause()
+        updateAudioControls()
+    }
+
+    // togglePlayback(sender): Toggle playback from the visible button or the
+    // Space key.
+    @objc func togglePlayback(_ sender: Any?) {
+        // Pause has no effect without an active audio player.
+        guard let player = audioPlayer else {
+            return
+        }
+
+        player.isPlaying ? pauseAudio() : playAudio()
+    }
+
+    // rewindAudio(sender): Move playback backward from the visible button or
+    // Left Arrow.
+    @objc func rewindAudio(_ sender: Any?) {
+        seekAudio(by: -5)
+    }
+
+    // forwardAudio(sender): Move playback forward from the visible button or
+    // Right Arrow.
+    @objc func forwardAudio(_ sender: Any?) {
+        seekAudio(by: 5)
+    }
+
+    var playbackRateTitle: String {
+        playbackRate == floor(playbackRate)
+            ? String(format: "%.0f×", playbackRate)
+            : String(format: "%g×", playbackRate)
+    }
+
+    var playbackRateToolTip: String {
+        "Narration speed: \(playbackRateTitle). Click to change."
+    }
+
+    // updatePlaybackRateButton(button): Set the speed label's accent
+    // explicitly; the textured button can ignore contentTintColor.
+    func updatePlaybackRateButton(_ button: NSButton) {
+        button.attributedTitle = NSAttributedString(
+            string: playbackRateTitle,
+            attributes: [
+                .font: NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .medium),
+                .foregroundColor: NSColor.controlAccentColor
+            ]
+        )
+        button.toolTip = playbackRateToolTip
+        button.setAccessibilityLabel("Narration speed")
+        button.setAccessibilityValue(playbackRateTitle)
+    }
+
+    // cyclePlaybackRate(sender): Cycle playback speeds and save the choice for
+    // other windows and future launches.
+    @objc func cyclePlaybackRate(_ sender: NSButton) {
+        let currentIndex = Self.narrationPlaybackRates.firstIndex(of: playbackRate) ?? 2
+        playbackRate = Self.narrationPlaybackRates[(currentIndex + 1) % Self.narrationPlaybackRates.count]
+        preferencesStore.set(Double(playbackRate), forKey: PreferenceKey.narrationPlaybackRate)
+        audioPlayer?.enableRate = true
+        audioPlayer?.rate = playbackRate
+        updatePlaybackRateButton(sender)
+    }
+
+    // scrubAudio(sender): Seek to the slider position while dragging.
+    @objc func scrubAudio(_ sender: NSSlider) {
+        audioPlayer?.currentTime = sender.doubleValue
+        updateAudioControls()
+    }
+
+    // seekAudio(delta): Seek relative to the current time, clamped to the audio
+    // duration.
+    func seekAudio(by delta: TimeInterval) {
+        // Seeking requires a player whose position can be changed.
+        guard let player = audioPlayer else {
+            return
+        }
+
+        player.currentTime = min(max(player.currentTime + delta, 0), player.duration)
+        updateAudioControls()
+    }
+
+    // updateAudioControls(): Keep the slider, labels, and play/pause icon
+    // synced to playback.
+    func updateAudioControls() {
+        // Playback-position updates stop when no player remains.
+        guard let player = audioPlayer else {
+            return
+        }
+
+        progressSlider?.maxValue = max(player.duration, 1)
+        progressSlider?.doubleValue = min(player.currentTime, max(player.duration, 1))
+        currentTimeLabel?.stringValue = formatPlaybackTime(player.currentTime)
+        durationTimeLabel?.stringValue = formatPlaybackTime(player.duration)
+
+        let symbolName = player.isPlaying ? "pause.fill" : "play.fill"
+        let description = player.isPlaying ? "Pause" : "Play"
+        playButton?.image = NSImage(systemSymbolName: symbolName, accessibilityDescription: description)
+        playButton?.title = playButton?.image == nil ? description : ""
+        playButton?.toolTip = "Play or pause"
+
+        updateNarrationHighlight()
+    }
+
+    // startProgressTimer(): Use a lightweight timer while audio is active.
+    func startProgressTimer() {
+        progressTimer?.invalidate()
+        let timer = Timer(timeInterval: 0.25, repeats: true) { [weak self] _ in
+            self?.updateAudioControls()
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        progressTimer = timer
+    }
+
+    // stopAudio(): Stop timer and playback before closing or removing temp
+    // files.
+    func stopAudio() {
+        progressTimer?.invalidate()
+        progressTimer = nil
+        audioPlayer?.stop()
+        audioPlayer = nil
+        clearNarrationHighlight()
+    }
+
+    // audioPlayerDidFinishPlaying(player, flag): Reset the play icon when
+    // playback reaches the end.
+    func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+        updateAudioControls()
+        clearNarrationHighlight()
+    }
+
+    // narrationTooltip(): The dropdown's tooltip tracks whether it generates or
+    // regenerates.
+    func narrationTooltip() -> String {
+        return audioAvailable ? "Regenerate or Remove Narration" : "Generate Narration"
+    }
+
+    // showNarrationMenu(sender): Offer enabled voices to generate or replace
+    // narration, plus removal when audio exists. Omit None.
+    @objc func showNarrationMenu(_ sender: Any?) {
+        // Do not change narration choices while a generation is already running.
+        guard narrationTask == nil, !isGeneratingNarration else {
+            return
+        }
+
+        let preferences = loadAppPreferences()
+        let shortlist = Set(preferences.preferredReaderVoices)
+
+        let menu = NSMenu()
+
+        // Existing narration adds an option to remove its audio.
+        if audioAvailable {
+            let removeItem = NSMenuItem(
+                title: "Remove Narration",
+                action: #selector(removeNarrationChosen(_:)),
+                keyEquivalent: ""
+            )
+            removeItem.target = self
+            menu.addItem(removeItem)
+            menu.addItem(.separator())
+        }
+
+        // Filter the voice list and omit language and provider groups that become empty.
+        let filtered = readerVoiceSections().map { section -> (section: ReaderVoiceSection, options: [PreferenceOption]) in
+            var options = section.options.filter { $0.id != readerNoneOption.id }
+            // Restrict the voice menu to the saved shortlist when it is nonempty.
+            if !shortlist.isEmpty {
+                options = options.filter { shortlist.contains($0.id) }
+            }
+            return (section, options)
+        }
+
+        var index = 0
+        // Build provider groups together with their nested language sections.
+        while index < filtered.count {
+            let (top, topOptions) = filtered[index]
+            var childEndIndex = index + 1
+            var nonEmptyChildren: [(header: String, indentLevel: Int, options: [PreferenceOption])] = []
+            // Collect the child sections belonging to this top-level voice group.
+            while childEndIndex < filtered.count, filtered[childEndIndex].section.indentLevel > 0 {
+                let (child, childOptions) = filtered[childEndIndex]
+                // Skip child sections with no visible voices after filtering.
+                if !childOptions.isEmpty {
+                    nonEmptyChildren.append((child.header, child.indentLevel, childOptions))
+                }
+                childEndIndex += 1
+            }
+
+            // Avoid adding a provider group that has no useful label or voices.
+            if !top.header.isEmpty || !topOptions.isEmpty || !nonEmptyChildren.isEmpty {
+                // Show a provider heading only when its group contains selectable voices.
+                if !top.header.isEmpty, !topOptions.isEmpty || !nonEmptyChildren.isEmpty {
+                    let headerItem = readerSectionHeaderItem(top.header)
+                    headerItem.indentationLevel = top.indentLevel
+                    menu.addItem(headerItem)
+                }
+                // Add the group's direct voices before nested language sections.
+                for option in topOptions {
+                    menu.addItem(narrationVoiceMenuItem(option, indentLevel: top.indentLevel + 1))
+                }
+                // Render each nonempty child section with its own heading.
+                for child in nonEmptyChildren {
+                    let headerItem = readerSectionHeaderItem(child.header)
+                    headerItem.indentationLevel = child.indentLevel
+                    menu.addItem(headerItem)
+                    // Preserve the child section's indentation for its voice choices.
+                    for option in child.options {
+                        menu.addItem(narrationVoiceMenuItem(option, indentLevel: child.indentLevel + 1))
+                    }
+                }
+            }
+            index = childEndIndex
+        }
+
+        // Anchor the voice menu to the narration control that opened it.
+        if let button = (sender as? NSButton) ?? narrationButton {
+            menu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.minY - 4), in: button)
+        }
+    }
+
+    // narrationVoiceMenuItem(option, indentLevel): Voice rows start generation;
+    // they are actions, not selection toggles, so omit checkmarks.
+    private func narrationVoiceMenuItem(_ option: PreferenceOption, indentLevel: Int) -> NSMenuItem {
+        let item = NSMenuItem(
+            title: option.descriptiveDisplayValue,
+            action: #selector(narrationVoiceChosen(_:)),
+            keyEquivalent: ""
+        )
+        item.target = self
+        item.representedObject = option.id
+        item.indentationLevel = indentLevel
+        return item
+    }
+
+    // narrationVoiceChosen(item): Keep existing narration until its replacement
+    // is ready.
+    @objc func narrationVoiceChosen(_ item: NSMenuItem) {
+        // Ignore menu items without a voice identifier.
+        guard let voice = item.representedObject as? String else {
+            return
+        }
+
+        generateNarration(voice: voice)
+    }
+
+    // removeNarrationChosen(sender): Remove narration and its playback
+    // controls.
+    @objc func removeNarrationChosen(_ sender: Any?) {
+        // Remove narration only when audio exists and no generation is running.
+        guard narrationTask == nil, !isGeneratingNarration, audioAvailable else {
+            return
+        }
+
+        dropExistingAudio()
+    }
+
+    // dropExistingAudio([keepingSaveButton = false]): Stop playback, remove
+    // generated narration and restore the layout without audio controls.
+    func dropExistingAudio(keepingSaveButton: Bool = false) {
+        stopAudio()
+        removeAudioControlsBar()
+        clearNarrationHighlight()
+        removeNarrationCursorAttributes()
+        narrationSegments = []
+        config.audioTimings = nil
+
+        // Delete temporary generated audio owned by this viewer.
+        if !generatedAudioCleanupDir.isEmpty {
+            try? FileManager.default.removeItem(atPath: generatedAudioCleanupDir)
+            generatedAudioCleanupDir = ""
+        }
+        // Leave original request audio for session cleanup; stop using it for playback.
+        activeAudioPath = ""
+
+        // Replacement keeps the segment in place; explicit removal removes it.
+        if keepingSaveButton {
+            saveAudioToolbarButton?.isEnabled = false
+        } else {
+            // Remove the audio-export control when it is no longer needed.
+            // Detach an existing audio-export button from the shared toolbar group.
+            if let button = saveAudioToolbarButton { resultToolbar?.removeButton(button) }
+            saveAudioToolbarButton = nil
+        }
+        narrationVoiceUsed = nil
+        narrationModelUsed = nil
+        (narrationButton as? TooltipButton)?.tooltipMessage = narrationTooltip()
+        appDelegate?.updateMenuForActiveWindow()
+        updateNarrationStats()
+    }
+
+    // removeAudioControlsBar(): Remove playback controls and pin the text above
+    // the follow-up composer.
+    func removeAudioControlsBar() {
+        // Reclaim audio-control space only when its layout views still exist.
+        guard let bar = audioControlsBar, let rootView = viewerRootView, let scrollView = viewerScrollView else {
+            return
+        }
+
+        bar.removeFromSuperview()
+        audioControlsBar = nil
+        playButton = nil
+        progressSlider = nil
+        currentTimeLabel = nil
+        durationTimeLabel = nil
+
+        let bottomConstraint = scrollView.bottomAnchor.constraint(equalTo: followUpComposer?.topAnchor ?? rootView.bottomAnchor)
+        scrollViewBottomConstraint = bottomConstraint
+        bottomConstraint.isActive = true
+        rootView.layoutSubtreeIfNeeded()
+    }
+
+    // Clean each message separately so its Sources section cannot swallow later replies.
+    var narrationSpeechText: String {
+        var messages = [content]
+        // Narrate follow-up questions and answers in conversation order.
+        for turn in config.conversation?.turns ?? [] {
+            messages.append(contentsOf: [turn.question, turn.answer])
+        }
+        // Include a pending follow-up question when constructing the spoken conversation.
+        if let pending = followUpPendingQuestion { messages.append(pending) }
+        return messages.map { speechReadyText(from: $0) }
+            .filter { !$0.isEmpty }
+            .joined(separator: "\n\n")
+    }
+
+    // generateNarration(voice): Narrate the current conversation, then show
+    // playback controls.
+    func generateNarration(voice: String) {
+        // Prevent overlapping narration generation for the same viewer.
+        guard narrationTask == nil, !isGeneratingNarration else {
+            return
+        }
+
+        let provider = narrationProvider(for: voice)
+        // Obtain remote narration-sharing permission before sending the text.
+        guard confirmRemoteNarrationSharingIfNeeded(provider: provider) else {
+            return
+        }
+        let apiKey: String
+        // Load only the credential required by the selected narration provider.
+        switch provider {
+        // Apple narration runs without a remote API key.
+        case .apple:
+            apiKey = ""
+        // Use the xAI credential for Grok narration.
+        case .grok:
+            apiKey = loadGrokAPIKey()
+        // Use the OpenAI credential for OpenAI narration.
+        case .openAI:
+            apiKey = loadOpenAIAPIKey()
+        }
+        // Explain a missing provider key before allocating a narration request.
+        guard provider == .apple || !apiKey.isEmpty else {
+            presentViewerError(
+                "Could not generate narration",
+                details: provider == .grok
+                    ? "Add an xAI API key in Settings → Models to use this Grok voice, or choose an Apple voice."
+                    : "Add an OpenAI API key in Settings → Models to use this OpenAI voice, or choose an Apple voice."
+            )
+            return
+        }
+
+        // Capture the current conversation once; later edits do not change this request.
+        let speechText = narrationSpeechText
+        pauseAudio()
+        let runID = UUID()
+        narrationRunID = runID
+        isGeneratingNarration = true
+        narrationButton?.isEnabled = false
+
+        // Sentence highlighting requires chunked audio with timing information.
+        if loadAppPreferences().narrationHighlightMode {
+            generateChunkedNarration(text: speechText, voice: voice, apiKey: apiKey, provider: provider, runID: runID)
+            return
+        }
+
+        var failedStartTempDir: URL?
+        // Allocate output and create the narration request before marking it active.
+        do {
+            let tempDir = try createLangminTemporaryDirectory(prefix: "narration")
+            failedStartTempDir = tempDir
+            let audioURL = tempDir.appendingPathComponent(provider == .apple ? "narration.caf" : "narration.mp3")
+            let model = ttsModel(forVoice: voice, requestedModel: loadAppPreferences().ttsModel)
+
+            let completion: (Result<Void, Error>) -> Void = { [weak self] result in
+                DispatchQueue.main.async {
+                    // Delete output from a canceled or replaced narration run.
+                    guard let self, self.narrationRunID == runID else {
+                        try? FileManager.default.removeItem(at: tempDir)
+                        return
+                    }
+
+                    self.narrationRunID = nil
+                    self.isGeneratingNarration = false
+                    self.narrationTask = nil
+                    self.narrationButton?.isEnabled = true
+                    self.setResultTitleMessage(nil)
+                    self.updateNarrationStats()
+
+                    // Install audio only after both generation and output-file creation succeed.
+                    switch result {
+                    // Replace the previous narration with the completed recording.
+                    case .success where FileManager.default.fileExists(atPath: audioURL.path):
+                        self.dropExistingAudio(keepingSaveButton: true)
+                        self.activeAudioPath = audioURL.path
+                        self.config.audioTimings = nil
+                        self.generatedAudioCleanupDir = tempDir.path
+                        self.narrationVoiceUsed = voice
+                        self.narrationModelUsed = narrationModelLabel(provider: provider, model: model)
+                        refreshVoiceCatalogAfterUse(provider: provider)
+                        self.revealAudioControls()
+                        self.persistNarrationToLibraryIfSaved(timings: nil)
+                    // Treat a successful callback without a file as a generation failure.
+                    case .success:
+                        try? FileManager.default.removeItem(at: tempDir)
+                        self.presentViewerError(
+                            "Could not generate narration",
+                            details: "The speech service returned no audio."
+                        )
+                    // Clean up temporary audio before showing the provider's error.
+                    case .failure(let error):
+                        try? FileManager.default.removeItem(at: tempDir)
+                        self.presentViewerError(
+                            "Could not generate narration",
+                            details: error.localizedDescription
+                        )
+                    }
+                }
+            }
+
+            let task: NarrationRequestTask
+            // Create the recording through the selected speech integration.
+            switch provider {
+            // Apple narration uses the chosen on-device voice.
+            case .apple:
+                task = try startAppleSpeechRequest(
+                    text: speechText,
+                    voiceIdentifier: appleVoiceIdentifier(from: voice),
+                    outputURL: audioURL,
+                    completion: completion
+                )
+            // Grok narration uses the selected xAI voice.
+            case .grok:
+                task = try startGrokSpeechRequest(
+                    apiKey: apiKey,
+                    text: speechText,
+                    voiceID: grokVoiceID(from: voice),
+                    outputURL: audioURL,
+                    completion: completion
+                )
+            // OpenAI narration uses the saved speech model and voice settings.
+            case .openAI:
+                task = try startSpeechRequest(
+                    apiKey: apiKey,
+                    text: speechText,
+                    model: model,
+                    voice: voice,
+                    outputURL: audioURL,
+                    completion: completion
+                )
+            }
+
+            narrationTask = task
+            failedStartTempDir = nil
+            task.resume()
+        } catch {
+            // Undo temporary setup when narration cannot be started.
+            // Remove a directory allocated before the failed request began.
+            if let failedStartTempDir {
+                try? FileManager.default.removeItem(at: failedStartTempDir)
+            }
+            // Reset progress only if the failed start still belongs to the current run.
+            if narrationRunID == runID {
+                narrationRunID = nil
+                isGeneratingNarration = false
+                narrationTask = nil
+                narrationButton?.isEnabled = true
+                setResultTitleMessage(nil)
+                presentViewerError("Could not generate narration", details: error.localizedDescription)
+            }
+        }
+    }
+
+    // updateNarrationSaveButton(): Keep Save Audio in place but unavailable
+    // while replacement audio is being generated.
+    func updateNarrationSaveButton() {
+        saveAudioToolbarButton?.isEnabled = canSaveAudio
+        appDelegate?.updateMenuForActiveWindow()
+    }
+
+    // revealAudioControls([autoplay = true]): Insert playback controls below
+    // the text when narration becomes available.
+    func revealAudioControls(autoplay: Bool = true) {
+        // Saving remains available even if the audio player cannot open the new file.
+        let preferences = loadAppPreferences()
+        // Add audio export once, when both the setting and new narration require it.
+        if preferences.resultToolbarShowsSaveAudio, saveAudioToolbarButton == nil, let bar = resultToolbar {
+            let saveAudioButton = toolbarButton(
+                image: saveGlyphImage(audio: true),
+                fallbackTitle: "Audio",
+                tooltip: "Save Audio",
+                action: #selector(saveAudioFromToolbar(_:))
+            )
+            saveAudioToolbarButton = saveAudioButton
+            bar.addButton(saveAudioButton, to: .save)
+        }
+        updateNarrationSaveButton()
+        (narrationButton as? TooltipButton)?.tooltipMessage = narrationTooltip()
+        updateNarrationStats()
+
+        // Attach fresh playback controls only with a usable player and viewer layout.
+        guard
+            audioPlayer == nil,
+            let rootView = viewerRootView,
+            let scrollView = viewerScrollView,
+            let controls = makeAudioControls(width: rootView.bounds.width, height: 64)
+        // Explain when generated audio cannot be opened for playback.
+        else {
+            presentViewerError(
+                "Could not play narration",
+                details: "The generated audio file could not be opened."
+            )
+            return
+        }
+
+        controls.translatesAutoresizingMaskIntoConstraints = false
+        rootView.addSubview(controls)
+        audioControlsBar = controls
+        scrollViewBottomConstraint?.isActive = false
+        scrollViewBottomConstraint = nil
+        NSLayoutConstraint.activate([
+            scrollView.bottomAnchor.constraint(equalTo: controls.topAnchor),
+            controls.leadingAnchor.constraint(equalTo: rootView.leadingAnchor),
+            controls.trailingAnchor.constraint(equalTo: rootView.trailingAnchor),
+            controls.bottomAnchor.constraint(equalTo: followUpComposer?.topAnchor ?? rootView.bottomAnchor),
+            controls.heightAnchor.constraint(equalToConstant: 64)
+        ])
+        rootView.layoutSubtreeIfNeeded()
+
+        // Begin playback automatically only when requested by the caller.
+        if autoplay { playAudio() }
+    }
+
+    // presentViewerError(title, details): Viewer-owned errors use the same
+    // native alert style as the save flows.
+    func presentViewerError(_ title: String, details: String) {
+        let alert = NSAlert()
+        alert.messageText = title
+        alert.informativeText = details
+        alert.alertStyle = .warning
+        alert.runModal()
+    }
+
+    // updateNarrationStats(): Show text-model and narration details according
+    // to the toolbar settings.
+    func updateNarrationStats() {
+        let preferences = loadAppPreferences()
+        // Clear statistics when the user hides them in toolbar settings.
+        guard preferences.resultToolbarShowsStats else {
+            statsLabel?.stringValue = ""
+            return
+        }
+        var parts: [String] = []
+        // Show the text model that actually generated this result.
+        if let model = config.textModel, !model.isEmpty {
+            parts.append("Model: \(model)")
+        }
+        // Include a language-level label only for a recognized level choice.
+        if let letter = languageLevelLetter(config.languageLevel) {
+            parts.append("Level: \(letter)")
+        }
+        // Narration metadata is relevant only while audio is attached.
+        if audioAvailable {
+            // Show the voice used for this recording when known.
+            if let voice = narrationVoiceUsed, !voice.isEmpty {
+                parts.append("Voice: \(narrationVoiceDisplayValue(voice))")
+            }
+            // Include the speech model only when the TTS detail setting is enabled.
+            if preferences.resultStatsShowsTTS, var model = narrationModelUsed, !model.isEmpty {
+                // Avoid repeating the TTS label already supplied by the statistics field.
+                if model.hasSuffix(" TTS") {
+                    model = String(model.dropLast(4))
+                }
+                parts.append("TTS: \(model)")
+            }
+        }
+        statsLabel?.stringValue = parts.joined(separator: " · ")
+    }
+
+    // handleEscapeKey(): One Escape cancels a follow-up. Two cancel narration
+    // generation or word pronunciation.
+    func handleEscapeKey() -> Bool {
+        // AppKit can leave the result window key while its link popover has field focus.
+        if let editor = textEditor, editor.linkPopover?.isShown == true {
+            editor.dismissLinkEditor(restoreFocus: true)
+            return true
+        }
+        // Resolve active text editing before applying Escape to background tasks.
+        if textEditor != nil { _ = confirmEndingTextEdit(); return true }
+        // A single Escape cancels an active follow-up request.
+        if followUpRunID != nil {
+            cancelFollowUp()
+            return true
+        }
+        let pronouncing = headwordTask != nil || (headwordPlayer?.isPlaying ?? false) || pronounceSpinner != nil
+        // Leave Escape unhandled when there is no narration or pronunciation to stop.
+        guard narrationTask != nil || isGeneratingNarration || pronouncing else {
+            return false
+        }
+
+        let now = Date().timeIntervalSinceReferenceDate
+        // A second quick Escape confirms stopping the current audio activity.
+        if now - lastEscapePress <= 0.8 {
+            lastEscapePress = 0
+            cancelNarrationGeneration()
+            stopHeadwordPronunciation()
+            return true
+        }
+
+        lastEscapePress = now
+        // Name the action a second Escape will stop.
+        let target = (narrationTask != nil || isGeneratingNarration) ? "narration" : "playback"
+        setResultTitleMessage("Press Esc again to stop \(target)")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in
+            // Do not clear a newer Escape hint from an older delayed callback.
+            guard let self, self.lastEscapePress == now else {
+                return
+            }
+
+            self.lastEscapePress = 0
+            self.setResultTitleMessage(nil)
+        }
+        return true
+    }
+
+    // stopHeadwordPronunciation(): Cancel pronunciation generation, stop its
+    // audio and remove the spinner.
+    func stopHeadwordPronunciation() {
+        headwordRunID = nil
+        headwordTask?.cancel()
+        headwordTask = nil
+        headwordPlayer?.stop()
+        headwordPlayer = nil
+        hidePronounceSpinner()
+    }
+
+    // cancelNarrationGeneration(): Invalidate the request before cancelling so
+    // late callbacks cannot change replacement narration.
+    func cancelNarrationGeneration() {
+        narrationRunID = nil
+        hudNarration?.clear()
+        hudNarration = nil
+        updateSaveToLibraryButton()
+        narrationTask?.cancel()
+        narrationTask = nil
+        narrationTasks.forEach { $0.cancel() }
+        narrationTasks = []
+        isGeneratingNarration = false
+        narrationButton?.isEnabled = true
+        setResultTitleMessage(nil)
+        updateNarrationStats()
+    }
+
+    // narrationHighlightTooltip(): Keep the toggle tooltip short; details live
+    // in Settings.
+    func narrationHighlightTooltip() -> String {
+        "Highlight each sentence as narration reads it; click a sentence to jump there. Applies to narration generated after turning this on."
+    }
+
+    // toggleNarrationHighlightMode(sender): Save the highlight setting for
+    // future windows.
+    @objc func toggleNarrationHighlightMode(_ sender: Any?) {
+        var preferences = loadAppPreferences()
+        preferences.narrationHighlightMode.toggle()
+        saveAppPreferences(preferences)
+        updateHighlightToggleAppearance()
+    }
+
+    // updateHighlightToggleAppearance(): Tint the highlighter icon when
+    // enabled.
+    func updateHighlightToggleAppearance() {
+        let enabled = loadAppPreferences().narrationHighlightMode
+        highlightToggleButton?.contentTintColor = enabled ? .controlAccentColor : nil
+    }
+
+    // adoptHUDNarration(playback): Adopt HUD clips without generating them
+    // again. A pending clip finishes under this window's ownership.
+    func adoptHUDNarration(_ playback: ClipboardHUDPlayback) {
+        // Discard a HUD playback handoff when this viewer is closed or it carries no narration.
+        guard !resourcesReleased, playback.hasNarration else {
+            playback.clear()
+            return
+        }
+        let runID = UUID()
+        narrationRunID = runID
+        hudNarration = playback
+        updateSaveToLibraryButton()
+        isGeneratingNarration = true
+        narrationButton?.isEnabled = false
+        playback.prepareForWindow { [weak self] narration, error in
+            // A completed handoff must still belong to this viewer's current narration run.
+            guard let self, !self.resourcesReleased, self.narrationRunID == runID else {
+                // Remove transferred temporary audio that no live viewer can adopt.
+                if let narration { try? FileManager.default.removeItem(at: narration.directory) }
+                return
+            }
+            self.hudNarration = nil
+            self.updateSaveToLibraryButton()
+            self.narrationVoiceUsed = narration?.voice
+            self.narrationModelUsed = narration?.model
+            self.finishChunkedNarration(
+                runID: runID,
+                audioPath: narration?.audioURL.path,
+                cleanupDir: narration?.directory.path,
+                timings: narration?.timings ?? [],
+                errorText: narration == nil ? error?.localizedDescription : nil,
+                autoplay: false
+            )
+            // Keep earlier clips if the last request failed, and still explain the failure.
+            if narration != nil, let error {
+                self.presentViewerError(localized("hud_playback_failed", "Could not play this text"), details: error.localizedDescription)
+            }
+        }
+    }
+
+    // generateChunkedNarration(text, voice, apiKey, provider, runID): Generate
+    // and merge sentence clips, retaining start times for playback
+    // highlighting.
+    func generateChunkedNarration(
+        text: String,
+        voice: String,
+        apiKey: String,
+        provider: NarrationProvider,
+        runID: UUID
+    ) {
+        let chunks = narrationSpeechChunks(from: text)
+        // Report empty speech content before starting a chunked narration request.
+        guard !chunks.isEmpty else {
+            finishChunkedNarration(
+                runID: runID,
+                audioPath: nil,
+                cleanupDir: nil,
+                timings: [],
+                errorText: "There is no readable text to narrate."
+            )
+            return
+        }
+
+        let model = ttsModel(forVoice: voice, requestedModel: loadAppPreferences().ttsModel)
+        let tempDir: URL
+        // Prepare temporary storage for all chunks of this narration run.
+        do {
+            tempDir = try createLangminTemporaryDirectory(prefix: "narration")
+        } catch {
+            // Report temporary-output setup failures through the normal narration completion path.
+            finishChunkedNarration(
+                runID: runID,
+                audioPath: nil,
+                cleanupDir: nil,
+                timings: [],
+                errorText: error.localizedDescription
+            )
+            return
+        }
+
+        Task.detached(priority: .userInitiated) { [weak self] in
+            // Generate and merge the chunks before installing their combined playback result.
+            do {
+                let result = try await synthesizeChunkedNarration(
+                    chunks: chunks,
+                    voice: voice,
+                    apiKey: apiKey,
+                    provider: provider,
+                    model: model,
+                    tempDir: tempDir,
+                    registerTask: { task in
+                        DispatchQueue.main.async {
+                            // Cancel a newly created chunk request if the narration run was superseded.
+                            guard let self, self.narrationRunID == runID else {
+                                task.cancel()
+                                return
+                            }
+                            self.narrationTasks.append(task)
+                        }
+                    }
+                )
+                DispatchQueue.main.async {
+                    // Remove completed audio belonging to an obsolete narration run.
+                    guard let self, self.narrationRunID == runID else {
+                        try? FileManager.default.removeItem(at: tempDir)
+                        return
+                    }
+                    self.dropExistingAudio(keepingSaveButton: true)
+                    refreshVoiceCatalogAfterUse(provider: provider)
+                    self.narrationVoiceUsed = voice
+                    self.narrationModelUsed = narrationModelLabel(provider: provider, model: model)
+                    self.finishChunkedNarration(
+                        runID: runID,
+                        audioPath: result.audioURL.path,
+                        cleanupDir: tempDir.path,
+                        timings: result.timings,
+                        errorText: nil
+                    )
+                }
+            } catch {
+                // Discard incomplete chunk output before reporting generation or merge failure.
+                try? FileManager.default.removeItem(at: tempDir)
+                DispatchQueue.main.async {
+                    self?.finishChunkedNarration(
+                        runID: runID,
+                        audioPath: nil,
+                        cleanupDir: nil,
+                        timings: [],
+                        errorText: error.localizedDescription
+                    )
+                }
+            }
+        }
+    }
+
+    // finishChunkedNarration(runID, audioPath, cleanupDir, timings, errorText,
+    // [autoplay = true]): Handle completed sentence narration on the main
+    // thread.
+    func finishChunkedNarration(
+        runID: UUID,
+        audioPath: String?,
+        cleanupDir: String?,
+        timings: [NarrationChunkTiming],
+        errorText: String?,
+        autoplay: Bool = true
+    ) {
+        // Only the active run may install its narration or change progress state.
+        guard narrationRunID == runID else {
+            // Clean up output from a stale run instead of attaching it to the viewer.
+            if let cleanupDir { try? FileManager.default.removeItem(atPath: cleanupDir) }
+            return
+        }
+
+        narrationRunID = nil
+        isGeneratingNarration = false
+        narrationTasks = []
+        narrationButton?.isEnabled = true
+        setResultTitleMessage(nil)
+        updateNarrationStats()
+
+        // Surface the supplied generation error after clearing progress state.
+        if let errorText {
+            presentViewerError("Could not generate narration", details: errorText)
+            return
+        }
+
+        // Successful completion must include both audio and its cleanup directory.
+        guard let audioPath, let cleanupDir else {
+            return
+        }
+
+        activeAudioPath = audioPath
+        generatedAudioCleanupDir = cleanupDir
+        config.audioTimings = timings
+        narrationSegments = resolveNarrationSegments(timings)
+        revealAudioControls(autoplay: autoplay)
+        persistNarrationToLibraryIfSaved(timings: timings)
+    }
+
+    // persistNarrationToLibraryIfSaved(timings): Update a saved entry with the
+    // regenerated audio and voice details.
+    func persistNarrationToLibraryIfSaved(timings: [NarrationChunkTiming]?) {
+        // Unsaved results keep generated narration local to the open viewer.
+        guard let id = savedLibraryID else {
+            return
+        }
+        LibraryStore.updateNarration(
+            id: id,
+            audioSourcePath: audioAvailable ? activeAudioPath : "",
+            voice: narrationVoiceUsed,
+            model: narrationModelUsed,
+            timings: timings
+        )
+    }
+
+    // resolveNarrationSegments(timings): Match chunks in order so repeated
+    // phrases use the right occurrence. Mark matched sentences as seek targets.
+    func resolveNarrationSegments(_ timings: [NarrationChunkTiming]) -> [NarrationSegment] {
+        let displayed = (textView?.string ?? "") as NSString
+        var cursor = 0
+        let segments = timings.map { timing -> NarrationSegment in
+            let range = narrationChunkRange(for: timing.text, in: displayed, from: cursor)
+            // Advance past a matched phrase so repeated text uses its next occurrence.
+            if let range {
+                cursor = max(cursor, range.location + range.length)
+            }
+            return NarrationSegment(start: timing.start, range: range)
+        }
+
+        applyNarrationCursorAttributes(for: segments)
+        return segments
+    }
+
+    // applyNarrationCursorAttributes(segments): Use a hand cursor to show which
+    // sentences can seek narration.
+    func applyNarrationCursorAttributes(for segments: [NarrationSegment]) {
+        // Narration cursor attributes require the rendered result's text storage.
+        guard let storage = textView?.textStorage else {
+            return
+        }
+
+        // Mark each matched spoken segment as an interactive seek target.
+        for segment in segments {
+            // Skip unmatched or stale ranges that no longer fit the text.
+            guard let range = segment.range, range.location + range.length <= storage.length else {
+                continue
+            }
+            storage.addAttribute(.cursor, value: NSCursor.pointingHand, range: range)
+        }
+    }
+
+    // removeNarrationCursorAttributes(): Remove narration-specific cursor
+    // attributes from the result's text storage.
+    func removeNarrationCursorAttributes() {
+        // No cursor cleanup is needed for absent or empty text storage.
+        guard let storage = textView?.textStorage, storage.length > 0 else {
+            return
+        }
+
+        storage.removeAttribute(.cursor, range: NSRange(location: 0, length: storage.length))
+    }
+
+    // updateNarrationHighlight(): Keep the spoken chunk highlighted and
+    // scrolled into view during playback.
+    func updateNarrationHighlight() {
+        // Clear spoken highlighting when timings, normal result view, or playback are unavailable.
+        guard !narrationSegments.isEmpty, !diffShown, let player = audioPlayer else {
+            clearNarrationHighlight()
+            return
+        }
+
+        // A small lead keeps the highlight from lagging at chunk boundaries.
+        let time = player.currentTime + 0.1
+        let range = narrationSegments.last(where: { $0.start <= time })?.range
+        // Avoid restyling and scrolling while the same segment remains active.
+        guard range != currentHighlightRange else {
+            return
+        }
+
+        clearNarrationHighlight()
+        // Apply highlighting only to a valid range in the current text layout.
+        guard
+            let textView,
+            let layoutManager = textView.layoutManager,
+            let range,
+            range.location + range.length <= (textView.string as NSString).length
+        // Leave no highlight when the current spoken range cannot be rendered.
+        else {
+            return
+        }
+
+        layoutManager.addTemporaryAttribute(
+            .backgroundColor,
+            value: NSColor.controlAccentColor.withAlphaComponent(0.22),
+            forCharacterRange: range
+        )
+        currentHighlightRange = range
+        textView.scrollRangeToVisible(range)
+    }
+
+    // clearNarrationHighlight(): Remove the temporary spoken-text highlight and
+    // clear its remembered range.
+    func clearNarrationHighlight() {
+        // Remove the old temporary highlight before forgetting its range.
+        if let range = currentHighlightRange, let layoutManager = textView?.layoutManager {
+            layoutManager.removeTemporaryAttribute(.backgroundColor, forCharacterRange: range)
+        }
+        currentHighlightRange = nil
+    }
+
+    // seekNarration(index): Seek after a plain sentence click; dragging text
+    // does not trigger playback changes.
+    func seekNarration(toCharacterIndex index: Int) {
+        // Sentence seeking applies only to timed audio in the normal result view.
+        guard !narrationSegments.isEmpty, !diffShown, let player = audioPlayer else {
+            return
+        }
+
+        // Find the spoken segment that actually contains the clicked character.
+        guard let segment = narrationSegments.last(where: { segment in
+            // An unmatched segment cannot serve as a click target.
+            guard let range = segment.range else {
+                return false
+            }
+            return NSLocationInRange(index, range)
+        }) else {
+            // Leave playback unchanged when the click misses timed speech.
+            return
+        }
+
+        player.currentTime = min(segment.start + 0.01, player.duration)
+        updateAudioControls()
+    }
+
+    // suggestedFileName(fileExtension): Build a save-panel filename from the
+    // topic-specific window title.
+    func suggestedFileName(fileExtension: String) -> String {
+        "\(fileNameStem(from: config.title)).\(fileExtension)"
+    }
+
+    // saveText(): Export the original result and completed follow-ups as
+    // Markdown.
+    func saveText() {
+        // Use NSSavePanel to obtain access to the chosen destination.
+        let panel = NSSavePanel()
+        panel.title = "Save Text"
+        panel.nameFieldStringValue = suggestedFileName(fileExtension: "txt")
+        panel.allowedContentTypes = [UTType.plainText]
+        panel.canCreateDirectories = true
+
+        // Write text only after the user confirms an export destination.
+        guard panel.runModal() == .OK, let url = panel.url else {
+            return
+        }
+
+        // Export conversation text with portable source-image URLs.
+        do {
+            try sourceImageMarkdownForExport(exportedResultMarkdown, assets: config.sourceImages).write(to: url, atomically: true, encoding: .utf8)
+        } catch {
+            // Surface write errors with a native alert instead of silent failure.
+            let alert = NSAlert()
+            alert.messageText = "Could not save text"
+            alert.informativeText = error.localizedDescription
+            alert.alertStyle = .warning
+            alert.runModal()
+        }
+    }
+
+    // saveAudio(): Export the current narration file.
+    func saveAudio() {
+        // Guard the command as well as the button while narration is being replaced.
+        guard canSaveAudio else {
+            return
+        }
+
+        // Use NSSavePanel to obtain access to the chosen destination.
+        let panel = NSSavePanel()
+        panel.title = "Save Audio"
+        // Keep the audio format: CAF for Apple speech, MP3 for cloud speech, or M4A for merged clips.
+        let audioExtension = (activeAudioPath as NSString).pathExtension
+        panel.nameFieldStringValue = suggestedFileName(
+            fileExtension: audioExtension.isEmpty ? "mp3" : audioExtension
+        )
+        panel.allowedContentTypes = [
+            UTType(filenameExtension: audioExtension) ?? UTType.mp3
+        ]
+        panel.canCreateDirectories = true
+
+        // Copy audio only after the user accepts the save panel.
+        guard panel.runModal() == .OK, let url = panel.url else {
+            return
+        }
+
+        // Replace the destination only after the user confirms the save.
+        do {
+            // Replace an existing export file at the user-approved destination.
+            if FileManager.default.fileExists(atPath: url.path) {
+                try FileManager.default.removeItem(at: url)
+            }
+
+            try FileManager.default.copyItem(
+                at: URL(fileURLWithPath: activeAudioPath),
+                to: url
+            )
+        } catch {
+            // Surface copy errors with a native alert instead of silent failure.
+            let alert = NSAlert()
+            alert.messageText = localized("could_not_save_audio", "Could not save audio")
+            alert.informativeText = error.localizedDescription
+            alert.alertStyle = .warning
+            alert.runModal()
+        }
+    }
+
+    // windowDidBecomeKey(notification): Update the menu bar label when this
+    // window becomes active.
+    func windowDidBecomeKey(_ notification: Notification) {
+        appDelegate?.setActiveSession(self)
+        updateCopyButtonMode()
+        reinsetResultTrafficLights()
+    }
+
+    // windowWillUseStandardFrame(window, newFrame): Fill the available screen
+    // on zoom; AppKit keeps the previous frame for restoration.
+    func windowWillUseStandardFrame(_ window: NSWindow, defaultFrame newFrame: NSRect) -> NSRect {
+        window.screen?.visibleFrame ?? newFrame
+    }
+
+    // windowDidResize(notification): Restore absolute window-button insets
+    // during and after resizing; AppKit may reset them when laying out the
+    // title bar.
+    func windowDidResize(_ notification: Notification) {
+        updateResultTitlebarWidth()
+        reinsetResultTrafficLights()
+    }
+
+    // windowDidEndLiveResize(notification): Restore titlebar sizing and button
+    // insets after live resizing ends.
+    func windowDidEndLiveResize(_ notification: Notification) {
+        updateResultTitlebarWidth()
+        reinsetResultTrafficLights()
+    }
+
+    // windowWillClose(notification): Release session-owned files and audio when
+    // the window or inline result closes.
+    func windowWillClose(_ notification: Notification) {
+        releaseResources()
+        appDelegate?.removeSession(self)
+    }
+
+    // releaseResources(): Release this result's editing, event, playback,
+    // request, and temporary-file resources.
+    func releaseResources() {
+        resultToolbar?.setEditingControls(nil)
+        textEditor?.removeFromSuperview()
+        textEditor = nil
+        editorHiddenViews = []
+        resourcesReleased = true
+        hudNarration?.clear()
+        hudNarration = nil
+        followUpModelPanel?.closePalette()
+        cancelFollowUp()
+        cancelIllustration()
+        // Remove temporary illustrations owned by this viewer.
+        if !illustrationCleanupDir.isEmpty {
+            try? FileManager.default.removeItem(atPath: illustrationCleanupDir)
+            illustrationCleanupDir = ""
+        }
+        trafficLightReinsetWorkItem?.cancel()
+        trafficLightReinsetWorkItem = nil
+        removeModifierKeyMonitor()
+        stopAudio()
+        narrationRunID = nil
+        narrationTask?.cancel()
+        narrationTask = nil
+        narrationTasks.forEach { $0.cancel() }
+        narrationTasks = []
+        isGeneratingNarration = false
+        headwordRunID = nil
+        headwordTask?.cancel()
+        headwordTask = nil
+        headwordPlayer?.stop()
+        headwordPlayer = nil
+        hidePronounceSpinner()
+        // Delete the viewer's session directory when it owns one.
+        if !config.cleanupDir.isEmpty {
+            try? FileManager.default.removeItem(atPath: config.cleanupDir)
+        }
+
+        // Release separately generated narration files when the viewer closes.
+        if !generatedAudioCleanupDir.isEmpty {
+            try? FileManager.default.removeItem(atPath: generatedAudioCleanupDir)
+        }
+        pronunciationCleanupDirs.forEach { try? FileManager.default.removeItem(atPath: $0) }
+        pronunciationCleanupDirs = []
+    }
+}
+
+// Keep a multi-select popup's title at a fixed left inset and truncate its end when it overflows.
+final class LeftTruncatingPopUpButtonCell: NSPopUpButtonCell {
+    static let leftInset: CGFloat = 11
+    static let arrowArea: CGFloat = 30
+
+    // titleRect(cellFrame): Reserve space for the arrow while keeping text
+    // aligned with other Settings controls.
+    override func titleRect(forBounds cellFrame: NSRect) -> NSRect {
+        NSRect(
+            x: cellFrame.minX + Self.leftInset,
+            y: cellFrame.minY,
+            width: max(0, cellFrame.width - Self.leftInset - Self.arrowArea),
+            height: cellFrame.height
+        )
+    }
+}
+
+// Present checked options in one menu and summarize the selection in the button title.
+final class MultiSelectPreferenceControl: NSPopUpButton {
+    private var options: [PreferenceOption]
+    private let sectionTitle: ((PreferenceOption) -> String?)?
+    private(set) var selectedIDs: [String] = []
+    private var lastDisplayedTitle: String?
+
+    // init(options, [sectionTitle = nil]): Build a pull-down menu whose first
+    // item acts as a nonselectable summary.
+    init(
+        options: [PreferenceOption],
+        sectionTitle: ((PreferenceOption) -> String?)? = nil
+    ) {
+        self.options = options
+        self.sectionTitle = sectionTitle
+        super.init(frame: .zero, pullsDown: true)
+        cell = LeftTruncatingPopUpButtonCell(textCell: "", pullsDown: true)
+        controlSize = .regular
+        font = NSFont.systemFont(ofSize: 13)
+        rebuildMenu()
+    }
+
+    // init?(coder): This control is created in code, with its options supplied
+    // by the caller.
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    // setSelectedIDs(ids): Restore valid selections in the caller's order;
+    // discard options no longer available.
+    func setSelectedIDs(_ ids: [String]) {
+        selectedIDs = ids.filter { id in options.contains { $0.id == id } }
+        rebuildMenu()
+    }
+
+    // updateOptions(options): Refresh the available choices without keeping
+    // selections from a removed option.
+    func updateOptions(_ options: [PreferenceOption]) {
+        self.options = options
+        selectedIDs = selectedIDs.filter { id in options.contains { $0.id == id } }
+        rebuildMenu()
+    }
+
+    // setSelected(selected, id): Change one option without disturbing the order
+    // of the other selections.
+    func setSelected(_ selected: Bool, id: String) {
+        // Ignore stale IDs from controls whose option list has changed.
+        // Ignore selections that are absent from the available options.
+        guard options.contains(where: { $0.id == id }) else { return }
+        if selected {
+            // Append newly selected options once, preserving selection order.
+            if !selectedIDs.contains(id) {
+                selectedIDs.append(id)
+            }
+        } else {
+            // Remove the option entirely when the caller clears it.
+            selectedIDs.removeAll { $0 == id }
+        }
+        rebuildMenu()
+    }
+
+    // summaryTitle(): Join selected display names for the button, with an
+    // explicit empty-selection label.
+    private func summaryTitle() -> String {
+        // An empty title would hide the difference between no selection and a layout problem.
+        guard !selectedIDs.isEmpty else { return "None" }
+        return selectedIDs
+            .compactMap { id in options.first { $0.id == id }?.displayValue }
+            .joined(separator: ", ")
+    }
+
+    // rebuildMenu(): Recreate checked menu items from the current options and
+    // selection.
+    private func rebuildMenu() {
+        let newMenu = NSMenu()
+        // In pull-down mode the first item supplies the button's visible title.
+        newMenu.addItem(NSMenuItem(title: summaryTitle(), action: nil, keyEquivalent: ""))
+        var lastSection: String?
+        for option in options {
+            // Insert one header when an option begins a different section.
+            if let section = sectionTitle?(option), section != lastSection {
+                newMenu.addItem(readerSectionHeaderItem(section))
+                lastSection = section
+            }
+            let item = NSMenuItem(title: option.displayValue, action: #selector(toggle(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = option.id
+            item.state = selectedIDs.contains(option.id) ? .on : .off
+            item.indentationLevel = sectionTitle == nil ? 0 : 1
+            newMenu.addItem(item)
+        }
+        menu = newMenu
+        lastDisplayedTitle = nil
+        applyDisplayTitle()
+    }
+
+    // layout(): Refit the summary when Settings changes the control's width.
+    override func layout() {
+        super.layout()
+        applyDisplayTitle()
+    }
+
+    // applyDisplayTitle(): Truncate the title at the trailing edge without
+    // shifting its leading inset.
+    private func applyDisplayTitle() {
+        // The summary item may be absent while the menu is being replaced.
+        guard let titleItem = menu?.items.first else { return }
+        let titleFont = font ?? NSFont.systemFont(ofSize: 13)
+        let available = bounds.width - LeftTruncatingPopUpButtonCell.leftInset - LeftTruncatingPopUpButtonCell.arrowArea - 2
+        let display = available > 10
+            ? truncatedToFit(summaryTitle(), font: titleFont, width: available)
+            : summaryTitle()
+        // Avoid rebuilding attributed text on every layout pass when it has not changed.
+        guard display != lastDisplayedTitle else { return }
+        lastDisplayedTitle = display
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.lineBreakMode = .byTruncatingTail
+        paragraph.alignment = .left
+        titleItem.attributedTitle = NSAttributedString(
+            string: display,
+            attributes: [.font: titleFont, .paragraphStyle: paragraph]
+        )
+        needsDisplay = true
+    }
+
+    // truncatedToFit(string, font, width): Shorten the summary by whole
+    // characters, reserving room for the ellipsis.
+    private func truncatedToFit(_ string: String, font: NSFont, width: CGFloat) -> String {
+        let attributes: [NSAttributedString.Key: Any] = [.font: font]
+        // Keep the complete summary when its measured width already fits.
+        if (string as NSString).size(withAttributes: attributes).width <= width {
+            return string
+        }
+        var result = string
+        // Remove trailing characters until the summary and ellipsis fit together.
+        while !result.isEmpty {
+            let candidate = result + "…"
+            // Stop as soon as the shortened text and ellipsis fit together.
+            if (candidate as NSString).size(withAttributes: attributes).width <= width {
+                return candidate
+            }
+            result.removeLast()
+        }
+        return "…"
+    }
+
+    // toggle(sender): Toggle the clicked option and refresh both its checkmark
+    // and the summary.
+    @objc private func toggle(_ sender: NSMenuItem) {
+        // Section headers and the summary do not carry selectable option IDs.
+        guard let id = sender.representedObject as? String else { return }
+        if let index = selectedIDs.firstIndex(of: id) {
+            // Clicking a checked option clears it.
+            selectedIDs.remove(at: index)
+        } else {
+            // Newly checked options appear last in the summary.
+            selectedIDs.append(id)
+        }
+        rebuildMenu()
+    }
+}
