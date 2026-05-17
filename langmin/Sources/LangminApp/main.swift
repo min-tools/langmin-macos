@@ -13453,3 +13453,405 @@ final class MultiSelectPreferenceControl: NSPopUpButton {
         rebuildMenu()
     }
 }
+
+// Custom voice-menu row that handles clicks without dismissing the menu.
+// Provider and language headers show a mixed checkbox when only some voices are selected.
+final class ReaderVoiceMenuRowView: NSView {
+    // Distinguish a group-wide toggle from a single voice.
+    enum Kind {
+        // A provider or language header controls all of its descendant voices.
+        case header(voiceIDs: [String])
+        // A voice row controls only its catalog ID.
+        case voice(id: String)
+    }
+
+    let kind: Kind
+    private let stateLabel = NSTextField(labelWithString: "")
+    private let titleLabel = NSTextField(labelWithString: "")
+    private weak var control: MultiSelectReaderVoiceControl?
+
+    // init(kind, title, indentLevel, bold, width, height, baseIndent,
+    // indentUnit, control): Lay out a fixed checkmark column beside an
+    // indented, truncating voice label.
+    init(
+        kind: Kind,
+        title: String,
+        indentLevel: Int,
+        bold: Bool,
+        width: CGFloat,
+        height: CGFloat,
+        baseIndent: CGFloat,
+        indentUnit: CGFloat,
+        control: MultiSelectReaderVoiceControl
+    ) {
+        self.kind = kind
+        self.control = control
+        super.init(frame: NSRect(x: 0, y: 0, width: width, height: height))
+        wantsLayer = true
+
+        stateLabel.frame = NSRect(x: 6, y: 0, width: 16, height: height)
+        stateLabel.font = .systemFont(ofSize: 12)
+        stateLabel.alignment = .center
+        stateLabel.isBezeled = false
+        stateLabel.isEditable = false
+        stateLabel.drawsBackground = false
+        stateLabel.textColor = .labelColor
+        addSubview(stateLabel)
+
+        let indent = baseIndent + CGFloat(indentLevel) * indentUnit
+        titleLabel.frame = NSRect(x: indent, y: 0, width: width - indent - 10, height: height)
+        titleLabel.stringValue = title
+        titleLabel.font = bold ? NSFont.boldSystemFont(ofSize: 13) : NSFont.systemFont(ofSize: 13)
+        titleLabel.lineBreakMode = .byTruncatingTail
+        titleLabel.isBezeled = false
+        titleLabel.isEditable = false
+        titleLabel.drawsBackground = false
+        titleLabel.textColor = .labelColor
+        addSubview(titleLabel)
+    }
+
+    // init?(coder): Menu rows are built in code so each row has its owning
+    // control.
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    // setChecked(state): Represent full, partial, and empty selections without
+    // adding a separate checkbox control.
+    func setChecked(_ state: NSControl.StateValue) {
+        // Map the group selection state to its menu marker.
+        switch state {
+        // A checkmark represents a fully selected group or voice.
+        case .on:
+            stateLabel.stringValue = "✓"
+        // A dash represents a group with only some voices selected.
+        case .mixed:
+            stateLabel.stringValue = "–"
+        // Leave the marker column empty for an unselected row.
+        default:
+            stateLabel.stringValue = ""
+        }
+    }
+
+    // setHighlighted(highlighted): Use NSMenu's highlight tracking. View
+    // mouse-enter/exit events can become stale when a long menu scrolls beneath
+    // a stationary pointer.
+    func setHighlighted(_ highlighted: Bool) {
+        layer?.backgroundColor = highlighted ? NSColor.selectedContentBackgroundColor.cgColor : nil
+        let color: NSColor = highlighted ? .white : .labelColor
+        stateLabel.textColor = color
+        titleLabel.textColor = color
+    }
+
+    // mouseDown(event): Forward clicks to the owning control without ending
+    // menu tracking.
+    override func mouseDown(with event: NSEvent) {
+        // Choose the selection scope from the row type.
+        switch kind {
+        // Toggle every voice represented by this header.
+        case .header(let voiceIDs):
+            control?.handleHeaderClicked(voiceIDs: voiceIDs)
+        // Toggle this voice without changing its siblings.
+        case .voice(let id):
+            control?.handleVoiceClicked(id: id)
+        }
+    }
+}
+
+// Manage a voice shortlist with provider and language toggles that keep the menu open.
+final class MultiSelectReaderVoiceControl: NSPopUpButton, NSMenuDelegate {
+    private static let baseIndent: CGFloat = 22
+    private static let indentUnit: CGFloat = 20
+    private static let rowHeight: CGFloat = 20
+    private static let maxRowWidth: CGFloat = 520
+
+    private var sections: [ReaderVoiceSection] = []
+    private(set) var selectedIDs: Set<String> = []
+    private var lastDisplayedTitle: String?
+    private var rowViews: [ReaderVoiceMenuRowView] = []
+    private weak var summaryItem: NSMenuItem?
+    private weak var highlightedRow: ReaderVoiceMenuRowView?
+    // Notify dependent controls after user selection changes, but not programmatic updates.
+    var onSelectionChange: (() -> Void)?
+
+    // init(): Load the voice catalog into a pull-down menu with a summary
+    // title.
+    init() {
+        super.init(frame: .zero, pullsDown: true)
+        cell = LeftTruncatingPopUpButtonCell(textCell: "", pullsDown: true)
+        controlSize = .regular
+        font = NSFont.systemFont(ofSize: 13)
+        reloadSections()
+    }
+
+    // init?(coder): The catalog and menu rows are initialized in code.
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    // reloadSections(): Reload voice groups from the catalog while preserving
+    // valid selections.
+    func reloadSections() {
+        sections = readerVoiceSections().filter { !$0.header.isEmpty }
+        let known = Set(sections.flatMap { $0.options }.map { $0.id })
+        selectedIDs.formIntersection(known)
+        rebuildMenu()
+    }
+
+    // setSelectedIDs(ids): Restore saved voice IDs, discarding entries absent
+    // from the current catalog.
+    func setSelectedIDs(_ ids: [String]) {
+        let known = Set(sections.flatMap { $0.options }.map { $0.id })
+        selectedIDs = Set(ids).intersection(known)
+        rebuildMenu()
+    }
+
+    // allOptions(): Flatten catalog sections while preserving their display
+    // order.
+    private func allOptions() -> [PreferenceOption] {
+        sections.flatMap { $0.options }
+    }
+
+    // summaryTitle(): List selected voice names in catalog order for the
+    // collapsed control.
+    private func summaryTitle() -> String {
+        // An empty shortlist means all voices remain available.
+        guard !selectedIDs.isEmpty else {
+            return "All Voices"
+        }
+        let names = allOptions().filter { selectedIDs.contains($0.id) }.map { $0.displayValue }
+        return names.joined(separator: ", ")
+    }
+
+    // rowWidth(): Measure labels with their indentation and cap the width of
+    // long voice names.
+    private func rowWidth() -> CGFloat {
+        let font = NSFont.systemFont(ofSize: 13)
+        let boldFont = NSFont.boldSystemFont(ofSize: 13)
+        var maxWidth: CGFloat = 200
+        // Include bold group headers in the shared width calculation.
+        for section in sections {
+            let headerIndent = Self.baseIndent + CGFloat(section.indentLevel) * Self.indentUnit
+            let headerWidth = (section.header as NSString).size(withAttributes: [.font: boldFont]).width + headerIndent
+            maxWidth = max(maxWidth, headerWidth)
+            let optionIndent = Self.baseIndent + CGFloat(section.indentLevel + 1) * Self.indentUnit
+            // Include each voice and the extra indentation beneath its header.
+            for option in section.options {
+                let optionWidth = (option.descriptiveDisplayValue as NSString).size(withAttributes: [.font: font]).width + optionIndent
+                maxWidth = max(maxWidth, optionWidth)
+            }
+        }
+        return min(maxWidth + 20, Self.maxRowWidth)
+    }
+
+    // rebuildMenu(): Build group and voice rows whose checkmarks can change
+    // while the menu stays open.
+    private func rebuildMenu() {
+        let newMenu = NSMenu()
+        newMenu.delegate = self
+        let summary = NSMenuItem(title: summaryTitle(), action: nil, keyEquivalent: "")
+        newMenu.addItem(summary)
+        summaryItem = summary
+
+        rowViews = []
+        highlightedRow = nil
+        let width = rowWidth()
+
+        var index = 0
+        // Build one provider group and all of its language sections at a time.
+        while index < sections.count {
+            let top = sections[index]
+            var topVoiceIDs = top.options.map { $0.id }
+            var childEndIndex = index + 1
+            // Collect descendant IDs so the provider header toggles the whole group.
+            while childEndIndex < sections.count, sections[childEndIndex].indentLevel > 0 {
+                topVoiceIDs += sections[childEndIndex].options.map { $0.id }
+                childEndIndex += 1
+            }
+            newMenu.addItem(makeRow(kind: .header(voiceIDs: topVoiceIDs), title: top.header, indentLevel: top.indentLevel, bold: true, width: width))
+            // Some providers list voices directly beneath their top-level header.
+            for option in top.options {
+                newMenu.addItem(makeRow(kind: .voice(id: option.id), title: option.descriptiveDisplayValue, indentLevel: top.indentLevel + 1, bold: false, width: width))
+            }
+
+            var childIndex = index + 1
+            // Add language subgroups beneath their provider.
+            while childIndex < childEndIndex {
+                let child = sections[childIndex]
+                let childVoiceIDs = child.options.map { $0.id }
+                newMenu.addItem(makeRow(kind: .header(voiceIDs: childVoiceIDs), title: child.header, indentLevel: child.indentLevel, bold: true, width: width))
+                // Keep language-specific voices beneath the corresponding subgroup header.
+                for option in child.options {
+                    newMenu.addItem(makeRow(kind: .voice(id: option.id), title: option.descriptiveDisplayValue, indentLevel: child.indentLevel + 1, bold: false, width: width))
+                }
+                childIndex += 1
+            }
+            index = childEndIndex
+        }
+
+        menu = newMenu
+        lastDisplayedTitle = nil
+        applyDisplayTitle()
+    }
+
+    // makeRow(kind, title, indentLevel, bold, width): Attach an interactive
+    // view to a menu item and initialize its selection marker.
+    private func makeRow(kind: ReaderVoiceMenuRowView.Kind, title: String, indentLevel: Int, bold: Bool, width: CGFloat) -> NSMenuItem {
+        let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+        let row = ReaderVoiceMenuRowView(
+            kind: kind,
+            title: title,
+            indentLevel: indentLevel,
+            bold: bold,
+            width: width,
+            height: Self.rowHeight,
+            baseIndent: Self.baseIndent,
+            indentUnit: Self.indentUnit,
+            control: self
+        )
+        item.view = row
+        rowViews.append(row)
+        refresh(row)
+        return item
+    }
+
+    // refresh(row): Recalculate one row from the current selection, including
+    // partial group selections.
+    private func refresh(_ row: ReaderVoiceMenuRowView) {
+        // Group rows aggregate selections; voice rows use a single ID.
+        switch row.kind {
+        // Count selected descendants to distinguish empty, full, and partial groups.
+        case .header(let voiceIDs):
+            let selectedCount = voiceIDs.filter { selectedIDs.contains($0) }.count
+            // An empty group or one with no selected descendants stays unchecked.
+            if voiceIDs.isEmpty || selectedCount == 0 {
+                row.setChecked(.off)
+            } else if selectedCount == voiceIDs.count {
+                // Every voice in this group is selected.
+                row.setChecked(.on)
+            } else {
+                // Only some voices in this group are selected.
+                row.setChecked(.mixed)
+            }
+        // A voice is checked only when its own ID is selected.
+        case .voice(let id):
+            row.setChecked(selectedIDs.contains(id) ? .on : .off)
+        }
+    }
+
+    // refreshOpenRows(): Update existing rows so the menu stays open across
+    // selection changes.
+    private func refreshOpenRows() {
+        rowViews.forEach(refresh)
+        summaryItem?.title = summaryTitle()
+        lastDisplayedTitle = nil
+        applyDisplayTitle()
+        onSelectionChange?()
+    }
+
+    // handleHeaderClicked(voiceIDs): Select all voices under a header, or clear
+    // them if all are already selected.
+    func handleHeaderClicked(voiceIDs: [String]) {
+        let allSelected = !voiceIDs.isEmpty && voiceIDs.allSatisfy { selectedIDs.contains($0) }
+        // A second click on a fully selected group clears that group.
+        if allSelected {
+            voiceIDs.forEach { selectedIDs.remove($0) }
+        } else {
+            // Clicking an empty or partial group selects all its voices.
+            voiceIDs.forEach { selectedIDs.insert($0) }
+        }
+        refreshOpenRows()
+    }
+
+    // handleVoiceClicked(id): Toggle one voice and update the visible group
+    // checkmarks in place.
+    func handleVoiceClicked(id: String) {
+        // Clear a checked voice without affecting the rest of the shortlist.
+        if selectedIDs.contains(id) {
+            selectedIDs.remove(id)
+        } else {
+            // Add an unchecked voice to the shortlist.
+            selectedIDs.insert(id)
+        }
+        refreshOpenRows()
+    }
+
+    // menu(menu, item): Follow NSMenu's highlight state for both mouse and
+    // keyboard navigation.
+    func menu(_ menu: NSMenu, willHighlight item: NSMenuItem?) {
+        highlightedRow?.setHighlighted(false)
+        let row = item?.view as? ReaderVoiceMenuRowView
+        row?.setHighlighted(true)
+        highlightedRow = row
+    }
+
+    // layout(): Refit the collapsed voice summary whenever the control changes
+    // width.
+    override func layout() {
+        super.layout()
+        applyDisplayTitle()
+    }
+
+    // applyDisplayTitle(): Keep the leading inset and truncate the title's end,
+    // as in MultiSelectPreferenceControl.
+    private func applyDisplayTitle() {
+        // Wait until menu construction supplies the summary item.
+        guard let titleItem = summaryItem else { return }
+        let titleFont = font ?? NSFont.systemFont(ofSize: 13)
+        let available = bounds.width - LeftTruncatingPopUpButtonCell.leftInset - LeftTruncatingPopUpButtonCell.arrowArea - 2
+        let display = available > 10
+            ? truncatedToFit(summaryTitle(), font: titleFont, width: available)
+            : summaryTitle()
+        // Skip attributed-title updates when resizing has not changed the visible text.
+        guard display != lastDisplayedTitle else { return }
+        lastDisplayedTitle = display
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.lineBreakMode = .byTruncatingTail
+        paragraph.alignment = .left
+        titleItem.attributedTitle = NSAttributedString(
+            string: display,
+            attributes: [.font: titleFont, .paragraphStyle: paragraph]
+        )
+        needsDisplay = true
+    }
+
+    // truncatedToFit(string, font, width): Shorten by whole characters until
+    // the summary and ellipsis fit the available width.
+    private func truncatedToFit(_ string: String, font: NSFont, width: CGFloat) -> String {
+        let attributes: [NSAttributedString.Key: Any] = [.font: font]
+        // Use the complete summary when there is enough room.
+        if (string as NSString).size(withAttributes: attributes).width <= width {
+            return string
+        }
+        var result = string
+        // Remove trailing characters without splitting a Unicode character.
+        while !result.isEmpty {
+            let candidate = result + "…"
+            // Return the first shortened summary that fits with its ellipsis.
+            if (candidate as NSString).size(withAttributes: attributes).width <= width {
+                return candidate
+            }
+            result.removeLast()
+        }
+        return "…"
+    }
+}
+
+// Keep Settings keyboard focus consistent with its visible control order.
+final class PreferencesWindow: NSWindow {
+    weak var preferencesController: PreferencesController?
+
+    // sendEvent(event): Route Tab through the Settings focus order before
+    // normal window event handling.
+    override func sendEvent(_ event: NSEvent) {
+        // Only Tab and Shift-Tab need the custom focus order.
+        if event.type == .keyDown, let forward = tabDirection(for: event) {
+            // Consume the event only when the controller moved focus.
+            if preferencesController?.moveFocus(forward: forward) == true {
+                return
+            }
+        }
+
+        super.sendEvent(event)
+    }
+}
