@@ -14087,3 +14087,1893 @@ enum SettingsLayout {
         ])
     }
 }
+
+// NSTextView with a greyed placeholder drawn while it is empty.
+final class PlaceholderTextView: NSTextView {
+    var placeholderString: String = "" {
+        didSet { needsDisplay = true }
+    }
+
+    // draw(dirtyRect): Draw the placeholder at the same text origin and width
+    // as editable content.
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        // Show placeholder text only when the editor is empty and a placeholder was supplied.
+        guard string.isEmpty, !placeholderString.isEmpty else {
+            return
+        }
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: font ?? NSFont.monospacedSystemFont(ofSize: 12, weight: .regular),
+            .foregroundColor: NSColor.placeholderTextColor
+        ]
+        let padding = textContainer?.lineFragmentPadding ?? 0
+        let origin = NSPoint(x: textContainerInset.width + padding, y: textContainerInset.height)
+        let area = NSRect(
+            x: origin.x,
+            y: origin.y,
+            width: bounds.width - origin.x - textContainerInset.width,
+            height: bounds.height - origin.y - textContainerInset.height
+        )
+        placeholderString.draw(in: area, withAttributes: attributes)
+    }
+
+    // didChangeText(): Redraw after edits so the placeholder appears or
+    // disappears immediately.
+    override func didChangeText() {
+        super.didChangeText()
+        needsDisplay = true
+    }
+}
+
+// Settings for providers, voices, languages and app behavior.
+final class PreferencesController: NSObject, NSTextFieldDelegate {
+    // Allow translated sidebar labels to grow without squeezing the form.
+    static var contentSize: NSSize { SettingsLayout.contentSize }
+
+    var window: NSWindow?
+    var tabView: NSTabView!
+    var sectionButtons: [PreferencesSection: NSButton] = [:]
+    var selectedSection: PreferencesSection = .general
+    var sectionHeading: NSTextField!
+    var apiKeyField: NSSecureTextField!
+    var anthropicAPIKeyField: NSSecureTextField!
+    var geminiAPIKeyField: NSSecureTextField!
+    var grokAPIKeyField: NSSecureTextField!
+    var deepSeekAPIKeyField: NSSecureTextField!
+    var apiKeyRow: NSStackView!
+    var anthropicAPIKeyRow: NSStackView!
+    var geminiAPIKeyRow: NSStackView!
+    var grokAPIKeyRow: NSStackView!
+    var deepSeekAPIKeyRow: NSStackView!
+    var removeOpenAIKeyButton: NSButton!
+    var removeAnthropicKeyButton: NSButton!
+    var removeGeminiKeyButton: NSButton!
+    var removeGrokKeyButton: NSButton!
+    var removeDeepSeekKeyButton: NSButton!
+    var customDisplayNameField: NSTextField!
+    var customBaseURLField: NSTextField!
+    var customModelField: NSTextField!
+    var customAPIKeyField: NSSecureTextField!
+    var customAPIKeyRow: NSStackView!
+    var removeCustomKeyButton: NSButton!
+    var keychainNoteLabel: NSTextField!
+    var advancedOpenAIEndpointField: NSTextField!
+    var advancedAnthropicEndpointField: NSTextField!
+    var advancedGeminiEndpointField: NSTextField!
+    var advancedAnthropicVersionField: NSTextField!
+    var advancedAnthropicSearchToolField: NSTextField!
+    var advancedCustomInstructionsView: NSTextView!
+    var advancedCustomInstructionsScroll: NSScrollView!
+    var advancedExtraModelsView: NSTextView!
+    var advancedExtraModelsScroll: NSScrollView!
+    var advancedInstructionsSeparatorRow: NSView!
+    var advancedInstructionsSeparator: NSBox!
+    var advancedNoteLabel: NSTextField!
+    // Help text for controls with an info icon outside the grid.
+    private var settingsInfoTooltips: [ObjectIdentifier: String] = [:]
+    var appLanguageBox: NSPopUpButton!
+    var windowShapeBox: NSPopUpButton!
+    var customModelWasConfigured = false
+    var voiceBox: MultiSelectReaderVoiceControl!
+    var fontSizeBox: NSPopUpButton!
+    var researchButton: NSButton!
+    var secretProtectionButton: NSButton!
+    var textWatermarkCleaningButton: NSButton!
+    var resetAIConsentButton: NSButton!
+    var resultDiffButton: NSButton!
+    var resultToolbarSaveTextButton: NSButton!
+    var resultToolbarSaveAudioButton: NSButton!
+    var resultToolbarCopyButton: NSButton!
+    var resultToolbarShareButton: NSButton!
+    var resultToolbarNarrationButton: NSButton!
+    var resultToolbarHighlightButton: NSButton!
+    var resultToolbarStatsButton: NSButton!
+    var resultStatsTTSButton: NSButton!
+    var rememberChoicesButton: NSButton!
+    var clearInputAfterSubmitButton: NSButton!
+    var menuBarButton: NSButton!
+    var launchAtLoginButton: NSButton!
+    var shortcutButtons: [String: ShortcutRecorderButton] = [:]
+    var narrateBeforeOpenBox: FocusablePopUpButton!
+    var dictionaryVoiceBox: FocusablePopUpButton!
+    var illustrationSettings: DictionaryIllustrationSettingsControls!
+    var transcriptionSettings: TranscriptionSettingsControls!
+    // Auto-Narrate mode checkboxes, keyed by mode id (see autoNarrateModeOptions).
+    var autoNarrateModeButtons: [String: NSButton] = [:]
+    var resetButton: NSButton!
+    // Show the current Pro access state without repeating purchase controls in Settings.
+    var proStatusLabel: NSTextField!
+    var iCloudButton: NSButton!
+    // Armed by Reset Defaults; applied on Save, discarded on Cancel/reopen.
+    var launcherChoicesResetRequested = false
+    var cancelButton: NSButton!
+    var saveButton: NSButton!
+    var logicalFocusIndex = 0
+    private var settingsSeparators: [ObjectIdentifier: NSBox] = [:]
+
+    // show(): Show settings, creating the window lazily the first time.
+    func show() {
+        // Refresh installed voices before displaying Settings.
+        invalidateAppleVoiceCache()
+        // Create Settings lazily on its first opening.
+        if window == nil {
+            buildWindow()
+        }
+
+        // Reload the shortlist's cached rows. The other voice menus refresh in populateFields.
+        voiceBox?.reloadSections()
+
+        launcherChoicesResetRequested = false
+        populateFields(loadAppPreferences())
+        refreshProRow()
+        logicalFocusIndex = 0
+        // Do not apply window operations before the Settings window exists.
+        guard let window else {
+            return
+        }
+
+        window.setContentSize(nativeContentSize(Self.contentSize, in: window))
+        window.center()
+        window.makeKeyAndOrderFront(nil)
+        window.orderFrontRegardless()
+        NSApp.activate(ignoringOtherApps: true)
+        window.makeFirstResponder(preferencesFocusViews().first)
+
+        // Use cached voice catalogs; refresh providers only after a user-requested speech operation.
+    }
+
+    // buildWindow(): Build the tabbed settings window using standard AppKit
+    // controls.
+    func buildWindow() {
+        let window = PreferencesWindow(
+            contentRect: NSRect(origin: .zero, size: Self.contentSize),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        window.preferencesController = self
+        window.title = localized("settings_window", "Settings")
+        configureNativeWindow(window)
+        window.isReleasedWhenClosed = false
+        window.autorecalculatesKeyViewLoop = false
+
+        let contentView = installNativeContent(in: window)
+        window.contentMinSize = nativeContentSize(Self.contentSize, in: window)
+
+        apiKeyField = secureTextField()
+        anthropicAPIKeyField = secureTextField()
+        geminiAPIKeyField = secureTextField()
+        grokAPIKeyField = secureTextField()
+        // Provide a separate removal action for each saved provider key.
+        removeOpenAIKeyButton = FocusableButton(title: "Remove", target: self, action: #selector(removeOpenAIKey(_:)))
+        removeAnthropicKeyButton = FocusableButton(title: "Remove", target: self, action: #selector(removeAnthropicKey(_:)))
+        removeGeminiKeyButton = FocusableButton(title: "Remove", target: self, action: #selector(removeGeminiKey(_:)))
+        removeGrokKeyButton = FocusableButton(title: "Remove", target: self, action: #selector(removeGrokKey(_:)))
+        removeOpenAIKeyButton.toolTip = "Remove the saved OpenAI API key from Keychain"
+        removeAnthropicKeyButton.toolTip = "Remove the saved Anthropic API key from Keychain"
+        removeGeminiKeyButton.toolTip = "Remove the saved Gemini API key from Keychain"
+        removeGrokKeyButton.toolTip = "Remove the saved xAI (Grok) API key from Keychain"
+        // Keep key removal available through keyboard focus.
+        removeOpenAIKeyButton.refusesFirstResponder = false
+        removeAnthropicKeyButton.refusesFirstResponder = false
+        removeGeminiKeyButton.refusesFirstResponder = false
+        removeGrokKeyButton.refusesFirstResponder = false
+        applySettingsButtonTextBaseline(removeOpenAIKeyButton)
+        applySettingsButtonTextBaseline(removeAnthropicKeyButton)
+        applySettingsButtonTextBaseline(removeGeminiKeyButton)
+        applySettingsButtonTextBaseline(removeGrokKeyButton)
+        // Pair each secure field with its matching removal button.
+        apiKeyRow = apiKeyControls(field: apiKeyField, removeButton: removeOpenAIKeyButton)
+        anthropicAPIKeyRow = apiKeyControls(field: anthropicAPIKeyField, removeButton: removeAnthropicKeyButton)
+        geminiAPIKeyRow = apiKeyControls(field: geminiAPIKeyField, removeButton: removeGeminiKeyButton)
+        grokAPIKeyRow = apiKeyControls(field: grokAPIKeyField, removeButton: removeGrokKeyButton)
+
+        deepSeekAPIKeyField = secureTextField()
+        removeDeepSeekKeyButton = FocusableButton(title: "Remove", target: self, action: #selector(removeDeepSeekKey(_:)))
+        removeDeepSeekKeyButton.toolTip = "Remove the saved DeepSeek API key from Keychain"
+        removeDeepSeekKeyButton.refusesFirstResponder = false
+        applySettingsButtonTextBaseline(removeDeepSeekKeyButton)
+        deepSeekAPIKeyRow = apiKeyControls(field: deepSeekAPIKeyField, removeButton: removeDeepSeekKeyButton)
+        // Collect the custom endpoint details independently of built-in
+        // providers.
+        customDisplayNameField = plainTextField(placeholder: "Display name, e.g. Local model")
+        customBaseURLField = plainTextField(placeholder: "http://localhost:1234/v1")
+        customModelField = plainTextField(placeholder: "Model ID from your server")
+        customAPIKeyField = secureTextField()
+        customAPIKeyField.placeholderString = "Optional if the server does not require a key"
+        removeCustomKeyButton = FocusableButton(title: "Remove", target: self, action: #selector(removeCustomKey(_:)))
+        removeCustomKeyButton.toolTip = "Remove the saved Custom endpoint API key from Keychain"
+        removeCustomKeyButton.refusesFirstResponder = false
+        applySettingsButtonTextBaseline(removeCustomKeyButton)
+        customAPIKeyRow = apiKeyControls(field: customAPIKeyField, removeButton: removeCustomKeyButton)
+        keychainNoteLabel = noteLabel("Custom endpoints must support OpenAI chat completions. API keys stay in Keychain; search for tools.min.langmin in Keychain Access to find them.")
+        // Keep advanced endpoint overrides blank unless the user supplies one.
+        advancedOpenAIEndpointField = plainTextField(placeholder: openAIResponsesEndpoint.absoluteString)
+        advancedAnthropicEndpointField = plainTextField(placeholder: anthropicMessagesEndpoint.absoluteString)
+        advancedGeminiEndpointField = plainTextField(placeholder: geminiAPIBaseURL)
+        advancedAnthropicVersionField = plainTextField(placeholder: anthropicAPIVersion)
+        settingsInfoTooltips[ObjectIdentifier(advancedAnthropicVersionField)] = "Anthropic API version header. Change it only if Anthropic asks for a newer version."
+        advancedAnthropicSearchToolField = plainTextField(placeholder: anthropicWebSearchToolType)
+        settingsInfoTooltips[ObjectIdentifier(advancedAnthropicSearchToolField)] = "Anthropic web-search type value. Change it only if Anthropic asks for a newer web search version."
+        // Provide an optional instruction editor below the endpoint settings.
+        let customInstructionsField = multilineField(
+            placeholder: "Optional. Added after built-in instructions.",
+            height: 46,
+            monospaced: false
+        )
+        advancedCustomInstructionsView = customInstructionsField.textView
+        advancedCustomInstructionsScroll = customInstructionsField.scroll
+        // Use fictional model IDs to demonstrate provider:label:model, provider:model and bare model
+        // formats.
+        let extraModelsField = multilineField(
+            placeholder: "gpt:Insider Preview:gpt-secret-model\nanthropic:claude-early-access\ngemini:gemini-experimental",
+            height: 60
+        )
+        advancedExtraModelsView = extraModelsField.textView
+        advancedExtraModelsScroll = extraModelsField.scroll
+        // Separate additional model definitions from custom instructions.
+        advancedInstructionsSeparatorRow = NSView()
+        advancedInstructionsSeparatorRow.translatesAutoresizingMaskIntoConstraints = false
+        advancedInstructionsSeparator = NativeSeparator()
+        advancedInstructionsSeparator.boxType = .separator
+        advancedInstructionsSeparator.translatesAutoresizingMaskIntoConstraints = false
+        advancedNoteLabel = noteLabel("Leave fields blank to use the built-in defaults.")
+        // Offer an interface-language choice with an explicit restart hint.
+        appLanguageBox = popupButton(items: appUILanguageOptions.map { $0.title })
+        appLanguageBox.target = self
+        appLanguageBox.action = #selector(appLanguageChanged(_:))
+        settingsInfoTooltips[ObjectIdentifier(appLanguageBox)] = "Choose the interface language, or follow macOS with System Default. Restart Langmin to apply a change."
+        windowShapeBox = popupButton(items: windowShapeOptions.map { $0.displayValue })
+        // Refresh narration choices when the preferred voice list changes.
+        voiceBox = MultiSelectReaderVoiceControl()
+        voiceBox.translatesAutoresizingMaskIntoConstraints = false
+        voiceBox.onSelectionChange = { [weak self] in
+            self?.rebuildNarrationDefaultMenu()
+            self?.rebuildDictionaryVoiceMenu()
+        }
+        settingsInfoTooltips[ObjectIdentifier(voiceBox)] = "Choose voices for narration and Dictionary. Select none to show all voices; click a heading to select its group. Apple voices run on your Mac. OpenAI and Grok voices require Pro and a provider API key."
+        fontSizeBox = popupButton(items: fontSizeOptions.map { $0.displayValue })
+
+        researchButton = FocusableButton(
+            checkboxWithTitle: localized("use_web_research", "Use web research when available"),
+            target: nil,
+            action: nil
+        )
+        researchButton.font = NSFont.systemFont(ofSize: 13)
+        researchButton.toolTip = "Let OpenAI, Anthropic, and Gemini search for current information"
+        researchButton.refusesFirstResponder = false
+
+        secretProtectionButton = FocusableButton(
+            checkboxWithTitle: localized("warn_before_secrets", "Warn before sending secrets"),
+            target: nil,
+            action: nil
+        )
+        secretProtectionButton.font = NSFont.systemFont(ofSize: 13)
+        secretProtectionButton.toolTip = "Warn before a remote AI provider receives text that looks like keys, tokens, passwords, or private keys"
+        secretProtectionButton.refusesFirstResponder = false
+
+        textWatermarkCleaningButton = FocusableButton(
+            checkboxWithTitle: "Clean generated text automatically",
+            target: nil,
+            action: nil
+        )
+        textWatermarkCleaningButton.font = NSFont.systemFont(ofSize: 13)
+        textWatermarkCleaningButton.toolTip = "Clean unwanted invisible characters on your Mac while preserving code, emoji, and writing-system controls"
+        textWatermarkCleaningButton.refusesFirstResponder = false
+
+        resetAIConsentButton = FocusableButton(
+            title: "Reset AI Permissions",
+            target: self,
+            action: #selector(resetAIConsents(_:))
+        )
+        resetAIConsentButton.toolTip = "Ask again before sending text to every remote AI provider"
+        resetAIConsentButton.refusesFirstResponder = false
+        applySettingsButtonTextBaseline(resetAIConsentButton)
+
+        resultDiffButton = FocusableButton(
+            checkboxWithTitle: "Show before and after changes",
+            target: nil,
+            action: nil
+        )
+        resultDiffButton.font = NSFont.systemFont(ofSize: 13)
+        resultDiffButton.toolTip = "Show a Result/Diff switch for proofreading and rewrite results"
+        resultDiffButton.refusesFirstResponder = false
+
+        resultToolbarSaveTextButton = FocusableButton(
+            checkboxWithTitle: "Save text",
+            target: nil,
+            action: nil
+        )
+        resultToolbarSaveTextButton.font = NSFont.systemFont(ofSize: 13)
+        resultToolbarSaveTextButton.toolTip = "Show the Save Text button in result windows"
+        resultToolbarSaveTextButton.refusesFirstResponder = false
+
+        resultToolbarSaveAudioButton = FocusableButton(
+            checkboxWithTitle: "Save audio",
+            target: nil,
+            action: nil
+        )
+        resultToolbarSaveAudioButton.font = NSFont.systemFont(ofSize: 13)
+        resultToolbarSaveAudioButton.toolTip = "Show the Save Audio button when result audio is available"
+        resultToolbarSaveAudioButton.refusesFirstResponder = false
+
+        resultToolbarCopyButton = FocusableButton(
+            checkboxWithTitle: "Copy",
+            target: nil,
+            action: nil
+        )
+        resultToolbarCopyButton.font = NSFont.systemFont(ofSize: 13)
+        resultToolbarCopyButton.toolTip = "Show the Copy button in result windows"
+        resultToolbarCopyButton.refusesFirstResponder = false
+
+        resultToolbarShareButton = FocusableButton(
+            checkboxWithTitle: "Share",
+            target: nil,
+            action: nil
+        )
+        resultToolbarShareButton.font = NSFont.systemFont(ofSize: 13)
+        resultToolbarShareButton.toolTip = "Show the Share button in result windows"
+        resultToolbarShareButton.refusesFirstResponder = false
+
+        resultToolbarNarrationButton = FocusableButton(
+            checkboxWithTitle: "Narration",
+            target: self,
+            action: #selector(dependentCheckboxToggled(_:))
+        )
+        resultToolbarNarrationButton.font = NSFont.systemFont(ofSize: 13)
+        resultToolbarNarrationButton.toolTip =
+            "Show the button for creating and playing narration"
+        resultToolbarNarrationButton.refusesFirstResponder = false
+
+        resultToolbarHighlightButton = FocusableButton(
+            checkboxWithTitle: "Highlight narration",
+            target: nil,
+            action: nil
+        )
+        resultToolbarHighlightButton.font = NSFont.systemFont(ofSize: 13)
+        resultToolbarHighlightButton.toolTip =
+            "Show the option to highlight each sentence as it is read aloud"
+        resultToolbarHighlightButton.refusesFirstResponder = false
+
+        resultToolbarStatsButton = FocusableButton(
+            checkboxWithTitle: "Model details",
+            target: self,
+            action: #selector(dependentCheckboxToggled(_:))
+        )
+        resultToolbarStatsButton.font = NSFont.systemFont(ofSize: 13)
+        resultToolbarStatsButton.toolTip =
+            "Show the text model and narration voice in the result toolbar"
+        resultToolbarStatsButton.refusesFirstResponder = false
+
+        resultStatsTTSButton = FocusableButton(
+            checkboxWithTitle: "Include speech model",
+            target: nil,
+            action: nil
+        )
+        resultStatsTTSButton.font = NSFont.systemFont(ofSize: 13)
+        resultStatsTTSButton.toolTip =
+            "Show the speech model in the toolbar when narration is available"
+        resultStatsTTSButton.refusesFirstResponder = false
+
+        rememberChoicesButton = FocusableButton(
+            checkboxWithTitle: localized("remember_choices", "Remember choices"),
+            target: nil,
+            action: nil
+        )
+        rememberChoicesButton.font = NSFont.systemFont(ofSize: 13)
+        rememberChoicesButton.toolTip = "Reuse the launcher's last choices when it opens"
+        rememberChoicesButton.refusesFirstResponder = false
+
+        clearInputAfterSubmitButton = FocusableButton(
+            checkboxWithTitle: localized("clear_after_submit", "Clear after submit"),
+            target: nil,
+            action: nil
+        )
+        clearInputAfterSubmitButton.font = NSFont.systemFont(ofSize: 13)
+        clearInputAfterSubmitButton.toolTip = "Clear submitted text from the launcher window after a result opens"
+        clearInputAfterSubmitButton.refusesFirstResponder = false
+
+        menuBarButton = FocusableButton(checkboxWithTitle: localized("show_langmin_in_the_menu_bar", "Show Langmin in the menu bar"), target: nil, action: nil)
+        menuBarButton.font = NSFont.systemFont(ofSize: 13)
+        menuBarButton.refusesFirstResponder = false
+
+        // Apply login-item changes immediately and read back the system status; this is not a saved app
+        // preference.
+        launchAtLoginButton = FocusableButton(
+            checkboxWithTitle: localized("open_langmin_at_login", "Open Langmin at login"),
+            target: self,
+            action: #selector(toggleLaunchAtLogin(_:))
+        )
+        launchAtLoginButton.font = NSFont.systemFont(ofSize: 13)
+        launchAtLoginButton.refusesFirstResponder = false
+        launchAtLoginButton.toolTip = "Open Langmin at login so its shortcuts and menu-bar actions are available"
+
+        shortcutButtons = [:]
+        // Build one recorder for each configurable shortcut action.
+        for action in configurableShortcutActions {
+            let button = ShortcutRecorderButton(title: "None", target: nil, action: nil)
+            button.bezelStyle = .rounded
+            button.font = NSFont.monospacedSystemFont(ofSize: 13, weight: .medium)
+            button.translatesAutoresizingMaskIntoConstraints = false
+            button.widthAnchor.constraint(equalToConstant: 170).isActive = true
+            button.heightAnchor.constraint(equalToConstant: 28).isActive = true
+            shortcutButtons[action] = button
+        }
+
+        narrateBeforeOpenBox = FocusablePopUpButton(frame: .zero, pullsDown: false)
+        narrateBeforeOpenBox.bezelStyle = .rounded
+        narrateBeforeOpenBox.controlSize = .regular
+        narrateBeforeOpenBox.font = NSFont.systemFont(ofSize: 13)
+        narrateBeforeOpenBox.menu = makeReaderChoiceMenu()
+        narrateBeforeOpenBox.refusesFirstResponder = false
+        narrateBeforeOpenBox.translatesAutoresizingMaskIntoConstraints = false
+        settingsInfoTooltips[ObjectIdentifier(narrateBeforeOpenBox)] = "Create narration before showing a result. Choose None to add audio later. This list uses your Reader Voices selection."
+
+        dictionaryVoiceBox = FocusablePopUpButton(frame: .zero, pullsDown: false)
+        dictionaryVoiceBox.bezelStyle = .rounded
+        dictionaryVoiceBox.controlSize = .regular
+        dictionaryVoiceBox.font = NSFont.systemFont(ofSize: 13)
+        dictionaryVoiceBox.menu = makeReaderChoiceMenu()
+        dictionaryVoiceBox.refusesFirstResponder = false
+        dictionaryVoiceBox.translatesAutoresizingMaskIntoConstraints = false
+        settingsInfoTooltips[ObjectIdentifier(dictionaryVoiceBox)] = "Choose a voice for Dictionary words and examples. Use one that supports the language. With None selected, a speaker button opens the voice picker. This list uses your Reader Voices selection."
+
+        autoNarrateModeButtons = [:]
+        // Create independent automatic-narration toggles for supported result modes.
+        for option in autoNarrateModeOptions {
+            let button = FocusableButton(checkboxWithTitle: option.title, target: nil, action: nil)
+            button.font = NSFont.systemFont(ofSize: 13)
+            button.refusesFirstResponder = false
+            autoNarrateModeButtons[option.id] = button
+        }
+
+        let sidebar = settingsSidebar()
+        tabView = NSTabView()
+        tabView.tabViewType = .noTabsNoBorder
+        sectionHeading = NSTextField(labelWithString: selectedSection.title)
+        SettingsLayout.install(sidebar: sidebar, page: tabView, heading: sectionHeading, in: contentView)
+
+        settingsInfoTooltips[ObjectIdentifier(researchButton)] = "Search for current information and cite sources with OpenAI, Anthropic, or Gemini. Other text providers do not support web research."
+        settingsInfoTooltips[ObjectIdentifier(secretProtectionButton)] = "Warn before sending text that may contain API keys, tokens, passwords, or private keys to a remote provider."
+        settingsInfoTooltips[ObjectIdentifier(textWatermarkCleaningButton)] = "Remove unwanted invisible characters from generated text on your Mac. Preserve code, emoji, and writing-system controls. This does not remove every kind of AI watermark."
+        settingsInfoTooltips[ObjectIdentifier(rememberChoicesButton)] = "Keep your last mode, style, and language choices when the launcher reopens."
+        settingsInfoTooltips[ObjectIdentifier(clearInputAfterSubmitButton)] = "Clear the input after a successful request. Cancelled or failed requests keep their text."
+        proStatusLabel = NSTextField(labelWithString: "")
+        proStatusLabel.font = NSFont.systemFont(ofSize: 13)
+        proStatusLabel.lineBreakMode = .byTruncatingTail
+        settingsInfoTooltips[ObjectIdentifier(proStatusLabel)] = "Pro adds cloud models, web research, Library folders, iCloud Library sync, cloud voices, OpenAI transcription, and OpenAI illustrations. Purchase and restore actions remain available from the Pro window."
+        NotificationCenter.default.addObserver(self, selector: #selector(proEntitlementChanged(_:)), name: ProStore.entitlementDidChange, object: nil)
+        refreshProRow()
+
+        // Keep run options in the launcher menus and app-wide options in Settings.
+        iCloudButton = FocusableButton(title: "iCloud Sync…", target: self, action: #selector(showLibrarySync(_:)))
+        var generalRows: [(String, NSView)] = [
+            (String(format: localized("pro_title", "%@ Pro"), appName), proStatusLabel),
+        ]
+        generalRows.append((localized("library", "Library"), iCloudButton))
+        generalRows.append((localized("row_app_language", "App Language"), appLanguageBox))
+        // Keep provider controls available in both source and App Store builds.
+        generalRows += [
+            (localized("row_online_research", "Online Research"), researchButton),
+            (localized("row_secret_protection", "Secret Protection"), secretProtectionButton),
+        ]
+        generalRows += [
+            ("Text Cleanup", textWatermarkCleaningButton),
+            (localized("row_launcher_window", "Launcher Window"), rememberChoicesButton),
+            ("", clearInputAfterSubmitButton)
+        ]
+        addSettingsTab(.general, rows: generalRows)
+        // Group menu-bar, login, and clipboard shortcut controls together.
+        addSettingsTab(.shortcuts, rows: [
+            ("Menu Bar", menuBarButton),
+            ("Login Item", launchAtLoginButton),
+            ("Library", shortcutButtons["library"]!),
+            ("Open Clipboard", shortcutButtons["compose"]!),
+            ("Proofread Clipboard", shortcutButtons["proofread"]!),
+            ("Rewrite Clipboard", shortcutButtons["rewrite"]!),
+            ("Explain Clipboard", shortcutButtons["explain"]!),
+            ("Summarize Clipboard", shortcutButtons["summarize"]!),
+            ("Translate Clipboard", shortcutButtons["translate"]!),
+            ("Dictionary Clipboard", shortcutButtons["dictionary"]!)
+        ])
+        // Keep provider credentials and custom endpoint details on the Models
+        // page.
+        addSettingsTab(.models, rows: [
+            ("OpenAI API Key", apiKeyRow),
+            ("Anthropic API Key", anthropicAPIKeyRow),
+            ("Gemini API Key", geminiAPIKeyRow),
+            ("xAI API Key", grokAPIKeyRow),
+            ("DeepSeek API Key", deepSeekAPIKeyRow),
+            ("Custom Name", customDisplayNameField),
+            ("Custom URL", customBaseURLField),
+            ("Custom Model", customModelField),
+            ("Custom API Key", customAPIKeyRow),
+            ("Keychain", keychainNoteLabel)
+        ])
+        // Split automatic narration choices into two short rows.
+        let autoNarrateModeButtonsOrdered = autoNarrateModeOptions.compactMap { autoNarrateModeButtons[$0.id] }
+        let autoNarrateModesRow1 = NSStackView(views: Array(autoNarrateModeButtonsOrdered.prefix(3)))
+        autoNarrateModesRow1.orientation = .horizontal
+        autoNarrateModesRow1.spacing = 16
+        let autoNarrateModesRow2 = NSStackView(views: Array(autoNarrateModeButtonsOrdered.dropFirst(3)))
+        autoNarrateModesRow2.orientation = .horizontal
+        autoNarrateModesRow2.spacing = 16
+        addSettingsTab(.reading, rows: [
+            ("Reader Voices", voiceBox),
+            ("Auto-Narrate", narrateBeforeOpenBox),
+            ("Apply To", autoNarrateModesRow1),
+            ("", autoNarrateModesRow2),
+            ("Dictionary Voice", dictionaryVoiceBox)
+        ])
+        // Give transcription and illustration providers their own settings
+        // pages.
+        illustrationSettings = DictionaryIllustrationSettingsControls()
+        transcriptionSettings = TranscriptionSettingsControls()
+        addSettingsTab(.transcription, rows: transcriptionSettings.rows)
+        addSettingsTab(.illustrations, rows: illustrationSettings.rows)
+        // Dependent checkboxes sit inline with their parent toggle; the parent
+        // hides them when unchecked (see dependentCheckboxToggled).
+        let statsOptionsRow = NSStackView(views: [resultToolbarStatsButton, resultStatsTTSButton])
+        statsOptionsRow.orientation = .horizontal
+        statsOptionsRow.spacing = 16
+        let narrationOptionsRow = NSStackView(views: [resultToolbarNarrationButton, resultToolbarHighlightButton])
+        narrationOptionsRow.orientation = .horizontal
+        narrationOptionsRow.spacing = 16
+        // Group result appearance and toolbar visibility controls on the Window
+        // page.
+        addSettingsTab(.window, rows: [
+            ("Window Shape", windowShapeBox),
+            ("Window Text Size", fontSizeBox),
+            ("Details", statsOptionsRow),
+            ("Toolbar", resultToolbarSaveTextButton),
+            ("", resultToolbarSaveAudioButton),
+            ("", resultToolbarCopyButton),
+            ("", resultToolbarShareButton),
+            ("", narrationOptionsRow),
+            ("", resultDiffButton)
+        ])
+        // Keep endpoint overrides and custom instructions on the Advanced page.
+        addSettingsTab(.advanced, rows: [
+            ("OpenAI Endpoint", advancedOpenAIEndpointField),
+            ("Anthropic Endpoint", advancedAnthropicEndpointField),
+            ("Gemini Endpoint", advancedGeminiEndpointField),
+            ("Anthropic Version", advancedAnthropicVersionField),
+            ("Anthropic Search Tool", advancedAnthropicSearchToolField),
+            ("Extra Models", advancedExtraModelsScroll),
+            ("", advancedNoteLabel),
+            ("", advancedInstructionsSeparatorRow),
+            ("Custom Instructions", advancedCustomInstructionsScroll)
+        ])
+        tabView.selectTabViewItem(withIdentifier: selectedSection.rawValue)
+
+        resetButton = FocusableButton(title: localized("reset_defaults", "Reset Defaults"), target: self, action: #selector(resetDefaults(_:)))
+        cancelButton = FocusableButton(title: localized("cancel", "Cancel"), target: self, action: #selector(cancel(_:)))
+        saveButton = FocusableButton(title: localized("save", "Save"), target: self, action: #selector(save(_:)))
+        saveButton.keyEquivalent = "\r"
+        saveButton.bezelStyle = .rounded
+        applySettingsButtonTextBaseline(resetButton)
+        applySettingsButtonTextBaseline(cancelButton)
+        applySettingsButtonTextBaseline(saveButton, color: .white)
+        resetButton.refusesFirstResponder = false
+        cancelButton.refusesFirstResponder = false
+        saveButton.refusesFirstResponder = false
+
+        resetButton.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(resetButton)
+
+        // Place Reset AI Permissions with the Models footer actions.
+        resetAIConsentButton.translatesAutoresizingMaskIntoConstraints = false
+        resetAIConsentButton.isHidden = selectedSection != .models
+        contentView.addSubview(resetAIConsentButton)
+
+        let buttons = NSStackView(views: [cancelButton, saveButton])
+        buttons.orientation = .horizontal
+        buttons.alignment = .centerY
+        buttons.spacing = 10
+        buttons.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(buttons)
+        SettingsLayout.installFooter(reset: resetButton, permissions: resetAIConsentButton, actions: buttons, page: tabView, in: contentView)
+
+        window.initialFirstResponder = preferencesFocusViews().first
+        configureFocusHandlers()
+
+        NSLayoutConstraint.activate([
+            // Set explicit content dimensions so AppKit's fitting-size calculation cannot collapse the
+            // window.
+            contentView.widthAnchor.constraint(equalToConstant: Self.contentSize.width),
+            contentView.heightAnchor.constraint(equalToConstant: Self.contentSize.height),
+
+            // Set widths per control. Views on different NSTabView pages may have no common
+            // ancestor, so constraints between them can fail.
+            apiKeyRow.widthAnchor.constraint(equalToConstant: 330),
+            customDisplayNameField.widthAnchor.constraint(equalToConstant: 330),
+            customBaseURLField.widthAnchor.constraint(equalToConstant: 330),
+            customModelField.widthAnchor.constraint(equalToConstant: 330),
+            customAPIKeyRow.widthAnchor.constraint(equalToConstant: 330),
+            anthropicAPIKeyRow.widthAnchor.constraint(equalToConstant: 330),
+            geminiAPIKeyRow.widthAnchor.constraint(equalToConstant: 330),
+            grokAPIKeyRow.widthAnchor.constraint(equalToConstant: 330),
+            deepSeekAPIKeyRow.widthAnchor.constraint(equalToConstant: 330),
+            keychainNoteLabel.widthAnchor.constraint(equalToConstant: 330),
+            advancedOpenAIEndpointField.widthAnchor.constraint(equalToConstant: 330),
+            advancedAnthropicEndpointField.widthAnchor.constraint(equalToConstant: 330),
+            advancedGeminiEndpointField.widthAnchor.constraint(equalToConstant: 330),
+            advancedAnthropicVersionField.widthAnchor.constraint(equalToConstant: 306),
+            advancedAnthropicSearchToolField.widthAnchor.constraint(equalToConstant: 306),
+            advancedCustomInstructionsScroll.widthAnchor.constraint(equalToConstant: 330),
+            advancedExtraModelsScroll.widthAnchor.constraint(equalToConstant: 330),
+            advancedInstructionsSeparatorRow.widthAnchor.constraint(equalToConstant: 330),
+            advancedInstructionsSeparatorRow.heightAnchor.constraint(equalToConstant: 1),
+            advancedNoteLabel.widthAnchor.constraint(equalToConstant: 330),
+            windowShapeBox.widthAnchor.constraint(equalToConstant: 330),
+            voiceBox.widthAnchor.constraint(equalToConstant: 330),
+            narrateBeforeOpenBox.widthAnchor.constraint(equalToConstant: 330),
+            dictionaryVoiceBox.widthAnchor.constraint(equalToConstant: 330),
+            fontSizeBox.widthAnchor.constraint(equalToConstant: 76)
+        ])
+
+        self.window = window
+    }
+
+    // settingsSidebar(): Give every section the same padded row, sized for the
+    // longest translated label.
+    func settingsSidebar() -> NSView {
+        sectionButtons.removeAll()
+
+        let stack = NSStackView()
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 4
+        stack.translatesAutoresizingMaskIntoConstraints = false
+
+        // Build Settings navigation in the declared section order.
+        for section in PreferencesSection.allCases {
+            let button = SettingsSidebarButton(
+                title: section.title,
+                symbolName: section.symbolName,
+                target: self,
+                action: #selector(selectPreferencesSection(_:))
+            )
+            button.tag = PreferencesSection.allCases.firstIndex(of: section) ?? 0
+            button.state = section == selectedSection ? .on : .off
+            button.translatesAutoresizingMaskIntoConstraints = false
+            stack.addArrangedSubview(button)
+            sectionButtons[section] = button
+
+            NSLayoutConstraint.activate([
+                button.widthAnchor.constraint(equalToConstant: SettingsLayout.rowWidth),
+                button.heightAnchor.constraint(equalToConstant: 36)
+            ])
+        }
+
+        return stack
+    }
+
+    // refreshProRow(): Show the current trial, purchase, or free-access state.
+    func refreshProRow() {
+        // Skip purchase-status updates before the status label exists.
+        guard proStatusLabel != nil else {
+            return
+        }
+        proStatusLabel.stringValue = ProStore.shared.statusText()
+    }
+
+    // proEntitlementChanged(notification): Refresh the Settings access status
+    // when the verified Pro state changes.
+    @objc func proEntitlementChanged(_ notification: Notification) {
+        refreshProRow()
+    }
+
+    // addSettingsTab(section, rows): Add one hidden NSTabView page for a
+    // Settings section.
+    func addSettingsTab(_ section: PreferencesSection, rows: [(String, NSView)]) {
+        let item = NSTabViewItem(identifier: section.rawValue)
+        item.label = section.title
+        item.view = settingsSectionView(rows: rows)
+        tabView.addTabViewItem(item)
+    }
+
+    // settingsSeparatorRow(): Create a fixed-height separator row sized for the
+    // Settings form.
+    func settingsSeparatorRow() -> NSView {
+        let row = NSView()
+        row.translatesAutoresizingMaskIntoConstraints = false
+        row.widthAnchor.constraint(equalToConstant: 330).isActive = true
+        row.heightAnchor.constraint(equalToConstant: 1).isActive = true
+
+        let separator = NativeSeparator()
+        separator.boxType = .separator
+        separator.translatesAutoresizingMaskIntoConstraints = false
+        settingsSeparators[ObjectIdentifier(row)] = separator
+        return row
+    }
+
+    // settingsSectionView(rows): Build the form for one Settings section.
+    func settingsSectionView(rows: [(String, NSView)]) -> NSView {
+        let view = NSView()
+        let grid = NSGridView(views: rows.map { [label($0.0), $0.1] })
+        // Choose vertical alignment for each form row according to its control layout.
+        for rowIndex in 0..<grid.numberOfRows {
+            let control = rows[rowIndex].1
+            let isVerticalStack = (control as? NSStackView)?.orientation == .vertical
+            let isWrappingNote = (control as? NSTextField)?.maximumNumberOfLines == 0
+            let isScrollView = control is NSScrollView
+            // Align tall or wrapping controls with the top of their labels.
+            if isVerticalStack || isWrappingNote || isScrollView {
+                grid.row(at: rowIndex).yPlacement = .top
+            } else {
+                // Center ordinary single-line controls beside their labels.
+                grid.row(at: rowIndex).yPlacement = .center
+            }
+        }
+        grid.columnSpacing = 16
+        grid.rowSpacing = 10
+        grid.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(grid)
+
+        NSLayoutConstraint.activate([
+            grid.topAnchor.constraint(equalTo: view.topAnchor, constant: 28),
+            grid.leadingAnchor.constraint(equalTo: view.leadingAnchor)
+        ])
+
+        // Attach full-width separators outside the form grid's control column.
+        for (_, control) in rows {
+            let separator = control === advancedInstructionsSeparatorRow
+                ? advancedInstructionsSeparator
+                : settingsSeparators[ObjectIdentifier(control)]
+            // Rows without a registered separator need no extra decoration.
+            guard let separator else {
+                continue
+            }
+            view.addSubview(separator)
+            NSLayoutConstraint.activate([
+                separator.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                separator.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+                separator.centerYAnchor.constraint(equalTo: control.centerYAnchor),
+                separator.heightAnchor.constraint(equalToConstant: 1)
+            ])
+        }
+
+        // Place help icons outside the grid to keep control widths aligned.
+        for (_, control) in rows {
+            // Add help icons only to controls with explanatory tooltip text.
+            guard let tooltip = settingsInfoTooltips[ObjectIdentifier(control)] else {
+                continue
+            }
+            let info = TooltipInfoLabel()
+            info.tooltipMessage = tooltip
+            info.tooltipYOffset = 8
+            info.tooltipAnchorXOffset = 0
+            info.tooltipExtraXShift = 9
+            info.translatesAutoresizingMaskIntoConstraints = false
+            view.addSubview(info)
+            NSLayoutConstraint.activate([
+                info.leadingAnchor.constraint(equalTo: control.trailingAnchor, constant: 8),
+                info.widthAnchor.constraint(equalToConstant: 16),
+                info.centerYAnchor.constraint(equalTo: control.centerYAnchor)
+            ])
+        }
+
+        return view
+    }
+
+    // apiKeyControls(field, removeButton): Keep an API-key field and its
+    // removal action aligned in one row.
+    func apiKeyControls(field: NSSecureTextField, removeButton: NSButton) -> NSStackView {
+        let stack = NSStackView(views: [field, removeButton])
+        stack.orientation = .horizontal
+        stack.alignment = .centerY
+        stack.spacing = 8
+        stack.distribution = .fill
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        field.translatesAutoresizingMaskIntoConstraints = false
+        removeButton.translatesAutoresizingMaskIntoConstraints = false
+        field.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        field.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        removeButton.setContentHuggingPriority(.required, for: .horizontal)
+        removeButton.setContentCompressionResistancePriority(.required, for: .horizontal)
+        removeButton.widthAnchor.constraint(equalToConstant: 72).isActive = true
+        return stack
+    }
+
+    // noteLabel(text): Create subdued, wrapping explanatory text for Settings
+    // controls.
+    func noteLabel(_ text: String) -> NSTextField {
+        let field = NSTextField(wrappingLabelWithString: text)
+        field.font = NSFont.systemFont(ofSize: 11)
+        field.textColor = .secondaryLabelColor
+        field.lineBreakMode = .byWordWrapping
+        field.maximumNumberOfLines = 0
+        field.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        return field
+    }
+
+
+    // selectPreferencesSection(sender): Switch pages from the sidebar and move
+    // focus into that page.
+    @objc func selectPreferencesSection(_ sender: NSButton) {
+        // Reject an invalid tab index before selecting a Settings section.
+        guard sender.tag >= 0, sender.tag < PreferencesSection.allCases.count else {
+            return
+        }
+
+        let section = PreferencesSection.allCases[sender.tag]
+        selectedSection = section
+        logicalFocusIndex = 0
+        tabView.selectTabViewItem(withIdentifier: section.rawValue)
+        syncSectionButtonStates()
+
+        // Configure key fields only when Models opens. Avoid Keychain reads, which may trigger access
+        // prompts.
+        if section == .models {
+            updateAPIKeyPlaceholders()
+        }
+
+        // Move keyboard focus into the selected page when it has a focusable control.
+        if let firstView = preferencesFocusViews().first {
+            window?.makeFirstResponder(firstView)
+        }
+    }
+
+    // syncSectionButtonStates(): Keep the sidebar selection and page heading in
+    // sync.
+    func syncSectionButtonStates() {
+        sectionHeading?.stringValue = selectedSection.title
+        // Keep navigation button selection consistent with the visible Settings page.
+        for (section, button) in sectionButtons {
+            button.state = section == selectedSection ? .on : .off
+        }
+        resetAIConsentButton?.isHidden = selectedSection != .models
+    }
+
+    // label(title): Build a right-aligned form label.
+    func label(_ title: String) -> NSTextField {
+        let field = NSTextField(labelWithString: title)
+        field.alignment = .right
+        field.font = NSFont.systemFont(ofSize: 13, weight: .medium)
+        field.textColor = .secondaryLabelColor
+        return field
+    }
+
+    // secureTextField(): Build a secure field that never pre-fills the stored
+    // secret.
+    func secureTextField() -> NSSecureTextField {
+        let field = NSSecureTextField()
+        field.delegate = self
+        field.font = NSFont.systemFont(ofSize: 14)
+        field.placeholderString = "Paste key to save or replace"
+        field.usesSingleLineMode = true
+        field.translatesAutoresizingMaskIntoConstraints = false
+        field.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        return field
+    }
+
+    // plainTextField(placeholder): Create a Settings text field with a
+    // placeholder and shared delegate handling.
+    func plainTextField(placeholder: String) -> NSTextField {
+        let field = NSTextField()
+        field.delegate = self
+        field.font = NSFont.systemFont(ofSize: 14)
+        field.placeholderString = placeholder
+        field.usesSingleLineMode = true
+        field.translatesAutoresizingMaskIntoConstraints = false
+        field.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        return field
+    }
+
+    // multilineField(placeholder, [height = 84], [monospaced = true]): Return a
+    // scrollable editor and its text view for multiline settings.
+    func multilineField(
+        placeholder: String,
+        height: CGFloat = 84,
+        monospaced: Bool = true
+    ) -> (scroll: NSScrollView, textView: NSTextView) {
+        let scroll = NSScrollView()
+        scroll.translatesAutoresizingMaskIntoConstraints = false
+        scroll.hasVerticalScroller = true
+        scroll.borderType = .bezelBorder
+        scroll.heightAnchor.constraint(equalToConstant: height).isActive = true
+
+        let contentSize = scroll.contentSize
+        let textView = PlaceholderTextView(frame: NSRect(origin: .zero, size: contentSize))
+        textView.placeholderString = placeholder
+        textView.isRichText = false
+        textView.font = monospaced
+            ? NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
+            : NSFont.systemFont(ofSize: 12, weight: .regular)
+        textView.isAutomaticQuoteSubstitutionEnabled = false
+        textView.isAutomaticDashSubstitutionEnabled = false
+        textView.isAutomaticTextReplacementEnabled = false
+        textView.isAutomaticSpellingCorrectionEnabled = false
+        textView.isContinuousSpellCheckingEnabled = false
+        textView.textContainerInset = NSSize(width: 4, height: 6)
+        textView.minSize = NSSize(width: 0, height: 0)
+        textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+        textView.isVerticallyResizable = true
+        textView.isHorizontallyResizable = false
+        textView.autoresizingMask = [.width]
+        textView.textContainer?.containerSize = NSSize(width: contentSize.width, height: CGFloat.greatestFiniteMagnitude)
+        textView.textContainer?.widthTracksTextView = true
+
+        scroll.documentView = textView
+        return (scroll, textView)
+    }
+
+    // popupButton(items): Build a native popup picker for fixed preference
+    // choices.
+    func popupButton(items: [String]) -> NSPopUpButton {
+        let button = FocusablePopUpButton(frame: .zero, pullsDown: false)
+        button.addItems(withTitles: items)
+        button.bezelStyle = .rounded
+        button.controlSize = .regular
+        button.font = NSFont.systemFont(ofSize: 13)
+        button.itemArray.forEach { item in
+            item.attributedTitle = settingsControlTitle(item.title, font: button.font ?? NSFont.systemFont(ofSize: 13))
+        }
+        button.refusesFirstResponder = false
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
+    }
+
+    // settingsControlTitle(title, font, [color = .labelColor]): Raise control
+    // text slightly to align with its label, keeping control bounds unchanged.
+    func settingsControlTitle(_ title: String, font: NSFont, color: NSColor = .labelColor) -> NSAttributedString {
+        NSAttributedString(
+            string: title,
+            attributes: [
+                .font: font,
+                .foregroundColor: color,
+                .baselineOffset: 1
+            ]
+        )
+    }
+
+    // liveCustomModelName(): Live custom name from the field (empty until
+    // populateFields runs).
+    func liveCustomModelName() -> String {
+        customDisplayNameField?.stringValue ?? ""
+    }
+
+    // refreshSettingsModelOptions(): The launcher reads its model list from
+    // preferences. Saving Settings refreshes custom model names there.
+    func refreshSettingsModelOptions() {}
+
+    // refreshVoiceMenu(): Reload voice choices and retain valid selections.
+    func refreshVoiceMenu() {
+        // Refresh voice sections only after the voice selector has been built.
+        guard voiceBox != nil else { return }
+        voiceBox.reloadSections()
+        rebuildNarrationDefaultMenu()
+        rebuildDictionaryVoiceMenu()
+    }
+
+    // rebuildNarrationDefaultMenu(): Filter default narration voices by the
+    // shortlist. Preserve the selected voice or fall back to None.
+    func rebuildNarrationDefaultMenu() {
+        // Rebuild pre-open narration choices only when both selectors exist.
+        guard narrateBeforeOpenBox != nil, voiceBox != nil else { return }
+        let current = selectedReaderChoiceID(narrateBeforeOpenBox)
+        narrateBeforeOpenBox.menu = makeReaderChoiceMenu(allowed: voiceBox.selectedIDs)
+        selectReaderChoice(narrateBeforeOpenBox, id: current)
+    }
+
+    // rebuildDictionaryVoiceMenu(): Same, for the Dictionary Voice picker.
+    func rebuildDictionaryVoiceMenu() {
+        // Preserve dictionary voice selection while refreshing available voice choices.
+        guard dictionaryVoiceBox != nil, voiceBox != nil else { return }
+        let current = selectedReaderChoiceID(dictionaryVoiceBox)
+        dictionaryVoiceBox.menu = makeReaderChoiceMenu(allowed: voiceBox.selectedIDs)
+        selectReaderChoice(dictionaryVoiceBox, id: current)
+    }
+
+    // controlTextDidChange(obj): Enable Custom Endpoint when a model name is
+    // first entered and remove it when cleared. Later edits preserve explicit
+    // deselection.
+    func controlTextDidChange(_ obj: Notification) {
+        // React only to text-field editing notifications.
+        guard let field = obj.object as? NSTextField else { return }
+        // Refresh model labels as the custom display name changes.
+        if field === customDisplayNameField {
+            refreshSettingsModelOptions()
+            return
+        }
+        // Only the custom model identifier changes whether the custom model is configured.
+        guard field === customModelField else { return }
+        let isConfigured = !field.stringValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        // Avoid changing the model shortlist when configuration availability is unchanged.
+        guard isConfigured != customModelWasConfigured else { return }
+        customModelWasConfigured = isConfigured
+        // Update custom model availability without replacing the saved model list.
+        var preferences = loadAppPreferences()
+        // Make a newly configured custom model available in the preferred-model list.
+        if isConfigured {
+            // Append the custom choice only if it is not already present.
+            if !preferences.preferredTextModels.contains(customModelID) {
+                preferences.preferredTextModels.append(customModelID)
+            }
+        } else {
+            // Remove an unconfigured custom model from preferred choices.
+            preferences.preferredTextModels.removeAll { $0 == customModelID }
+        }
+        saveAppPreferences(preferences)
+    }
+
+    // applySettingsButtonTextBaseline(button, [color = .labelColor]): Apply the
+    // Settings button's optical text baseline and requested title color.
+    func applySettingsButtonTextBaseline(_ button: NSButton?, color: NSColor = .labelColor) {
+        // Text-baseline styling has no work when the optional button is absent.
+        guard let button else {
+            return
+        }
+
+        let font = button.font ?? NSFont.systemFont(ofSize: NSFont.systemFontSize)
+        button.attributedTitle = settingsControlTitle(button.title, font: font, color: color)
+    }
+
+    // configureFocusHandlers(): Apply the same focus behavior to every control
+    // in Settings.
+    func configureFocusHandlers() {
+        // Install focus tracking on all controls that can appear in Settings.
+        for view in allPreferencesFocusViews() {
+            let focusHandler: () -> Void = { [weak self, weak view] in
+                // Resolve the control's index against the currently visible focus order.
+                guard
+                    let self,
+                    let view,
+                    let index = self.preferencesFocusViews().firstIndex(where: { $0 === view })
+                // Ignore focus callbacks for released or currently excluded controls.
+                else {
+                    return
+                }
+
+                self.logicalFocusIndex = index
+            }
+
+            // Pop-up controls report focus through their shared focus callback.
+            if let popup = view as? FocusablePopUpButton {
+                popup.focusHandler = focusHandler
+            } else if let button = view as? FocusableButton {
+                // Buttons use the same logical focus tracking as pop-up controls.
+                button.focusHandler = focusHandler
+            } else if let button = view as? SettingsSidebarButton {
+                // Sidebar rows join the same Tab cycle as the form and footer.
+                button.focusHandler = focusHandler
+            }
+        }
+    }
+
+    // allPreferencesFocusViews(): Every Settings control that can participate
+    // in keyboard focus.
+    func allPreferencesFocusViews() -> [NSView] {
+        let head: [NSView] = [
+            iCloudButton,
+            menuBarButton,
+            launchAtLoginButton,
+            appLanguageBox,
+            researchButton,
+            secretProtectionButton,
+            textWatermarkCleaningButton,
+            resetAIConsentButton,
+            rememberChoicesButton,
+            clearInputAfterSubmitButton,
+            apiKeyField,
+            removeOpenAIKeyButton,
+            anthropicAPIKeyField,
+            removeAnthropicKeyButton,
+            geminiAPIKeyField,
+            removeGeminiKeyButton,
+            grokAPIKeyField,
+            removeGrokKeyButton,
+            deepSeekAPIKeyField,
+            removeDeepSeekKeyButton,
+            customDisplayNameField,
+            customBaseURLField,
+            customModelField,
+            customAPIKeyField,
+            removeCustomKeyButton,
+            voiceBox,
+            narrateBeforeOpenBox
+        ]
+        let modeButtons: [NSView] = autoNarrateModeOptions.compactMap { autoNarrateModeButtons[$0.id] as NSView? }
+        let tail: [NSView] = [
+            dictionaryVoiceBox,
+            illustrationSettings.providerBox,
+            illustrationSettings.automaticButton,
+            transcriptionSettings.providerBox,
+            transcriptionSettings.languageBox,
+            windowShapeBox,
+            fontSizeBox,
+            resultToolbarStatsButton,
+            resultStatsTTSButton,
+            resultToolbarSaveTextButton,
+            resultToolbarSaveAudioButton,
+            resultToolbarCopyButton,
+            resultToolbarShareButton,
+            resultToolbarNarrationButton,
+            resultToolbarHighlightButton,
+            resultDiffButton,
+            advancedOpenAIEndpointField,
+            advancedAnthropicEndpointField,
+            advancedGeminiEndpointField,
+            advancedAnthropicVersionField,
+            advancedAnthropicSearchToolField,
+            advancedExtraModelsView,
+            advancedCustomInstructionsView,
+            resetButton,
+            cancelButton,
+            saveButton
+        ]
+        let shortcuts: [NSView] = configurableShortcutActions
+            .compactMap { shortcutButtons[$0] }
+        return head + shortcuts + modeButtons + tail + PreferencesSection.allCases.compactMap { sectionButtons[$0] }
+    }
+
+    // preferencesFocusViews(): Keep Settings order independent of the visible
+    // tab and button stack.
+    func preferencesFocusViews() -> [NSView] {
+        let sectionViews: [NSView]
+
+        // Build the keyboard focus order from the active Settings section.
+        switch selectedSection {
+        // General follows the displayed order of common app controls.
+        case .general:
+            sectionViews = [
+                iCloudButton,
+                appLanguageBox,
+                researchButton,
+                secretProtectionButton,
+                textWatermarkCleaningButton,
+                rememberChoicesButton,
+                clearInputAfterSubmitButton
+            ]
+        // Shortcut recorders follow the menu-bar and login controls.
+        case .shortcuts:
+            sectionViews = [menuBarButton, launchAtLoginButton] + configurableShortcutActions
+                .compactMap { shortcutButtons[$0] }
+        // Model settings include provider, model, and credential controls.
+        case .models:
+            sectionViews = [
+                apiKeyField,
+                removeOpenAIKeyButton,
+                anthropicAPIKeyField,
+                removeAnthropicKeyButton,
+                geminiAPIKeyField,
+                removeGeminiKeyButton,
+                grokAPIKeyField,
+                removeGrokKeyButton,
+                deepSeekAPIKeyField,
+                removeDeepSeekKeyButton,
+                customDisplayNameField,
+                customBaseURLField,
+                customModelField,
+                customAPIKeyField,
+                removeCustomKeyButton
+            ]
+        // Reading starts with voice choices before the per-mode narration toggles.
+        case .reading:
+            sectionViews = [voiceBox, narrateBeforeOpenBox]
+                + autoNarrateModeOptions.compactMap { autoNarrateModeButtons[$0.id] as NSView? }
+                + [dictionaryVoiceBox]
+        // Illustration settings supply their own ordered focusable controls.
+        case .illustrations:
+            sectionViews = illustrationSettings.focusViews
+        // Audio-import controls supply their provider-dependent keyboard order.
+        case .transcription:
+            sectionViews = transcriptionSettings.focusViews
+        // Window settings follow the visible layout and toolbar options.
+        case .window:
+            var windowViews: [NSView] = [
+                windowShapeBox,
+                fontSizeBox,
+                resultToolbarStatsButton
+            ]
+            // Hidden TTS statistics options must not receive keyboard focus.
+            if !resultStatsTTSButton.isHidden {
+                windowViews.append(resultStatsTTSButton)
+            }
+            windowViews.append(contentsOf: [
+                resultToolbarSaveTextButton,
+                resultToolbarSaveAudioButton,
+                resultToolbarCopyButton,
+                resultToolbarShareButton,
+                resultToolbarNarrationButton
+            ])
+            // Exclude the hidden narration-highlight option from keyboard navigation.
+            if !resultToolbarHighlightButton.isHidden {
+                windowViews.append(resultToolbarHighlightButton)
+            }
+            windowViews.append(resultDiffButton)
+            sectionViews = windowViews
+        // Advanced controls follow the order of their settings rows.
+        case .advanced:
+            sectionViews = [
+                advancedOpenAIEndpointField,
+                advancedAnthropicEndpointField,
+                advancedGeminiEndpointField,
+                advancedAnthropicVersionField,
+                advancedAnthropicSearchToolField,
+                advancedExtraModelsView,
+                advancedCustomInstructionsView
+            ]
+        }
+
+        var footerViews: [NSView] = [resetButton]
+        // The model page adds its data-sharing reset action to footer navigation.
+        if selectedSection == .models {
+            footerViews.append(resetAIConsentButton)
+        }
+        footerViews.append(contentsOf: [cancelButton, saveButton])
+        // Skip controls outside the visible Settings page.
+        let sidebarViews = PreferencesSection.allCases.compactMap { sectionButtons[$0] }
+        return (sectionViews + footerViews + sidebarViews).filter { $0.window != nil && !$0.isHiddenOrHasHiddenAncestor }
+    }
+
+    // moveFocus(forward): Move through Settings in form order.
+    func moveFocus(forward: Bool) -> Bool {
+        // Keyboard focus movement requires an open Settings window.
+        guard let window else {
+            return false
+        }
+
+        let views = preferencesFocusViews()
+        // Leave focus unchanged when the current page has no focusable views.
+        guard !views.isEmpty else {
+            return false
+        }
+
+        let currentIndex = min(logicalFocusIndex, views.count - 1)
+        let delta = forward ? 1 : views.count - 1
+        let nextIndex = (currentIndex + delta) % views.count
+        logicalFocusIndex = nextIndex
+        window.makeFirstResponder(views[nextIndex])
+        return true
+    }
+
+    // populateFields(preferences): Fill the fields from saved preferences or
+    // defaults.
+    func populateFields(_ preferences: AppPreferences) {
+        apiKeyField.stringValue = ""
+        anthropicAPIKeyField.stringValue = ""
+        geminiAPIKeyField.stringValue = ""
+        grokAPIKeyField.stringValue = ""
+        deepSeekAPIKeyField.stringValue = ""
+        // Set key placeholders only on the Models page, without reading Keychain.
+        if selectedSection == .models {
+            updateAPIKeyPlaceholders()
+        }
+        setPopupSelection(
+            windowShapeBox,
+            id: preferences.windowShape,
+            options: windowShapeOptions,
+            fallbackID: defaultWindowShape
+        )
+        customDisplayNameField.stringValue = preferences.customDisplayName
+        customBaseURLField.stringValue = preferences.customBaseURL
+        customModelField.stringValue = preferences.customModelName
+        customModelWasConfigured = !preferences.customModelName
+            .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        advancedOpenAIEndpointField.stringValue = preferences.openAIEndpointOverride
+        advancedAnthropicEndpointField.stringValue = preferences.anthropicEndpointOverride
+        advancedGeminiEndpointField.stringValue = preferences.geminiEndpointOverride
+        advancedAnthropicVersionField.stringValue = preferences.anthropicVersionOverride
+        advancedAnthropicSearchToolField.stringValue = preferences.anthropicWebSearchToolTypeOverride
+        advancedCustomInstructionsView.string = preferences.customInstructions
+        advancedExtraModelsView.string = encodeExtraModels(preferences.extraModels)
+        voiceBox.setSelectedIDs(preferences.preferredReaderVoices)
+        illustrationSettings.populate(provider: preferences.dictionaryIllustrationProvider,
+                                      automatic: preferences.dictionaryIllustrationAutomatic)
+        transcriptionSettings.populate(provider: preferences.transcriptionProvider, language: preferences.transcriptionLanguage)
+        researchButton.state = preferences.webResearchEnabled ? .on : .off
+        secretProtectionButton.state = preferences.secretProtectionEnabled ? .on : .off
+        textWatermarkCleaningButton.state = preferences.textWatermarkCleaningEnabled ? .on : .off
+        resultDiffButton.state = preferences.resultDiffEnabled ? .on : .off
+        resultToolbarSaveTextButton.state = preferences.resultToolbarShowsSaveText ? .on : .off
+        resultToolbarSaveAudioButton.state = preferences.resultToolbarShowsSaveAudio ? .on : .off
+        resultToolbarCopyButton.state = preferences.resultToolbarShowsCopy ? .on : .off
+        resultToolbarShareButton.state = preferences.resultToolbarShowsShare ? .on : .off
+        resultToolbarNarrationButton.state = preferences.resultToolbarShowsNarration ? .on : .off
+        resultToolbarHighlightButton.state = preferences.resultToolbarShowsHighlight ? .on : .off
+        resultToolbarStatsButton.state = preferences.resultToolbarShowsStats ? .on : .off
+        resultStatsTTSButton.state = preferences.resultStatsShowsTTS ? .on : .off
+        syncDependentCheckboxVisibility()
+        rememberChoicesButton.state = preferences.rememberLauncherChoices ? .on : .off
+        clearInputAfterSubmitButton.state = preferences.launcherClearsInputAfterSubmit ? .on : .off
+        // Restore the saved voice if it is in the shortlist; otherwise select None.
+        narrateBeforeOpenBox.menu = makeReaderChoiceMenu(allowed: voiceBox.selectedIDs)
+        selectReaderChoice(narrateBeforeOpenBox, id: preferences.launcherReader)
+        dictionaryVoiceBox.menu = makeReaderChoiceMenu(allowed: voiceBox.selectedIDs)
+        selectReaderChoice(dictionaryVoiceBox, id: preferences.dictionaryVoice)
+        // Restore each automatic-narration checkbox from the saved mode selection.
+        for (id, button) in autoNarrateModeButtons {
+            button.state = preferences.autoNarrateModes.contains(id) ? .on : .off
+        }
+        menuBarButton.state = preferences.menuBarEnabled ? .on : .off
+        launchAtLoginButton.state = SMAppService.mainApp.status == .enabled ? .on : .off
+        let currentUILanguage = appUILanguageOverride() ?? "system"
+        appLanguageBox.selectItem(
+            at: appUILanguageOptions.firstIndex { $0.id == currentUILanguage } ?? 0
+        )
+        // Show the saved shortcut or its cleared state in every recorder.
+        for (action, button) in shortcutButtons {
+            button.shortcut = preferences.globalShortcuts[action]
+        }
+        setPopupSelection(
+            fontSizeBox,
+            id: formattedFontSize(preferences.explanationFontSize),
+            options: fontSizeOptions,
+            fallbackID: String(Int(defaultExplanationFontSize))
+        )
+    }
+
+    // appLanguageChanged(sender): Apply a changed interface language and
+    // refresh the app's localized UI.
+    @objc func appLanguageChanged(_ sender: NSPopUpButton) {
+        let index = max(0, sender.indexOfSelectedItem)
+        let chosen = appUILanguageOptions[index].id
+        let current = appUILanguageOverride() ?? "system"
+        // Avoid a restart prompt when the UI language choice has not changed.
+        guard chosen != current else { return }
+        // Remove the app override to resume the system's preferred language.
+        if chosen == "system" {
+            UserDefaults.standard.removeObject(forKey: "AppleLanguages")
+        } else {
+            // Store an explicit app language independently of the system preference.
+            UserDefaults.standard.set([chosen], forKey: "AppleLanguages")
+        }
+        let alert = NSAlert()
+        alert.messageText = localized(
+            "language_restart_notice",
+            "The new language takes effect the next time Langmin opens."
+        )
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: localized("quit_now", "Quit Now"))
+        alert.addButton(withTitle: localized("later", "Later"))
+        // Quit only when the user chooses to apply the language change now.
+        if alert.runModal() == .alertFirstButtonReturn {
+            NSApp.terminate(nil)
+        }
+    }
+
+    // toggleLaunchAtLogin(sender): Register or unregister the login item and
+    // report a failed system change.
+    @objc func toggleLaunchAtLogin(_ sender: NSButton) {
+        do {
+            // Register the app's login item when the checkbox is enabled.
+            if sender.state == .on {
+                try SMAppService.mainApp.register()
+            } else {
+                // Unregister the login item when the user disables it.
+                try SMAppService.mainApp.unregister()
+            }
+        } catch {
+            // Restore the checkbox to the actual registration state after a system error.
+            sender.state = SMAppService.mainApp.status == .enabled ? .on : .off
+            let alert = NSAlert()
+            alert.messageText = localized("could_not_update_the_login_item", "Could not update the login item")
+            alert.informativeText = error.localizedDescription
+            alert.alertStyle = .warning
+            alert.runModal()
+        }
+    }
+
+    // updateAPIKeyPlaceholders(): Show key presence without reading Keychain,
+    // which can prompt after a signing change. Empty fields preserve saved
+    // keys; explicit key actions and provider requests access Keychain.
+    func updateAPIKeyPlaceholders() {
+        applyAPIKeyPlaceholder(
+            account: keychainOpenAIAPIKeyAccount,
+            environmentName: "OPENAI_API_KEY",
+            field: apiKeyField,
+            removeButton: removeOpenAIKeyButton,
+            providerName: "OpenAI",
+            removeAction: #selector(removeOpenAIKey(_:))
+        )
+        applyAPIKeyPlaceholder(
+            account: keychainAnthropicAPIKeyAccount,
+            environmentName: "ANTHROPIC_API_KEY",
+            field: anthropicAPIKeyField,
+            removeButton: removeAnthropicKeyButton,
+            providerName: "Anthropic",
+            removeAction: #selector(removeAnthropicKey(_:))
+        )
+        applyAPIKeyPlaceholder(
+            account: keychainGeminiAPIKeyAccount,
+            environmentName: "GEMINI_API_KEY",
+            field: geminiAPIKeyField,
+            removeButton: removeGeminiKeyButton,
+            providerName: "Gemini",
+            removeAction: #selector(removeGeminiKey(_:))
+        )
+        applyAPIKeyPlaceholder(
+            account: keychainGrokAPIKeyAccount,
+            environmentName: "GROK_API_KEY",
+            field: grokAPIKeyField,
+            removeButton: removeGrokKeyButton,
+            providerName: "xAI",
+            removeAction: #selector(removeGrokKey(_:))
+        )
+        applyAPIKeyPlaceholder(
+            account: keychainDeepSeekAPIKeyAccount,
+            environmentName: "DEEPSEEK_API_KEY",
+            field: deepSeekAPIKeyField,
+            removeButton: removeDeepSeekKeyButton,
+            providerName: "DeepSeek",
+            removeAction: #selector(removeDeepSeekKey(_:))
+        )
+        applyAPIKeyPlaceholder(
+            account: keychainCustomAPIKeyAccount,
+            environmentName: nil,
+            field: customAPIKeyField,
+            removeButton: removeCustomKeyButton,
+            providerName: "Custom",
+            removeAction: #selector(removeCustomKey(_:)),
+            unknownPlaceholder: "Optional; type to add or replace; leave empty to keep saved key",
+            missingPlaceholder: "Optional; no saved key"
+        )
+    }
+
+    // applyAPIKeyPlaceholder(account, environmentName, field, removeButton,
+    // providerName, removeAction, [unknownPlaceholder], [missingPlaceholder =
+    // "No saved key; type to add"]): Show whether a key is available without
+    // placing the saved secret in the text field.
+    func applyAPIKeyPlaceholder(
+        account: String,
+        environmentName: String?,
+        field: NSSecureTextField,
+        removeButton: NSButton,
+        providerName: String,
+        removeAction: Selector,
+        unknownPlaceholder: String = "Type to add or replace; leave empty to keep saved key",
+        missingPlaceholder: String = "No saved key; type to add"
+    ) {
+        // Show environment-variable hints only in Debug builds.
+        #if DEBUG
+        let environmentKey = environmentName
+            .flatMap { ProcessInfo.processInfo.environment[$0] }?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        // Release builds do not use development environment credentials.
+        #else
+        let environmentKey = ""
+        #endif
+        // Describe credential availability without exposing the stored key.
+        switch rememberedAPIKeyPresence(account: account) {
+        // A known saved key can be replaced by typing a new value.
+        case true:
+            field.placeholderString = "Saved; type to replace"
+            removeButton.isHidden = false
+        // When no key is saved, account for a permitted development environment fallback.
+        case false:
+            field.placeholderString = /* Explain when a development key supplies access without a saved key. */ if let environmentName, !environmentKey.isEmpty {
+                "Using env \(environmentName); type to save instead"
+            } else {
+                // Show the ordinary missing-key hint when no development fallback exists.
+                missingPlaceholder
+            }
+            removeButton.isHidden = true
+        // An unknown Keychain state must not be presented as definitely missing.
+        case nil:
+            field.placeholderString = /* Mention a development fallback without claiming the Keychain is empty. */ if let environmentName, !environmentKey.isEmpty {
+                "Using env \(environmentName); type to save instead"
+            } else {
+                // Keep the placeholder neutral when saved-key availability is unknown.
+                unknownPlaceholder
+            }
+            // Keep Remove available when an older install has no recorded key-presence state.
+            removeButton.isHidden = false
+        }
+        removeButton.title = "Remove"
+        removeButton.action = removeAction
+        removeButton.toolTip = "Remove the saved \(providerName) API key, if present"
+        removeButton.isEnabled = true
+        applySettingsButtonTextBaseline(removeButton)
+    }
+
+    // removeCustomKey(sender): Remove the custom endpoint's saved key through
+    // the shared Settings removal flow.
+    @objc func removeCustomKey(_ sender: Any?) {
+        removeSavedAPIKey(
+            delete: deleteCustomAPIKey,
+            field: customAPIKeyField,
+            providerName: "Custom"
+        )
+    }
+
+    // removeOpenAIKey(sender): Remove the OpenAI key through the shared
+    // Settings removal flow.
+    @objc func removeOpenAIKey(_ sender: Any?) {
+        removeSavedAPIKey(
+            delete: deleteOpenAIAPIKey,
+            field: apiKeyField,
+            providerName: "OpenAI"
+        )
+    }
+
+    // removeAnthropicKey(sender): Remove the Anthropic key through the shared
+    // Settings removal flow.
+    @objc func removeAnthropicKey(_ sender: Any?) {
+        removeSavedAPIKey(
+            delete: deleteAnthropicAPIKey,
+            field: anthropicAPIKeyField,
+            providerName: "Anthropic"
+        )
+    }
+
+    // removeGeminiKey(sender): Remove the Gemini key through the shared
+    // Settings removal flow.
+    @objc func removeGeminiKey(_ sender: Any?) {
+        removeSavedAPIKey(
+            delete: deleteGeminiAPIKey,
+            field: geminiAPIKeyField,
+            providerName: "Gemini"
+        )
+    }
+
+    // removeGrokKey(sender): Remove the xAI key through the shared Settings
+    // removal flow.
+    @objc func removeGrokKey(_ sender: Any?) {
+        removeSavedAPIKey(
+            delete: deleteGrokAPIKey,
+            field: grokAPIKeyField,
+            providerName: "xAI"
+        )
+    }
+
+    // removeDeepSeekKey(sender): Remove the DeepSeek key through the shared
+    // Settings removal flow.
+    @objc func removeDeepSeekKey(_ sender: Any?) {
+        removeSavedAPIKey(
+            delete: deleteDeepSeekAPIKey,
+            field: deepSeekAPIKeyField,
+            providerName: "DeepSeek"
+        )
+    }
+
+    // removeSavedAPIKey(delete, field, providerName): Delete a provider key,
+    // refresh its field state, and report failures to the user.
+    func removeSavedAPIKey(delete: () throws -> Void, field: NSSecureTextField, providerName: String) {
+        // Attempt the requested credential deletion before updating its UI state.
+        do {
+            try delete()
+            field.stringValue = ""
+            updateAPIKeyPlaceholders()
+        } catch {
+            // Report credential changes that could not be saved.
+            let alert = NSAlert()
+            alert.messageText = "Could not remove \(providerName) API key"
+            alert.informativeText = error.localizedDescription
+            alert.alertStyle = .warning
+            alert.runModal()
+        }
+    }
+
+    // collectPreferences(): Read fields into a normalized preferences value.
+    func collectPreferences() -> AppPreferences {
+        // A reset also restores defaults for choices outside this form, including the text model.
+        // Ordinary saves preserve those live launcher settings.
+        let live = launcherChoicesResetRequested ? AppPreferences() : loadAppPreferences()
+        let windowShape = selectedPreferenceID(
+            from: windowShapeBox,
+            options: windowShapeOptions,
+            fallbackID: defaultWindowShape
+        )
+        let preferredTextModels = live.preferredTextModels.isEmpty
+            ? defaultPreferredTextModelIDs
+            : live.preferredTextModels
+        let explanationModel: String
+        // Keep the live model choice if it remains in the preferred list.
+        if preferredTextModels.contains(live.explanationModel) {
+            explanationModel = live.explanationModel
+        } else if preferredTextModels.contains(defaultExplanationModel) {
+            // Prefer the default model when the live choice has been removed.
+            explanationModel = defaultExplanationModel
+        } else {
+            // Use the first available preferred model as the remaining fallback.
+            explanationModel = preferredTextModels.first ?? defaultExplanationModel
+        }
+        // Save voices in catalog order so Set iteration cannot reorder them between launches.
+        let preferredReaderVoices = currentReaderOptions()
+            .map { $0.id }
+            .filter { voiceBox.selectedIDs.contains($0) }
+        // None disables automatic narration. Keep the chosen default and legacy voice preference in
+        // sync.
+        let launcherReader = selectedReaderChoiceID(narrateBeforeOpenBox)
+        let ttsVoice = launcherReader == "none" ? defaultTTSVoice : launcherReader
+        let dictionaryVoice = selectedReaderChoiceID(dictionaryVoiceBox)
+        let explanationFontSize = parsedFontSize(
+            selectedPreferenceID(
+                from: fontSizeBox,
+                options: fontSizeOptions,
+                fallbackID: String(Int(defaultExplanationFontSize))
+            ),
+            fallback: defaultExplanationFontSize
+        )
+
+        return AppPreferences(
+            explanationModel: nonEmpty(explanationModel, fallback: defaultExplanationModel),
+            preferredTextModels: preferredTextModels,
+            customBaseURL: customBaseURLField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines),
+            customModelName: customModelField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines),
+            customDisplayName: customDisplayNameField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines),
+            ttsModel: defaultTTSModel,
+            ttsVoice: ttsVoice == "none" ? defaultTTSVoice : nonEmpty(ttsVoice, fallback: defaultTTSVoice),
+            explanationEffort: nonEmpty(live.explanationEffort, fallback: defaultExplanationEffort),
+            rewriteStyle: nonEmpty(live.rewriteStyle, fallback: defaultRewriteStyle),
+            summaryStyle: nonEmpty(live.summaryStyle, fallback: defaultSummaryStyle),
+            dictionaryStyle: nonEmpty(live.dictionaryStyle, fallback: defaultDictionaryStyle),
+            translationTargets: live.translationTargets.isEmpty
+                ? [defaultTranslationTargetID]
+                : live.translationTargets,
+            launcherReader: launcherReader,
+            dictionaryVoice: dictionaryVoice,
+            dictionaryIllustrationProvider: illustrationSettings.provider,
+            dictionaryIllustrationAutomatic: illustrationSettings.automatic,
+            transcriptionProvider: transcriptionSettings.provider.rawValue,
+            transcriptionLanguage: transcriptionSettings.language,
+            preferredReaderVoices: preferredReaderVoices,
+            explainAnswerLanguage: nonEmpty(live.explainAnswerLanguage, fallback: defaultOutputLanguage),
+            summarizeAnswerLanguage: nonEmpty(live.summarizeAnswerLanguage, fallback: defaultOutputLanguage),
+            webResearchEnabled: researchButton.state == .on,
+            secretProtectionEnabled: secretProtectionButton.state == .on,
+            textWatermarkCleaningEnabled: textWatermarkCleaningButton.state == .on,
+            resultDiffEnabled: resultDiffButton.state == .on,
+            resultToolbarShowsSaveText: resultToolbarSaveTextButton.state == .on,
+            resultToolbarShowsSaveAudio: resultToolbarSaveAudioButton.state == .on,
+            resultToolbarShowsCopy: resultToolbarCopyButton.state == .on,
+            resultToolbarShowsShare: resultToolbarShareButton.state == .on,
+            resultToolbarShowsNarration: resultToolbarNarrationButton.state == .on,
+            resultToolbarShowsHighlight: resultToolbarHighlightButton.state == .on,
+            resultToolbarShowsStats: resultToolbarStatsButton.state == .on,
+            resultStatsShowsTTS: resultStatsTTSButton.state == .on,
+            // Preserve the highlight setting changed in result windows.
+            narrationHighlightMode: live.narrationHighlightMode,
+            windowShape: normalizedWindowShape(windowShape),
+            explanationFontSize: explanationFontSize,
+            rememberLauncherChoices: rememberChoicesButton.state == .on,
+            launcherShowsSecondaryOptions: live.launcherShowsSecondaryOptions,
+            launcherShowsTranslationTarget: live.launcherShowsTranslationTarget,
+            launcherShowsModel: live.launcherShowsModel,
+            languageLevel: live.languageLevel,
+            launcherShowsLevel: live.launcherShowsLevel,
+            launcherClearsInputAfterSubmit: clearInputAfterSubmitButton.state == .on,
+            extraLanguages: live.extraLanguages,
+            extraLanguagesInDictionary: live.extraLanguagesInDictionary,
+            extraLanguagesInTranslate: live.extraLanguagesInTranslate,
+            extraLanguagesInExplain: live.extraLanguagesInExplain,
+            extraLanguagesInSummarize: live.extraLanguagesInSummarize,
+            autoNarrateModes: autoNarrateModeOptions.map { $0.id }.filter { autoNarrateModeButtons[$0]?.state == .on },
+            openAIEndpointOverride: advancedOpenAIEndpointField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines),
+            anthropicEndpointOverride: advancedAnthropicEndpointField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines),
+            geminiEndpointOverride: advancedGeminiEndpointField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines),
+            anthropicVersionOverride: advancedAnthropicVersionField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines),
+            anthropicWebSearchToolTypeOverride: advancedAnthropicSearchToolField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines),
+            customInstructions: advancedCustomInstructionsView.string.trimmingCharacters(in: .whitespacesAndNewlines),
+            extraModels: decodeExtraModels(advancedExtraModelsView.string),
+            menuBarEnabled: menuBarButton.state == .on,
+            globalShortcuts: shortcutButtons.reduce(into: [:]) { result, entry in
+                // Persist only shortcut recorders that contain a key combination.
+                if let shortcut = entry.value.shortcut { result[entry.key] = shortcut }
+            }
+        )
+    }
+
+    // nonEmpty(value, fallback): Empty fields fall back to the built-in
+    // defaults.
+    func nonEmpty(_ value: String, fallback: String) -> String {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? fallback : trimmed
+    }
+
+    // resetDefaults(sender): Fill the form with defaults. Save also clears
+    // remembered launcher choices; Cancel discards the reset.
+    @objc func resetDefaults(_ sender: Any?) {
+        populateFields(AppPreferences())
+        launcherChoicesResetRequested = true
+
+        // Offer guided setup after resetting defaults.
+        let alert = NSAlert()
+        alert.messageText = localized("reset_wizard_title", "Start over with the Setup Assistant?")
+        alert.informativeText = localized(
+            "reset_wizard_body",
+            "Press Save to restore defaults, or open Setup Assistant to choose new settings."
+        )
+        alert.addButton(withTitle: localized("open_setup_assistant", "Open Setup Assistant"))
+        alert.addButton(withTitle: localized("not_now", "Not Now"))
+        if alert.runModal() == .alertFirstButtonReturn {
+            // Hand off to setup without leaving a reset draft that could overwrite its choices.
+            cancel(nil)
+            (NSApp.delegate as? AppDelegate)?.showSetupAssistant(nil)
+        }
+    }
+
+    // resetAIConsents(sender): Revoke sharing permissions immediately; this
+    // action does not wait for Settings Save.
+    @objc func resetAIConsents(_ sender: Any?) {
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = "Reset AI data-sharing permissions?"
+        alert.informativeText = "Langmin will ask again before sending text to each remote AI provider or recordings to OpenAI. Apple text generation, voices, and transcription stay on this Mac."
+        alert.addButton(withTitle: "Reset Permissions")
+        alert.addButton(withTitle: localized("cancel", "Cancel"))
+        // Revoke saved sharing approvals only after explicit confirmation.
+        guard alert.runModal() == .alertFirstButtonReturn else {
+            return
+        }
+        resetRemoteAIConsents()
+    }
+
+    // syncDependentCheckboxVisibility(): Show dependent options only when Model
+    // details or Narration is enabled.
+    func syncDependentCheckboxVisibility() {
+        resultStatsTTSButton.isHidden = resultToolbarStatsButton.state != .on
+        resultToolbarHighlightButton.isHidden = resultToolbarNarrationButton.state != .on
+    }
+
+    // dependentCheckboxToggled(sender): Refresh dependent Settings controls
+    // after a checkbox changes.
+    @objc func dependentCheckboxToggled(_ sender: Any?) {
+        syncDependentCheckboxVisibility()
+    }
+
+    // cancel(sender): Close without saving.
+    @objc func cancel(_ sender: Any?) {
+        launcherChoicesResetRequested = false
+        window?.close()
+    }
+
+    // confirmExtraModelProblems(problems): Offer to fix invalid Extra Models on
+    // the Advanced tab or save the remaining settings.
+    func confirmExtraModelProblems(_ problems: [String]) -> Bool {
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = problems.count == 1
+            ? "An Extra Model looks incorrect"
+            : "Some Extra Models look incorrect"
+        alert.informativeText = problems.joined(separator: "\n")
+            + "\n\nFormat: provider:label:model (label optional), e.g. gpt:Insider Preview:gpt-secret-model."
+        alert.addButton(withTitle: "Go Back")
+        alert.addButton(withTitle: "Save Anyway")
+        // Allow the user to save despite invalid optional Extra Model entries.
+        guard alert.runModal() == .alertFirstButtonReturn else {
+            return true
+        }
+        selectedSection = .advanced
+        logicalFocusIndex = 0
+        tabView.selectTabViewItem(withIdentifier: PreferencesSection.advanced.rawValue)
+        syncSectionButtonStates()
+        window?.makeFirstResponder(advancedExtraModelsView)
+        return false
+    }
+
+    // save(sender): Save preferences to the app's native settings domain.
+    @objc func save(_ sender: Any?) {
+        let extraModelProblems = extraModelsValidationProblems(decodeExtraModels(advancedExtraModelsView.string))
+        // Return to editing when the user wants to correct invalid Extra Models.
+        if !extraModelProblems.isEmpty, !confirmExtraModelProblems(extraModelProblems) {
+            return
+        }
+        let collectedPreferences = collectPreferences()
+        let shortcutGroups = Dictionary(grouping: collectedPreferences.globalShortcuts, by: { $0.value.encoded })
+        // Reject duplicate shortcuts before saving or registering them.
+        if shortcutGroups.values.contains(where: { $0.count > 1 }) {
+            let alert = NSAlert()
+            alert.alertStyle = .warning
+            alert.messageText = "Shortcuts must be unique"
+            alert.informativeText = "Assign a different key combination to each action, or clear one with Delete."
+            alert.runModal()
+            selectedSection = .shortcuts
+            tabView.selectTabViewItem(withIdentifier: PreferencesSection.shortcuts.rawValue)
+            syncSectionButtonStates()
+            return
+        }
+        // Save keys and preferences before reconfiguring global integration.
+        do {
+            try saveProviderSettingsKeys()
+            saveAppPreferences(collectedPreferences)
+            let registration = (NSApp.delegate as? AppDelegate)?.configureSystemIntegration()
+                ?? GlobalHotKeyRegistrationOutcome(rejectedActions: [], infrastructureUnavailable: true)
+            // Keep saved settings but explain when the global-shortcut infrastructure is unavailable.
+            if registration.infrastructureUnavailable {
+                let alert = NSAlert()
+                alert.alertStyle = .warning
+                alert.messageText = "Global shortcuts are unavailable"
+                alert.informativeText = "Global shortcuts could not be enabled. Your settings were kept. Restart Langmin and try again."
+                alert.runModal()
+                selectedSection = .shortcuts
+                tabView.selectTabViewItem(withIdentifier: PreferencesSection.shortcuts.rawValue)
+                syncSectionButtonStates()
+                return
+            }
+            let failedHotKeys = registration.rejectedActions
+            if !failedHotKeys.isEmpty {
+                // Clear only shortcuts rejected by Carbon, preserve successful changes, then refresh
+                // registrations.
+                var correctedPreferences = collectedPreferences
+                failedHotKeys.forEach {
+                    correctedPreferences.globalShortcuts.removeValue(forKey: $0)
+                    shortcutButtons[$0]?.shortcut = nil
+                }
+                saveAppPreferences(correctedPreferences)
+                (NSApp.delegate as? AppDelegate)?.configureSystemIntegration()
+                let alert = NSAlert()
+                alert.alertStyle = .warning
+                alert.messageText = "Some shortcuts are already in use"
+                alert.informativeText = "macOS could not register and cleared: \(failedHotKeys.map { $0.capitalized }.joined(separator: ", ")). Choose different combinations."
+                alert.runModal()
+                selectedSection = .shortcuts
+                tabView.selectTabViewItem(withIdentifier: PreferencesSection.shortcuts.rawValue)
+                syncSectionButtonStates()
+                return
+            }
+            let resetLauncherChoices = launcherChoicesResetRequested
+            if resetLauncherChoices {
+                // Clear remembered launcher choices and window geometry after a saved reset.
+                saveLauncherPreferences(LauncherPreferences())
+                (NSApp.delegate as? AppDelegate)?.launcherController.resetLauncherFrame()
+                launcherChoicesResetRequested = false
+            }
+            // Refresh an existing launcher from the newly saved preferences.
+            if let launcherController = (NSApp.delegate as? AppDelegate)?.launcherController {
+                let preferences = loadAppPreferences()
+                let mode = launcherController.selectedLauncherMode()
+                launcherController.configureSecondaryPicker(
+                    mode: mode,
+                    selectedID: launcherController.secondarySelection(
+                        for: mode,
+                        preferences: preferences,
+                        launcherPreferences: loadLauncherPreferences(),
+                        useRememberedChoices: preferences.rememberLauncherChoices
+                    )
+                )
+                launcherController.updateLauncherControlVisibility(preferences: preferences)
+                launcherController.refreshModelOptions()
+                // Reset visible launcher controls now, or after the active request finishes.
+                if resetLauncherChoices, !launcherController.isGenerating {
+                    launcherController.populateRunDefaults()
+                }
+                // Validate provider keys on the first request, not when saving Settings.
+            }
+            window?.close()
+        } catch {
+            // Report failed settings persistence without closing the editing window.
+            let alert = NSAlert()
+            alert.messageText = "Could not save settings"
+            alert.informativeText = error.localizedDescription
+            alert.alertStyle = .warning
+            alert.runModal()
+        }
+    }
+
+    // controlTextDidBeginEditing(obj): Clicking the API key field should keep
+    // custom Tab order in sync.
+    func controlTextDidBeginEditing(_ obj: Notification) {
+        // Track focus only for a text-field editing notification.
+        guard let field = obj.object as? NSTextField else {
+            return
+        }
+
+        // Match the active field to the current page's logical focus order.
+        if let index = preferencesFocusViews().firstIndex(where: { $0 === field }) {
+            logicalFocusIndex = index
+        }
+    }
+}
