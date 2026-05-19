@@ -13855,3 +13855,235 @@ final class PreferencesWindow: NSWindow {
         super.sendEvent(event)
     }
 }
+
+// Record a key combination. Delete clears the shortcut; Escape preserves its current value.
+final class ShortcutRecorderButton: NSButton {
+    var shortcut: GlobalShortcut? { didSet { refreshTitle() } }
+    var onChange: ((GlobalShortcut?) -> Void)?
+    private var recording = false
+
+    override var acceptsFirstResponder: Bool { true }
+
+    // mouseDown(event): Start recording and direct subsequent keystrokes to
+    // this control.
+    override func mouseDown(with event: NSEvent) {
+        window?.makeFirstResponder(self)
+        recording = true
+        title = "Type shortcut…"
+    }
+
+    // resignFirstResponder(): End recording when focus moves away, preserving
+    // the last saved shortcut.
+    override func resignFirstResponder() -> Bool {
+        recording = false
+        refreshTitle()
+        return super.resignFirstResponder()
+    }
+
+    // keyDown(event): Handle cancellation, clearing, and valid modified key
+    // combinations during recording.
+    override func keyDown(with event: NSEvent) {
+        // Outside recording, let AppKit handle ordinary button keyboard behavior.
+        guard recording else {
+            super.keyDown(with: event)
+            return
+        }
+        // Escape cancels recording without replacing the saved shortcut.
+        if event.keyCode == UInt16(kVK_Escape) {
+            recording = false
+            refreshTitle()
+            window?.makeFirstResponder(nil)
+            return
+        }
+        // Either Delete key clears the shortcut and notifies the caller.
+        if event.keyCode == UInt16(kVK_Delete) || event.keyCode == UInt16(kVK_ForwardDelete) {
+            recording = false
+            shortcut = nil
+            onChange?(nil)
+            return
+        }
+
+        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        var modifiers = 0
+        // Preserve Command in the stored shortcut modifier mask.
+        if flags.contains(.command) { modifiers |= GlobalShortcut.command }
+        // Preserve Option in the stored shortcut modifier mask.
+        if flags.contains(.option) { modifiers |= GlobalShortcut.option }
+        // Preserve Control in the stored shortcut modifier mask.
+        if flags.contains(.control) { modifiers |= GlobalShortcut.control }
+        // Preserve Shift in the stored shortcut modifier mask.
+        if flags.contains(.shift) { modifiers |= GlobalShortcut.shift }
+        // Reject unmodified typing so a shortcut cannot intercept ordinary text entry.
+        guard modifiers != 0 else {
+            NSSound.beep()
+            return
+        }
+
+        let key = (event.charactersIgnoringModifiers ?? "").uppercased()
+        // Ignore keys that provide no displayable shortcut character.
+        guard !key.isEmpty else { return }
+        let value = GlobalShortcut(keyCode: UInt32(event.keyCode), modifiers: modifiers, key: key)
+        recording = false
+        shortcut = value
+        onChange?(value)
+    }
+
+    // refreshTitle(): Show the saved combination or the empty state when
+    // recording has ended.
+    private func refreshTitle() {
+        // Keep the recording prompt visible while waiting for a key combination.
+        guard !recording else { return }
+        title = shortcut?.displayText ?? "None"
+        toolTip = "Click and type a shortcut. Press Delete to clear it."
+    }
+}
+
+// Settings pages shown in the sidebar.
+enum PreferencesSection: String, CaseIterable {
+    // General contains the app's common behavior and Library settings.
+    case general
+    // Shortcuts contains menu-bar, login, and keyboard actions.
+    case shortcuts
+    // Models contains provider and text-model choices.
+    case models
+    // Reading contains voice and narration preferences.
+    case reading
+    // Transcription controls audio imports independently of result narration.
+    case transcription
+    // Illustrations contains image-generation preferences.
+    case illustrations
+    // Window contains result layout and toolbar options.
+    case window
+    // Advanced contains custom instructions and additional controls.
+    case advanced
+
+    var title: String {
+        // Localize the visible title of each Settings section.
+        switch self {
+        // Use the General tab's localized label.
+        case .general:
+            return localized("tab_general", "General")
+        // Use the keyboard-shortcuts tab's localized label.
+        case .shortcuts:
+            return localized("tab_shortcuts", "Shortcuts")
+        // Use the model-selection tab's localized label.
+        case .models:
+            return localized("tab_models", "Models")
+        // Use the reading and voice tab's localized label.
+        case .reading:
+            return localized("tab_reading", "Reading")
+        // Label the audio-import preferences separately from speech playback.
+        case .transcription:
+            return "Transcription"
+        // Use the illustration-settings tab's localized label.
+        case .illustrations:
+            return localized("tab_illustrations", "Illustrations")
+        // Use the window-settings tab's localized label.
+        case .window:
+            return localized("tab_window", "Window")
+        // Use the advanced-settings tab's localized label.
+        case .advanced:
+            return localized("tab_advanced", "Advanced")
+        }
+    }
+
+    var symbolName: String {
+        // Pair each Settings section with a recognizable system symbol.
+        switch self {
+        // A gear represents common app settings.
+        case .general:
+            return "gearshape"
+        // The Command symbol identifies keyboard shortcuts.
+        case .shortcuts:
+            return "command"
+        // Sparkles identify the AI model settings.
+        case .models:
+            return "sparkles"
+        // A speaker identifies reading and narration settings.
+        case .reading:
+            return "speaker.wave.2"
+        // A waveform identifies speech-to-text import.
+        case .transcription:
+            return "waveform"
+        // A photo identifies illustration settings.
+        case .illustrations:
+            return "photo"
+        // A window symbol identifies result layout settings.
+        case .window:
+            return "macwindow"
+        // Tools identify the additional advanced controls.
+        case .advanced:
+            return "wrench.and.screwdriver"
+        }
+    }
+}
+
+// Size and arrange the Settings sidebar, form, and footer.
+enum SettingsLayout {
+    // Fit the longest translated name with the same icon and text padding on every row.
+    static var rowWidth: CGFloat {
+        let font = NSFont.systemFont(ofSize: 13, weight: .semibold)
+        let widths = PreferencesSection.allCases.map { ($0.title as NSString).size(withAttributes: [.font: font]).width }
+        return max(160, ceil(widths.max() ?? 0) + 56)
+    }
+
+    // Leave room for the Models, Shortcuts, and Advanced forms.
+    static var contentSize: NSSize {
+        NSSize(width: rowWidth + 24 + 1 + 580, height: 530)
+    }
+
+    // install(sidebar, page, heading, surface): Keep navigation beside the form
+    // and reserve the bottom strip for window actions.
+    static func install(sidebar: NSView, page: NSView, heading: NSTextField, in surface: NSView) {
+        let divider = NativeSeparator()
+        let footerDivider = NativeSeparator()
+        heading.font = .systemFont(ofSize: 20, weight: .semibold)
+        heading.textColor = .labelColor
+        for separator in [divider, footerDivider] { separator.boxType = .separator }
+        for view in [sidebar, page, heading, divider, footerDivider] {
+            view.translatesAutoresizingMaskIntoConstraints = false
+            surface.addSubview(view)
+        }
+        NSLayoutConstraint.activate([
+            // Fix the sidebar width so NSTabView takes the remaining space.
+            sidebar.widthAnchor.constraint(equalToConstant: rowWidth),
+            sidebar.topAnchor.constraint(equalTo: surface.topAnchor, constant: 18),
+            sidebar.leadingAnchor.constraint(equalTo: surface.leadingAnchor, constant: 12),
+            sidebar.bottomAnchor.constraint(lessThanOrEqualTo: footerDivider.topAnchor, constant: -12),
+            divider.leadingAnchor.constraint(equalTo: sidebar.trailingAnchor, constant: 12),
+            divider.topAnchor.constraint(equalTo: surface.topAnchor),
+            divider.bottomAnchor.constraint(equalTo: footerDivider.topAnchor),
+            divider.widthAnchor.constraint(equalToConstant: 1),
+            heading.topAnchor.constraint(equalTo: surface.topAnchor, constant: 24),
+            heading.leadingAnchor.constraint(equalTo: page.leadingAnchor),
+            heading.trailingAnchor.constraint(lessThanOrEqualTo: page.trailingAnchor),
+            page.leadingAnchor.constraint(equalTo: divider.trailingAnchor, constant: 24),
+            page.trailingAnchor.constraint(equalTo: surface.trailingAnchor, constant: -24),
+            page.topAnchor.constraint(equalTo: heading.bottomAnchor, constant: 4),
+            page.bottomAnchor.constraint(equalTo: footerDivider.topAnchor, constant: -12),
+            footerDivider.leadingAnchor.constraint(equalTo: surface.leadingAnchor),
+            footerDivider.trailingAnchor.constraint(equalTo: surface.trailingAnchor),
+            footerDivider.bottomAnchor.constraint(equalTo: surface.bottomAnchor, constant: -56),
+            footerDivider.heightAnchor.constraint(equalToConstant: 1)
+        ])
+    }
+
+    // installFooter(reset, permissions, actions, page, surface): Align footer
+    // actions with the form unless a longer translated reset label needs more
+    // room.
+    static func installFooter(reset: NSView, permissions: NSView, actions: NSView, page: NSView, in surface: NSView) {
+        let formAlignment = permissions.leadingAnchor.constraint(equalTo: page.leadingAnchor)
+        // Let long button titles take priority over alignment with the form.
+        formAlignment.priority = .defaultLow
+        NSLayoutConstraint.activate([
+            reset.leadingAnchor.constraint(equalTo: surface.leadingAnchor, constant: 24),
+            reset.bottomAnchor.constraint(equalTo: surface.bottomAnchor, constant: -15),
+            formAlignment,
+            permissions.leadingAnchor.constraint(greaterThanOrEqualTo: reset.trailingAnchor, constant: 12),
+            permissions.trailingAnchor.constraint(lessThanOrEqualTo: actions.leadingAnchor, constant: -12),
+            permissions.centerYAnchor.constraint(equalTo: reset.centerYAnchor),
+            actions.trailingAnchor.constraint(equalTo: surface.trailingAnchor, constant: -24),
+            actions.bottomAnchor.constraint(equalTo: surface.bottomAnchor, constant: -15)
+        ])
+    }
+}
