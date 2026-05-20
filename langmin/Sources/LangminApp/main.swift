@@ -15977,3 +15977,135 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
         }
     }
 }
+
+// The launcher catches Tab before the text field editor can swallow it.
+final class LauncherWindow: NativeWindow {
+    weak var launcherController: LauncherController?
+
+    // sendEvent(event): Give an open launcher palette its navigation keys
+    // before normal window event handling.
+    override func sendEvent(_ event: NSEvent) {
+        // Forward keys to the open menu if its child panel is not key.
+        // Leave other Command shortcuts available to the app menu.
+        if
+            event.type == .keyDown,
+            let palette = launcherController?.palettePanel
+        {
+            let mods = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            let key = event.charactersIgnoringModifiers?.lowercased() ?? ""
+            let isPaletteCommand = mods == .command && (key == "k" || key == ",")
+            // Let the palette handle ordinary keys and its own Command shortcuts.
+            if !mods.contains(.command) || isPaletteCommand {
+                palette.sendEvent(event)
+                return
+            }
+        }
+
+        // Rich-text drafts own formatting shortcuts and Tab instead of launcher navigation.
+        if event.type == .keyDown, firstResponder is ResultEditorTextView {
+            super.sendEvent(event)
+            return
+        }
+
+        // Library uses its own navigation while it occupies the main window.
+        if let controller = launcherController, controller.isLibraryEmbedded {
+            // Pass unhandled Library events back to AppKit's normal responder chain.
+            if !controller.handleLibraryKeyEvent(event) {
+                super.sendEvent(event)
+            }
+            return
+        }
+
+        // Consume Command-K when the launcher handled its palette action.
+        if
+            event.type == .keyDown,
+            event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command,
+            event.charactersIgnoringModifiers?.lowercased() == "k",
+            launcherController?.handleCommandK() == true
+        {
+            return
+        }
+
+        // Give the launcher first chance to interpret Escape.
+        if event.type == .keyDown && event.keyCode == 53 {
+            // Stop event propagation once the launcher has handled cancellation.
+            if launcherController?.handleEscapeKey() == true {
+                return
+            }
+        }
+
+        // Return activates a focused Library navigation control before normal submission handling.
+        if
+            event.type == .keyDown,
+            event.keyCode == 36 || event.keyCode == 76,
+            launcherController?.activateFocusedLibraryNavigationControl() == true
+        {
+            return
+        }
+
+        // Route Tab and Shift-Tab through the launcher's logical control order.
+        if event.type == .keyDown, let forward = tabDirection(for: event) {
+            // Consume a Tab event only when focus actually moved.
+            if launcherController?.moveFocus(forward: forward) == true {
+                return
+            }
+        }
+
+        super.sendEvent(event)
+    }
+}
+
+// Route Library keys to its list controls. Escape closes the window when no action handles it.
+final class LibraryWindow: NativeWindow {
+    weak var launcherController: LauncherController?
+
+    // sendEvent(event): Route detached Library keyboard actions through the
+    // launcher controller first.
+    override func sendEvent(_ event: NSEvent) {
+        // A handled detached-Library action must not also reach the default responder.
+        if launcherController?.handleLibraryKeyEvent(event) == true { return }
+        super.sendEvent(event)
+    }
+}
+
+// Closing the Library commits its pending deletions; the window never carries
+// an active result session.
+final class LibraryWindowDelegate: NSObject, NSWindowDelegate {
+    weak var controller: LauncherController?
+
+    // init(controller): Keep a weak controller reference for detached Library
+    // window callbacks.
+    init(controller: LauncherController) {
+        self.controller = controller
+    }
+
+    // windowDidBecomeKey(notification): Clear the active result session when
+    // the detached Library becomes key.
+    func windowDidBecomeKey(_ notification: Notification) {
+        controller?.appDelegate?.setActiveSession(nil)
+    }
+
+    // windowWillUseStandardFrame(window, newFrame): Match the main window:
+    // maximize within the screen and restore the previous frame.
+    func windowWillUseStandardFrame(_ window: NSWindow, defaultFrame newFrame: NSRect) -> NSRect {
+        window.screen?.visibleFrame ?? newFrame
+    }
+
+    // windowDidResize(notification): Refresh Library layout as the detached
+    // window changes size.
+    func windowDidResize(_ notification: Notification) {
+        controller?.libraryWindowDidResize()
+    }
+
+    // windowDidEndLiveResize(notification): Finish refreshing Library layout
+    // after live resizing ends.
+    func windowDidEndLiveResize(_ notification: Notification) {
+        controller?.libraryWindowDidResize()
+    }
+
+    // windowWillClose(notification): Notify the controller when the detached
+    // Library closes.
+    func windowWillClose(_ notification: Notification) {
+        controller?.libraryWindowWillClose()
+    }
+}
