@@ -16109,3 +16109,123 @@ final class LibraryWindowDelegate: NSObject, NSWindowDelegate {
         controller?.libraryWindowWillClose()
     }
 }
+
+// Use flipped coordinates to lay out Library rows from top to bottom.
+final class LibraryDocumentView: NSView {
+    override var isFlipped: Bool { true }
+}
+
+// Give empty Library, folder, and search views a clear title and quiet guidance.
+final class LibraryEmptyStateView: NSView {
+    // init(title, subtitle, symbolName): Center an outline icon, heading, and
+    // wrapping guidance without exposing the decorative icon to accessibility.
+    init(title: String, subtitle: String, symbolName: String) {
+        super.init(frame: .zero)
+        translatesAutoresizingMaskIntoConstraints = false
+
+        // Keep the symbol neutral so the heading carries the emphasis.
+        let symbol = NSImageView()
+        symbol.image = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil)?
+            .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 44, weight: .light))
+        symbol.imageScaling = .scaleProportionallyDown
+        symbol.contentTintColor = .secondaryLabelColor
+        symbol.setAccessibilityElement(false)
+        symbol.translatesAutoresizingMaskIntoConstraints = false
+
+        let heading = NSTextField(wrappingLabelWithString: title)
+        heading.font = .systemFont(ofSize: 17, weight: .semibold)
+        heading.textColor = .labelColor
+        heading.alignment = .center
+        heading.maximumNumberOfLines = 0
+        heading.translatesAutoresizingMaskIntoConstraints = false
+
+        // Give wrapped instructions more breathing room than the title.
+        let guidance = NSTextField(wrappingLabelWithString: subtitle)
+        guidance.font = .systemFont(ofSize: 13)
+        guidance.textColor = .secondaryLabelColor
+        guidance.alignment = .center
+        guidance.maximumNumberOfLines = 0
+        guidance.translatesAutoresizingMaskIntoConstraints = false
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.alignment = .center
+        paragraphStyle.lineBreakMode = .byWordWrapping
+        paragraphStyle.lineHeightMultiple = 1.2
+        guidance.attributedStringValue = NSAttributedString(string: subtitle, attributes: [
+            .font: NSFont.systemFont(ofSize: 13),
+            .foregroundColor: NSColor.secondaryLabelColor,
+            .paragraphStyle: paragraphStyle
+        ])
+
+        let content = NSStackView(views: [symbol, heading, guidance])
+        content.orientation = .vertical
+        content.alignment = .centerX
+        content.spacing = 10
+        content.setCustomSpacing(16, after: symbol)
+        content.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(content)
+
+        // Use the available reading width instead of wrapping to the title's
+        // shorter width. Required margins still fit the group in small windows.
+        let preferredWidth = content.widthAnchor.constraint(equalToConstant: 560)
+        preferredWidth.priority = .defaultHigh
+
+        // Keep the group slightly above center and allow long translations to
+        // enlarge the row rather than clip at a compact window size.
+        NSLayoutConstraint.activate([
+            preferredWidth,
+            heightAnchor.constraint(greaterThanOrEqualToConstant: 260),
+            content.centerXAnchor.constraint(equalTo: centerXAnchor),
+            content.centerYAnchor.constraint(equalTo: centerYAnchor, constant: -12),
+            content.topAnchor.constraint(greaterThanOrEqualTo: topAnchor, constant: 24),
+            content.bottomAnchor.constraint(lessThanOrEqualTo: bottomAnchor, constant: -24),
+            content.leadingAnchor.constraint(greaterThanOrEqualTo: leadingAnchor, constant: 24),
+            content.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -24),
+            content.widthAnchor.constraint(lessThanOrEqualToConstant: 560),
+            heading.widthAnchor.constraint(equalTo: content.widthAnchor),
+            guidance.widthAnchor.constraint(equalTo: content.widthAnchor),
+            symbol.widthAnchor.constraint(equalToConstant: 52),
+            symbol.heightAnchor.constraint(equalToConstant: 56)
+        ])
+    }
+
+    // init?(coder): Empty states are constructed from text and an SF Symbol.
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+}
+
+// Raise search text and the cancel icon one pixel; retain native magnifier and focus-ring geometry.
+final class OpticallyAlignedSearchFieldCell: NSSearchFieldCell {
+    // draw(frame, controlView): Keep the native search-field layout and replace
+    // only its bezel drawing.
+    override func draw(withFrame frame: NSRect, in controlView: NSView) {
+        let rect = frame.insetBy(dx: 0.5, dy: 0.5)
+        let path = NSBezierPath(
+            roundedRect: rect,
+            xRadius: rect.height / 2,
+            yRadius: rect.height / 2
+        )
+        langminFieldFillColor.setFill()
+        path.fill()
+        langminControlBorderColor.setStroke()
+        path.lineWidth = 1
+        path.stroke()
+        super.drawInterior(withFrame: frame, in: controlView)
+    }
+
+    // searchTextRect(rect): Shift search text slightly upward for optical
+    // alignment with adjacent controls.
+    override func searchTextRect(forBounds rect: NSRect) -> NSRect {
+        super.searchTextRect(forBounds: rect).offsetBy(dx: 0, dy: -1)
+    }
+
+    // cancelButtonRect(rect): Align the cancel icon with the adjusted
+    // search-field text baseline.
+    override func cancelButtonRect(forBounds rect: NSRect) -> NSRect {
+        super.cancelButtonRect(forBounds: rect).offsetBy(dx: 0, dy: -0.5)
+    }
+
+    // searchButtonRect(rect): Align the search icon with the adjusted
+    // search-field text baseline.
+    override func searchButtonRect(forBounds rect: NSRect) -> NSRect {
+        super.searchButtonRect(forBounds: rect).offsetBy(dx: 0, dy: -0.5)
+    }
+}
