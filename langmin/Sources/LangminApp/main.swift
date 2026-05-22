@@ -16229,3 +16229,212 @@ final class OpticallyAlignedSearchFieldCell: NSSearchFieldCell {
         super.searchButtonRect(forBounds: rect).offsetBy(dx: 0, dy: -0.5)
     }
 }
+
+// Use a search-field cell with matching optical alignment for text and icons.
+final class OpticallyAlignedSearchField: NSSearchField {
+    // Keep this field's cell type fixed to the optically aligned implementation.
+    override class var cellClass: AnyClass? {
+        get { OpticallyAlignedSearchFieldCell.self }
+        set { }
+    }
+
+    // viewDidChangeEffectiveAppearance(): Refresh the custom search bezel when
+    // the window appearance changes.
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        needsDisplay = true
+    }
+}
+
+// A native disclosure-style Library section header. The count is part of the
+// accessible button title, while the chevron communicates collapsed state.
+final class LibrarySectionHeaderButton: NSButton {
+    private let toggleHandler: () -> Void
+    private let disclosureView = NSImageView()
+    private let headerLabel = NSTextField(labelWithString: "")
+
+    // rightMouseDown(event): Show the assigned context menu explicitly;
+    // NSButton does not reliably open it on right-click.
+    override func rightMouseDown(with event: NSEvent) {
+        // Use normal right-click behavior when this view has no contextual menu.
+        guard let menu else {
+            super.rightMouseDown(with: event)
+            return
+        }
+        NSMenu.popUpContextMenu(menu, with: event, for: self)
+    }
+
+    // init(title, countText, collapsed, allowsToggling, toggleHandler): Build a
+    // Library section header with its title, count, and optional disclosure
+    // action.
+    init(
+        title: String,
+        countText: String,
+        collapsed: Bool,
+        allowsToggling: Bool,
+        toggleHandler: @escaping () -> Void
+    ) {
+        self.toggleHandler = toggleHandler
+        super.init(frame: .zero)
+
+        isBordered = false
+        bezelStyle = .regularSquare
+        self.title = ""
+
+        disclosureView.image = NSImage(
+            systemSymbolName: collapsed ? "chevron.right" : "chevron.down",
+            accessibilityDescription: collapsed ? "Collapsed" : "Expanded"
+        )?.withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 9, weight: .semibold))
+        disclosureView.contentTintColor = .secondaryLabelColor
+        disclosureView.imageScaling = .scaleProportionallyDown
+        disclosureView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(disclosureView)
+
+        headerLabel.stringValue = "\(title.uppercased())  ·  \(countText)"
+        headerLabel.font = NSFont.systemFont(ofSize: 11, weight: .semibold)
+        headerLabel.textColor = .secondaryLabelColor
+        headerLabel.lineBreakMode = .byTruncatingTail
+        headerLabel.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(headerLabel)
+
+        NSLayoutConstraint.activate([
+            disclosureView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            disclosureView.centerYAnchor.constraint(equalTo: centerYAnchor),
+            disclosureView.widthAnchor.constraint(equalToConstant: 11),
+            disclosureView.heightAnchor.constraint(equalToConstant: 12),
+            headerLabel.leadingAnchor.constraint(equalTo: disclosureView.trailingAnchor, constant: 6),
+            headerLabel.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor),
+            headerLabel.centerYAnchor.constraint(equalTo: centerYAnchor)
+        ])
+
+        target = self
+        action = #selector(toggleSection)
+        isEnabled = allowsToggling
+        setAccessibilityLabel("\(title), \(countText) items, \(collapsed ? "collapsed" : "expanded")")
+        toolTip = allowsToggling
+            ? (collapsed ? "Expand \(title)" : "Collapse \(title)")
+            : "Search results are expanded without changing this section's saved state"
+        translatesAutoresizingMaskIntoConstraints = false
+    }
+
+    // init?(coder): Section headers are constructed in code with their toggle
+    // behavior.
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    // toggleSection(): Forward disclosure clicks to the section's collapse
+    // handler.
+    @objc private func toggleSection() {
+        toggleHandler()
+    }
+
+    // hitTest(point): Route clicks on the label and icon to the disclosure
+    // button.
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        // Hidden or transparent views must not intercept mouse input.
+        guard !isHidden, alphaValue > 0, frame.contains(point) else {
+            return nil
+        }
+        return self
+    }
+}
+
+// Keep a placeholder row during the Undo interval so deletion does not shift the surrounding layout.
+final class LibraryDeletedRowView: NSView {
+    let entryID: String
+    private let undoHandler: (Bool) -> Void
+    private let undoButton: NSButton
+
+    // init(entryID, title, undoHandler): Replace a deleted Library row with its
+    // title and a focused, accessible Undo action.
+    init(entryID: String, title: String, undoHandler: @escaping (Bool) -> Void) {
+        self.entryID = entryID
+        self.undoHandler = undoHandler
+        undoButton = NSButton(title: localized("undo", "Undo"), target: nil, action: nil)
+        super.init(frame: .zero)
+
+        wantsLayer = true
+        layer?.cornerRadius = 10
+        layer?.cornerCurve = .continuous
+        layer?.masksToBounds = true
+        translatesAutoresizingMaskIntoConstraints = false
+
+        // Match the normal row hover color without adding another material layer.
+        updateDeletionBackground()
+
+        let label = NSTextField(labelWithString: String(format: localized("deleted_item", "Deleted “%@”"), title))
+        label.font = NSFont.systemFont(ofSize: 13, weight: .medium)
+        label.lineBreakMode = .byTruncatingMiddle
+        label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
+        undoButton.target = self
+        undoButton.action = #selector(undoTapped)
+        undoButton.bezelStyle = .accessoryBarAction
+        undoButton.font = NSFont.systemFont(ofSize: 13, weight: .semibold)
+        undoButton.toolTip = "Restore the deleted Library item"
+        undoButton.setAccessibilityLabel("Undo Library deletion")
+        undoButton.refusesFirstResponder = false
+        undoButton.setContentCompressionResistancePriority(.required, for: .horizontal)
+
+        let spacer = NSView()
+        spacer.setContentHuggingPriority(.init(rawValue: 1), for: .horizontal)
+        spacer.setContentCompressionResistancePriority(.init(rawValue: 1), for: .horizontal)
+
+        let stack = NSStackView(views: [label, spacer, undoButton])
+        stack.orientation = .horizontal
+        stack.alignment = .centerY
+        stack.distribution = .fill
+        stack.spacing = 14
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(stack)
+
+        NSLayoutConstraint.activate([
+            stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 14),
+            stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10),
+            stack.topAnchor.constraint(equalTo: topAnchor, constant: 8),
+            stack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -8),
+            heightAnchor.constraint(equalToConstant: 48)
+        ])
+        setAccessibilityElement(true)
+        setAccessibilityRole(.group)
+        setAccessibilityLabel("Deleted \(title). Undo available.")
+    }
+
+    // viewDidChangeEffectiveAppearance(): Refresh the deletion notice's tint
+    // after an appearance change.
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateDeletionBackground()
+    }
+
+    // updateDeletionBackground(): Use a translucent red fill to distinguish the
+    // temporary deletion notice.
+    private func updateDeletionBackground() {
+        layer?.backgroundColor = NSColor.systemRed.withAlphaComponent(0.12).cgColor
+    }
+
+    // init?(coder): Deletion notices require an entry ID and undo handler
+    // supplied in code.
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    var keyboardFocusControl: NSView { undoButton }
+
+    @discardableResult
+    // focusUndo(window): Focus Undo without scrolling a row that was already
+    // visible before deletion.
+    func focusUndo(in window: NSWindow) -> Bool {
+        // Focus Undo without scrolling; the replaced row was already visible and forced scrolling can
+        // jump.
+        window.makeFirstResponder(undoButton)
+    }
+
+    // undoTapped(): Tell the undo handler whether keyboard activation should
+    // restore keyboard focus.
+    @objc private func undoTapped() {
+        let eventType = NSApp.currentEvent?.type
+        undoHandler(eventType == .keyDown || eventType == .keyUp)
+    }
+}
