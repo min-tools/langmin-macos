@@ -16438,3 +16438,65 @@ final class LibraryDeletedRowView: NSView {
         undoHandler(eventType == .keyDown || eventType == .keyUp)
     }
 }
+
+// libraryDisplayTitle(raw): Remove the app and mode prefix from saved window
+// titles to show only the Library topic.
+func libraryDisplayTitle(_ raw: String) -> String {
+    var stem = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+    var removedAppPrefix = false
+    // Remove a recognized app prefix from saved result titles for display.
+    for prefix in ["\(appName) • ", "\(appName) - ", "\(appName) — ", "\(appName): "] {
+        // Strip only the matching prefix and retain the rest of the title.
+        if stem.hasPrefix(prefix) {
+            stem.removeFirst(prefix.count)
+            removedAppPrefix = true
+            break
+        }
+    }
+    // Remove the mode prefix only from titles that included the app name.
+    if removedAppPrefix, let separator = stem.range(of: " — ") {
+        stem = String(stem[separator.upperBound...])
+    }
+    let cleaned = stem.trimmingCharacters(in: .whitespacesAndNewlines)
+    return cleaned.isEmpty ? raw : cleaned
+}
+
+// librarySubtitle(entry): Show the text model, optional narration voice and
+// save time.
+func librarySubtitle(for entry: LibraryEntry) -> String {
+    var parts: [String] = []
+    // Include the saved text model when its identity is known.
+    if let model = entry.textModel, !model.isEmpty {
+        parts.append(model)
+    }
+    // Add the saved language level only when it maps to a display label.
+    if let letter = languageLevelLetter(entry.languageLevel ?? "off") {
+        parts.append("Level \(letter)")
+    }
+    // Show the narration voice recorded with this Library entry.
+    if let voice = entry.narrationVoice, !voice.isEmpty {
+        parts.append(narrationVoiceDisplayValue(voice))
+    }
+    parts.append(libraryDateString(entry.createdAt))
+    return parts.joined(separator: " · ")
+}
+
+// narrationVoiceDisplayValue(voice): Include the provider with the voice name
+// to identify saved narration.
+func narrationVoiceDisplayValue(_ voice: String) -> String {
+    let voiceName = preferenceDisplayValue(for: voice, options: currentReaderOptions())
+    let providerName: String
+    // Name the actual narration provider alongside its voice.
+    switch narrationProvider(for: voice) {
+    // Apple voice identifiers belong to the local speech provider.
+    case .apple:
+        providerName = "Apple"
+    // OpenAI voice identifiers belong to OpenAI narration.
+    case .openAI:
+        providerName = "OpenAI"
+    // Grok voices identify xAI as their provider.
+    case .grok:
+        providerName = "xAI"
+    }
+    return "\(providerName) \(voiceName)"
+}
