@@ -16500,3 +16500,31 @@ func narrationVoiceDisplayValue(_ voice: String) -> String {
     }
     return "\(providerName) \(voiceName)"
 }
+
+// languageLevelLetter(level): Return A, B or C for display, or nil when the
+// level is off.
+func languageLevelLetter(_ level: String) -> String? {
+    let normalized = normalizedLanguageLevel(level)
+    return normalized == "off" ? nil : normalized.uppercased()
+}
+
+// libraryDateString(createdAt): Show relative time within a week and a date for
+// older entries.
+func libraryDateString(_ createdAt: Double) -> String {
+    let date = Date(timeIntervalSinceReferenceDate: createdAt)
+    // Use relative dates for recent Library entries.
+    if Date().timeIntervalSince(date) < 7 * 24 * 3600 {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .abbreviated
+        return formatter.localizedString(for: date, relativeTo: Date())
+    }
+    let formatter = DateFormatter()
+    formatter.dateStyle = .medium
+    formatter.timeStyle = .none
+    return formatter.string(from: date)
+}
+
+// Pass the entry ID when dragging a Library row to a folder chip.
+extension NSPasteboard.PasteboardType {
+    static let langminLibraryEntry = NSPasteboard.PasteboardType("tools.min.langmin.library-entry")
+}
