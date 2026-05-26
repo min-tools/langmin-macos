@@ -16528,3 +16528,646 @@ func libraryDateString(_ createdAt: Double) -> String {
 extension NSPasteboard.PasteboardType {
     static let langminLibraryEntry = NSPasteboard.PasteboardType("tools.min.langmin.library-entry")
 }
+
+// Library row with open, rename and delete actions, plus model and narration details.
+final class LibraryRowView: NSView, NSTextFieldDelegate, NSDraggingSource {
+    let entryID: String
+    private let onOpen: () -> Void
+    private let onRename: (String, Bool) -> Void
+    private let onDelete: (Bool) -> Void
+    private let onEditingChanged: (LibraryRowView, Bool) -> Void
+    private let onExportText: () -> Void
+    private let onExportAudio: (() -> Void)?
+    private let titleField: NSTextField
+    private let editButton = NSButton()
+    private let confirmEditButton = NSButton()
+    private let deleteButton = NSButton()
+    private var titleBeforeEditing = ""
+    private var isEditingTitle = false
+    private var isCancellingTitleEdit = false
+    private var restoreKeyboardFocusAfterEditing = false
+    private var isHovered = false
+    private var isKeyboardFocused = false
+    private var isInteractionLocked = false
+    private var trackingArea: NSTrackingArea?
+    private weak var observedClipView: NSClipView?
+
+    // init(entry, [subtitleDetail = nil], [moveMenu = nil], onOpen, onRename,
+    // onEditingChanged, onDelete, onExportText, [onExportAudio = nil]): Build a
+    // Library entry row and connect its opening, editing, export, and deletion
+    // actions.
+    init(
+        entry: LibraryEntry,
+        subtitleDetail: String? = nil,
+        moveMenu: NSMenu? = nil,
+        onOpen: @escaping () -> Void,
+        onRename: @escaping (String, Bool) -> Void,
+        onEditingChanged: @escaping (LibraryRowView, Bool) -> Void,
+        onDelete: @escaping (Bool) -> Void,
+        onExportText: @escaping () -> Void,
+        onExportAudio: (() -> Void)? = nil
+    ) {
+        self.entryID = entry.id
+        self.onOpen = onOpen
+        self.onRename = onRename
+        self.onEditingChanged = onEditingChanged
+        self.onDelete = onDelete
+        self.onExportText = onExportText
+        self.onExportAudio = onExportAudio
+        let displayTitle = libraryDisplayTitle(entry.title)
+        titleField = NSTextField(string: displayTitle.isEmpty ? localized("untitled", "Untitled") : displayTitle)
+        super.init(frame: .zero)
+        translatesAutoresizingMaskIntoConstraints = false
+        wantsLayer = true
+        layer?.cornerRadius = 8
+        setAccessibilityElement(true)
+        setAccessibilityRole(.button)
+        setAccessibilityLabel(displayTitle.isEmpty ? localized("untitled", "Untitled") : displayTitle)
+        setAccessibilityHelp("Open this saved Library item")
+
+        // Offer row actions and export in the context menu.
+        let contextMenu = NSMenu()
+        let openItem = NSMenuItem(title: localized("open", "Open"), action: #selector(contextOpen(_:)), keyEquivalent: "")
+        openItem.target = self
+        contextMenu.addItem(openItem)
+        let renameItem = NSMenuItem(title: localized("rename", "Rename"), action: #selector(contextRename(_:)), keyEquivalent: "")
+        renameItem.target = self
+        contextMenu.addItem(renameItem)
+        // Offer folder moves only when a move menu was supplied.
+        if let moveMenu {
+            let moveItem = NSMenuItem(
+                title: localized("file_in_submenu", "File In"),
+                action: nil,
+                keyEquivalent: ""
+            )
+            moveItem.submenu = moveMenu
+            contextMenu.addItem(moveItem)
+        }
+        contextMenu.addItem(NSMenuItem.separator())
+        let exportTextItem = NSMenuItem(
+            title: localized("export_text_menu", "Export Text…"),
+            action: #selector(contextExportText(_:)),
+            keyEquivalent: ""
+        )
+        exportTextItem.target = self
+        contextMenu.addItem(exportTextItem)
+        // Show audio export only for entries with an available export action.
+        if onExportAudio != nil {
+            let exportAudioItem = NSMenuItem(
+                title: localized("export_audio_menu", "Export Audio…"),
+                action: #selector(contextExportAudio(_:)),
+                keyEquivalent: ""
+            )
+            exportAudioItem.target = self
+            contextMenu.addItem(exportAudioItem)
+        }
+        contextMenu.addItem(NSMenuItem.separator())
+        let deleteItem = NSMenuItem(title: localized("delete", "Delete"), action: #selector(contextDelete(_:)), keyEquivalent: "")
+        deleteItem.target = self
+        contextMenu.addItem(deleteItem)
+        menu = contextMenu
+
+        titleField.font = NSFont.systemFont(ofSize: 13.5, weight: .semibold)
+        titleField.textColor = .labelColor
+        titleField.lineBreakMode = .byTruncatingTail
+        titleField.isEditable = false
+        titleField.isSelectable = false
+        titleField.isBordered = false
+        titleField.drawsBackground = false
+        titleField.focusRingType = .default
+        titleField.delegate = self
+        titleField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
+        // Show the folder name under All; omit it when that folder is already selected.
+        let subtitleText = subtitleDetail.map { librarySubtitle(for: entry) + " • " + $0 }
+            ?? librarySubtitle(for: entry)
+        let subtitle = NSTextField(labelWithString: subtitleText)
+        subtitle.font = NSFont.systemFont(ofSize: 11)
+        subtitle.textColor = .secondaryLabelColor
+        subtitle.lineBreakMode = .byTruncatingTail
+        subtitle.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
+        let textStack = NSStackView(views: [titleField, subtitle])
+        textStack.orientation = .vertical
+        textStack.alignment = .leading
+        textStack.spacing = 2
+        textStack.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(textStack)
+        // Give child views the same context menu.
+        titleField.menu = contextMenu
+        subtitle.menu = contextMenu
+        textStack.menu = contextMenu
+
+        deleteButton.isBordered = true
+        deleteButton.bezelStyle = .accessoryBarAction
+        deleteButton.imagePosition = .imageOnly
+        deleteButton.title = ""
+        deleteButton.image = NSImage(systemSymbolName: "trash", accessibilityDescription: "Delete")?
+            .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 12, weight: .regular))
+        deleteButton.contentTintColor = .secondaryLabelColor
+        deleteButton.target = self
+        deleteButton.action = #selector(deleteTapped)
+        deleteButton.toolTip = "Delete"
+        deleteButton.refusesFirstResponder = false
+        deleteButton.isHidden = true
+        deleteButton.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(deleteButton)
+
+        editButton.isBordered = true
+        editButton.bezelStyle = .accessoryBarAction
+        editButton.imagePosition = .imageOnly
+        editButton.title = ""
+        editButton.image = NSImage(systemSymbolName: "character.cursor.ibeam", accessibilityDescription: "Rename")?
+            .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 13, weight: .semibold))
+        editButton.contentTintColor = .secondaryLabelColor
+        editButton.target = self
+        editButton.action = #selector(editTitleTapped)
+        editButton.toolTip = "Rename"
+        editButton.refusesFirstResponder = false
+        editButton.isHidden = true
+        editButton.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(editButton)
+
+        confirmEditButton.isBordered = true
+        confirmEditButton.bezelStyle = .accessoryBarAction
+        confirmEditButton.imagePosition = .imageOnly
+        confirmEditButton.title = ""
+        confirmEditButton.image = NSImage(systemSymbolName: "checkmark", accessibilityDescription: "Confirm Rename")?
+            .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 13, weight: .semibold))
+        confirmEditButton.contentTintColor = .controlAccentColor
+        confirmEditButton.target = self
+        confirmEditButton.action = #selector(confirmTitleEditTapped)
+        confirmEditButton.toolTip = "Confirm Rename"
+        confirmEditButton.refusesFirstResponder = true
+        confirmEditButton.isHidden = true
+        confirmEditButton.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(confirmEditButton)
+
+        let textTrailing = editButton.leadingAnchor
+        let textTrailingInset: CGFloat = -8
+
+        NSLayoutConstraint.activate([
+            heightAnchor.constraint(greaterThanOrEqualToConstant: 48),
+            textStack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
+            textStack.centerYAnchor.constraint(equalTo: centerYAnchor),
+            textStack.trailingAnchor.constraint(equalTo: textTrailing, constant: textTrailingInset),
+            titleField.widthAnchor.constraint(equalTo: textStack.widthAnchor),
+            deleteButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
+            deleteButton.centerYAnchor.constraint(equalTo: centerYAnchor),
+            deleteButton.widthAnchor.constraint(equalToConstant: 28),
+            deleteButton.heightAnchor.constraint(equalToConstant: 28),
+            editButton.trailingAnchor.constraint(equalTo: deleteButton.leadingAnchor, constant: -4),
+            editButton.centerYAnchor.constraint(equalTo: centerYAnchor),
+            editButton.widthAnchor.constraint(equalToConstant: 28),
+            editButton.heightAnchor.constraint(equalToConstant: 28),
+            confirmEditButton.trailingAnchor.constraint(equalTo: editButton.trailingAnchor),
+            confirmEditButton.centerYAnchor.constraint(equalTo: editButton.centerYAnchor),
+            confirmEditButton.widthAnchor.constraint(equalTo: editButton.widthAnchor),
+            confirmEditButton.heightAnchor.constraint(equalTo: editButton.heightAnchor)
+        ])
+    }
+
+    // init?(coder): Library rows are constructed in code with their entry and
+    // action handlers.
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    // deinit(): Remove the scroll observer before the row is released.
+    deinit {
+        stopObservingLibraryScroll()
+    }
+
+    override var acceptsFirstResponder: Bool {
+        !isInteractionLocked && !isEditingTitle
+    }
+
+    // becomeFirstResponder(): Highlight a Library row when it accepts keyboard
+    // focus.
+    override func becomeFirstResponder() -> Bool {
+        // A row that cannot accept focus must not claim keyboard selection.
+        guard acceptsFirstResponder else { return false }
+        isKeyboardFocused = true
+        updateInteractionAppearance()
+        return true
+    }
+
+    // resignFirstResponder(): Recheck focus after AppKit transfers it so child
+    // controls can keep their row highlighted.
+    override func resignFirstResponder() -> Bool {
+        // Recheck focus after AppKit hands it to a child button so the row remains highlighted.
+        DispatchQueue.main.async { [weak self] in
+            // Recheck focus only while the row still exists after AppKit's responder update.
+            guard let self else { return }
+            let responderView = self.window?.firstResponder as? NSView
+            self.setKeyboardFocused(
+                responderView === self || responderView?.isDescendant(of: self) == true
+            )
+        }
+        return true
+    }
+
+    // setKeyboardFocused(focused): Update the explicit row focus state only
+    // when it changes.
+    func setKeyboardFocused(_ focused: Bool) {
+        // Avoid redrawing when the row's keyboard-focus state is unchanged.
+        guard isKeyboardFocused != focused else { return }
+        isKeyboardFocused = focused
+        updateInteractionAppearance()
+    }
+
+    var keyboardFocusControls: [NSView] {
+        [self, editButton, deleteButton]
+    }
+
+    // moveKeyboardFocusHorizontally(forward, window): Right moves from the row
+    // through its actions; Left moves back without changing rows.
+    func moveKeyboardFocusHorizontally(forward: Bool, in window: NSWindow) -> Bool {
+        // Locked or renaming rows do not use ordinary row-button navigation.
+        guard !isInteractionLocked, !isEditingTitle else { return false }
+        let responder = window.firstResponder as? NSView
+
+        // Forward Tab moves from the row through its edit and delete controls.
+        if forward {
+            // The row's first forward focus target is its edit button.
+            if responder === self {
+                return window.makeFirstResponder(editButton)
+            }
+            // Continue from editing to the delete action.
+            if responder === editButton {
+                return window.makeFirstResponder(deleteButton)
+            }
+        } else {
+            // Reverse Tab visits the row controls in the opposite order.
+            // Move backward from Delete to Edit.
+            if responder === deleteButton {
+                return window.makeFirstResponder(editButton)
+            }
+            // Move backward from Edit to the row itself.
+            if responder === editButton {
+                return window.makeFirstResponder(self)
+            }
+        }
+
+        return false
+    }
+
+    // openFromKeyboard(): Open the keyboard-selected entry only when the row is
+    // neither locked nor being renamed.
+    func openFromKeyboard() {
+        // Open only an unlocked row that is not being renamed.
+        guard !isInteractionLocked, !isEditingTitle else { return }
+        onOpen()
+    }
+
+    // deleteTapped(): Cancel any active title edit before invoking the row's
+    // deletion handler.
+    @objc private func deleteTapped() {
+        // Cancel an active title edit before dismissing the row interaction.
+        if isEditingTitle {
+            isCancellingTitleEdit = true
+            window?.makeFirstResponder(nil)
+        }
+        let eventType = NSApp.currentEvent?.type
+        onDelete(eventType == .keyDown || eventType == .keyUp)
+    }
+
+    // editTitleTapped(): Start the inline Library title editor from its edit
+    // button.
+    @objc private func editTitleTapped() {
+        beginEditingTitle()
+    }
+
+    // confirmTitleEditTapped(): Finish the active title edit by handing focus
+    // back to the window.
+    @objc private func confirmTitleEditTapped() {
+        // A confirmation action has no work unless a rename is active.
+        guard isEditingTitle else { return }
+        window?.makeFirstResponder(nil)
+    }
+
+    // menu(event): Show the row context menu explicitly across its label and
+    // button subviews.
+    override func menu(for event: NSEvent) -> NSMenu? {
+        isInteractionLocked ? nil : menu
+    }
+
+    // rightMouseDown(event): Show the row's context menu only when its actions
+    // are available.
+    override func rightMouseDown(with event: NSEvent) {
+        // Locked rows must not expose actions through a contextual menu.
+        guard !isInteractionLocked, let menu else {
+            super.rightMouseDown(with: event)
+            return
+        }
+        NSMenu.popUpContextMenu(menu, with: event, for: self)
+    }
+
+    // contextOpen(sender): Open an unlocked Library entry from its context
+    // menu.
+    @objc private func contextOpen(_ sender: Any?) {
+        // Do not open a row while its interaction is locked.
+        guard !isInteractionLocked else { return }
+        onOpen()
+    }
+
+    // contextRename(sender): Start renaming an unlocked Library entry from its
+    // context menu.
+    @objc private func contextRename(_ sender: Any?) {
+        // Do not begin a rename during a locked Library operation.
+        guard !isInteractionLocked else { return }
+        beginEditingTitle()
+    }
+
+    // contextExportText(sender): Export text from an unlocked Library entry.
+    @objc private func contextExportText(_ sender: Any?) {
+        // Text export is unavailable while the row is locked.
+        guard !isInteractionLocked else { return }
+        onExportText()
+    }
+
+    // contextExportAudio(sender): Export available audio from an unlocked
+    // Library entry.
+    @objc private func contextExportAudio(_ sender: Any?) {
+        // Audio export is unavailable while the row is locked.
+        guard !isInteractionLocked else { return }
+        onExportAudio?()
+    }
+
+    // contextDelete(sender): Route context-menu deletion through the same flow
+    // as the row's delete button.
+    @objc private func contextDelete(_ sender: Any?) {
+        // A locked row cannot begin deletion.
+        guard !isInteractionLocked else { return }
+        deleteTapped()
+    }
+
+    // beginEditingTitle(): Capture the original title and prepare the field for
+    // an inline rename.
+    private func beginEditingTitle() {
+        // Do not reinitialize an already active title edit.
+        guard !isEditingTitle else { return }
+        isEditingTitle = true
+        isCancellingTitleEdit = false
+        titleBeforeEditing = titleField.stringValue
+        titleField.isEditable = true
+        titleField.isSelectable = true
+        editButton.isHidden = true
+        confirmEditButton.isHidden = false
+        onEditingChanged(self, true)
+        setHovered(isHovered)
+        window?.makeFirstResponder(titleField)
+        titleField.currentEditor()?.selectedRange = NSRange(location: 0, length: titleField.stringValue.utf16.count)
+    }
+
+    // controlTextDidEndEditing(notification): Commit or cancel a finished
+    // rename and restore the appropriate keyboard focus.
+    func controlTextDidEndEditing(_ notification: Notification) {
+        // Ignore end-editing notifications unrelated to an active rename.
+        guard isEditingTitle else { return }
+        let cancelled = isCancellingTitleEdit
+        let restoreKeyboardFocus = restoreKeyboardFocusAfterEditing
+        let renamedTitle = titleField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        isEditingTitle = false
+        isCancellingTitleEdit = false
+        restoreKeyboardFocusAfterEditing = false
+        titleField.isEditable = false
+        titleField.isSelectable = false
+        confirmEditButton.isHidden = true
+        editButton.isHidden = !isHovered
+        onEditingChanged(self, false)
+        setHovered(isHovered)
+
+        // Canceled or empty names restore the original title.
+        if cancelled || renamedTitle.isEmpty {
+            titleField.stringValue = titleBeforeEditing
+        } else if renamedTitle != titleBeforeEditing {
+            // Notify the Library only when the accepted title actually changed.
+            titleField.stringValue = renamedTitle
+            onRename(renamedTitle, restoreKeyboardFocus)
+            return
+        }
+
+        // Return keyboard focus to the row when the editing command requested it.
+        if restoreKeyboardFocus {
+            window?.makeFirstResponder(self)
+        }
+    }
+
+    // control(control, textView, commandSelector): Handle title-editing
+    // commands such as accepting or cancelling the rename.
+    func control(
+        _ control: NSControl,
+        textView: NSTextView,
+        doCommandBy commandSelector: Selector
+    ) -> Bool {
+        // Escape cancels the rename and restores the original title.
+        if commandSelector == #selector(NSResponder.cancelOperation(_:)) {
+            isCancellingTitleEdit = true
+            restoreKeyboardFocusAfterEditing = true
+            window?.makeFirstResponder(nil)
+            return true
+        }
+        // Return accepts the rename and requests keyboard focus on the row.
+        if commandSelector == #selector(NSResponder.insertNewline(_:)) {
+            restoreKeyboardFocusAfterEditing = true
+            window?.makeFirstResponder(nil)
+            return true
+        }
+        return false
+    }
+
+    // mouseDown(event): Open on a click; begin a folder drag after the pointer
+    // moves a few points.
+    override func mouseDown(with event: NSEvent) {
+        // Ignore click and drag actions during a locked Library operation.
+        guard !isInteractionLocked else { return }
+        // Finish a title edit before interpreting a click on the row.
+        if isEditingTitle {
+            window?.makeFirstResponder(nil)
+            return
+        }
+        let start = event.locationInWindow
+        // Distinguish a click release from a drag that crosses the movement threshold.
+        while let next = window?.nextEvent(matching: [.leftMouseUp, .leftMouseDragged]) {
+            // A release before dragging opens the selected result.
+            if next.type == .leftMouseUp {
+                onOpen()
+                return
+            }
+            // Start entry dragging only after deliberate pointer movement.
+            if hypot(next.locationInWindow.x - start.x, next.locationInWindow.y - start.y) > 4 {
+                beginEntryDrag(with: next)
+                return
+            }
+        }
+    }
+
+    // beginEntryDrag(event): Start an internal Library drag with the entry ID
+    // and a snapshot of its row.
+    private func beginEntryDrag(with event: NSEvent) {
+        let pasteboardItem = NSPasteboardItem()
+        pasteboardItem.setString(entryID, forType: .langminLibraryEntry)
+        let draggingItem = NSDraggingItem(pasteboardWriter: pasteboardItem)
+        let snapshot = NSImage(size: bounds.size)
+        // Use the rendered row as the drag image when a bitmap can be captured.
+        if let rep = bitmapImageRepForCachingDisplay(in: bounds) {
+            cacheDisplay(in: bounds, to: rep)
+            snapshot.addRepresentation(rep)
+        }
+        draggingItem.setDraggingFrame(bounds, contents: snapshot)
+        beginDraggingSession(with: [draggingItem], event: event, source: self)
+    }
+
+    // draggingSession(session, context): Advertise filing as an internal move
+    // and disallow dragging entries to other applications.
+    func draggingSession(
+        _ session: NSDraggingSession,
+        sourceOperationMaskFor context: NSDraggingContext
+    ) -> NSDragOperation {
+        // Allow entry filing only within Langmin.
+        context == .withinApplication ? .generic : []
+    }
+
+    // hitTest(point): Route nonediting title clicks to the row while excluding
+    // interaction-locked rows.
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        // Locked rows do not participate in hit-testing.
+        guard !isInteractionLocked else { return nil }
+        let hit = super.hitTest(point)
+        // A noneditable title delegates clicks to the row's open/drag behavior.
+        if !isEditingTitle, hit === titleField {
+            return self
+        }
+        return hit
+    }
+
+    // updateTrackingAreas(): Rebuild row hover tracking when its visible bounds
+    // change.
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        // Replace the old tracking area when updating row hover tracking.
+        if let trackingArea {
+            removeTrackingArea(trackingArea)
+        }
+        let area = NSTrackingArea(
+            rect: bounds,
+            options: [.mouseEnteredAndExited, .activeInActiveApp, .inVisibleRect],
+            owner: self,
+            userInfo: nil
+        )
+        addTrackingArea(area)
+        trackingArea = area
+    }
+
+    // viewDidMoveToWindow(): Recompute hover during scrolling because
+    // tracking-area exit events can be missed when rows move beneath a
+    // stationary pointer.
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        stopObservingLibraryScroll()
+
+        // Clear hover when the row has no visible scrolling context.
+        guard window != nil, let clipView = enclosingScrollView?.contentView else {
+            setHovered(false)
+            return
+        }
+
+        observedClipView = clipView
+        clipView.postsBoundsChangedNotifications = true
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(libraryScrollBoundsChanged(_:)),
+            name: NSView.boundsDidChangeNotification,
+            object: clipView
+        )
+        refreshHoverFromPointer()
+    }
+
+    // stopObservingLibraryScroll(): Remove the previous Library scroll
+    // observation before detaching or changing hosts.
+    private func stopObservingLibraryScroll() {
+        // Detach the old scroll observer before changing observed clip views.
+        if let observedClipView {
+            NotificationCenter.default.removeObserver(
+                self,
+                name: NSView.boundsDidChangeNotification,
+                object: observedClipView
+            )
+        }
+        observedClipView = nil
+    }
+
+    // libraryScrollBoundsChanged(notification): Recalculate hover after
+    // scrolling moves rows beneath a stationary pointer.
+    @objc private func libraryScrollBoundsChanged(_ notification: Notification) {
+        refreshHoverFromPointer()
+    }
+
+    // refreshHoverFromPointer(): Find whether the current screen pointer lies
+    // over this row in its window.
+    private func refreshHoverFromPointer() {
+        // A row without a window cannot be hovered by the current pointer.
+        guard let window else {
+            setHovered(false)
+            return
+        }
+        let windowPoint = window.convertPoint(fromScreen: NSEvent.mouseLocation)
+        setHovered(bounds.contains(convert(windowPoint, from: nil)))
+    }
+
+    // setHovered(hovered): Apply hover feedback only while the row allows
+    // interaction.
+    private func setHovered(_ hovered: Bool) {
+        let effectiveHover = hovered && !isInteractionLocked
+        isHovered = effectiveHover
+        updateInteractionAppearance()
+    }
+
+    // updateInteractionAppearance(): Update the row highlight and action
+    // visibility for hover, focus, and title editing.
+    private func updateInteractionAppearance() {
+        let interactiveHighlight = (isHovered || isKeyboardFocused) && !isInteractionLocked
+        layer?.backgroundColor = (interactiveHighlight || isEditingTitle)
+            ? NSColor.controlAccentColor.withAlphaComponent(0.12).cgColor
+            : nil
+        editButton.isHidden = !interactiveHighlight || isEditingTitle
+        confirmEditButton.isHidden = !isEditingTitle
+        deleteButton.isHidden = isEditingTitle ? false : !interactiveHighlight
+    }
+
+    // setInteractionLocked(locked): Lock row actions without interrupting a
+    // title edit already in progress.
+    func setInteractionLocked(_ locked: Bool) {
+        // Do not alter interaction locking in the middle of a title edit.
+        guard !isEditingTitle else { return }
+        isInteractionLocked = locked
+        // Hide hover actions while interaction is locked.
+        if locked {
+            setHovered(false)
+        } else {
+            // Restore the correct hover state when row interaction is enabled again.
+            refreshHoverFromPointer()
+        }
+    }
+
+    // mouseEntered(event): Show the Library row's hover actions when the
+    // pointer enters.
+    override func mouseEntered(with event: NSEvent) {
+        setHovered(true)
+    }
+
+    // mouseExited(event): Hide hover-only Library actions when the pointer
+    // leaves.
+    override func mouseExited(with event: NSEvent) {
+        setHovered(false)
+    }
+}
+
+// Choose where a request delivers its result: the launcher, a window, or the clipboard panel.
+enum LauncherRunPresentation {
+    // Ordinary launcher results use the normal inline or detached presentation preference.
+    case standard
+    // Initial progress context, such as the clipboard word count.
+    case clipboardHUD(title: String, detail: String?, preferredScreen: NSScreen?)
+}
