@@ -17171,3 +17171,79 @@ enum LauncherRunPresentation {
     // Initial progress context, such as the clipboard word count.
     case clipboardHUD(title: String, detail: String?, preferredScreen: NSScreen?)
 }
+
+// Capture one launcher's request state so completion uses the choices made at submission.
+final class LauncherRun: @unchecked Sendable {
+    var transformCompletion: ((LauncherRun, Result<String, Error>) -> Void)?
+    // Retain the completion destination while modal dialogs can process other events.
+    let returnsTransformedText: Bool
+    // Capture opt-in at request start so later Settings changes cannot enable a paid image.
+    let dictionaryIllustrationProvider: DictionaryIllustrationProvider = {
+        let preferences = loadAppPreferences()
+        return preferences.dictionaryIllustrationAutomatic ? preferences.dictionaryIllustrationProvider : .off
+    }()
+    let presentation: LauncherRunPresentation
+    let explicitTranslationTargetID: String?
+    // Page content and images belong to this run, never to mutable launcher state.
+    var sourcePage: WebPageSource?
+    var sourceImages: [SourceImageAsset]?
+    var conversation: ResultConversation?
+    var hudToken: UUID?
+    var cancelled = false
+    var acceptsCancellation = true
+
+    // init(transformCompletion, presentation, [explicitTranslationTargetID =
+    // nil]): Record the completion destination, presentation mode, and explicit
+    // translation target for a run.
+    init(
+        transformCompletion: ((LauncherRun, Result<String, Error>) -> Void)?,
+        presentation: LauncherRunPresentation,
+        explicitTranslationTargetID: String? = nil
+    ) {
+        self.transformCompletion = transformCompletion
+        self.returnsTransformedText = transformCompletion != nil
+        self.presentation = presentation
+        self.explicitTranslationTargetID = explicitTranslationTargetID
+    }
+
+    // automaticIllustrationProvider(headword): Respect the original opt-in and
+    // allow Settings to cancel automation while text is generating.
+    // Selected-text Services and non-Dictionary results never generate an image
+    // automatically.
+    func automaticIllustrationProvider(forDictionaryHeadword headword: String?) -> DictionaryIllustrationProvider {
+        // Require a Dictionary result, an available provider, and a still-enabled automation preference.
+        guard headword != nil, !returnsTransformedText,
+              dictionaryIllustrationProvider != .off, dictionaryIllustrationProvider.isAvailable,
+              loadAppPreferences().dictionaryIllustrationAutomatic else { return .off }
+        return dictionaryIllustrationProvider
+    }
+}
+
+// Context payload carried by a Library section header's bulk-delete menu item.
+private final class LibraryBulkDeletionRequest {
+    let entries: [LibraryEntry]
+    let sectionTitle: String
+    let isSearching: Bool
+
+    // init(entries, sectionTitle, isSearching): Capture the entries and section
+    // context needed to confirm a bulk deletion.
+    init(entries: [LibraryEntry], sectionTitle: String, isSearching: Bool) {
+        self.entries = entries
+        self.sectionTitle = sectionTitle
+        self.isSearching = isSearching
+    }
+}
+
+// MARK: - Launcher palette
+
+// Result of a menu action: close, refresh in place, open a page or return to the previous page.
+enum PaletteAction {
+    // An action may finish and close the palette.
+    case close
+    // An action may keep the current palette page open.
+    case stay
+    // An action may navigate into a nested page.
+    case push(PalettePage)
+    // An action may return to the preceding page.
+    case pop
+}
