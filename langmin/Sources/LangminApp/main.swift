@@ -17247,3 +17247,78 @@ enum PaletteAction {
     // An action may return to the preceding page.
     case pop
 }
+
+// One selectable row in a palette page.
+struct PaletteItem {
+    var id: String
+    var icon: String?
+    var title: String
+    var detail: String?
+    var checked: Bool
+    var pinned: Bool?
+    var hotkey: String?
+    var chevron: Bool
+    var action: (() -> PaletteAction)?
+
+    // init(id, [icon = nil], title, [detail = nil], [checked = false], [pinned
+    // = nil], [hotkey = nil], [chevron = false], [action = nil]): Define one
+    // palette action's identity, display content, and activation behavior.
+    init(
+        id: String,
+        icon: String? = nil,
+        title: String,
+        detail: String? = nil,
+        checked: Bool = false,
+        pinned: Bool? = nil,
+        hotkey: String? = nil,
+        chevron: Bool = false,
+        action: (() -> PaletteAction)? = nil
+    ) {
+        self.id = id
+        self.icon = icon
+        self.title = title
+        self.detail = detail
+        self.checked = checked
+        self.pinned = pinned
+        self.hotkey = hotkey
+        self.chevron = chevron
+        self.action = action
+    }
+}
+
+// Represent palette headings, separators, and selectable actions in display order.
+enum PaletteRow {
+    // Headers label a group of palette choices.
+    case header(String)
+    // Separators divide adjacent groups without offering an action.
+    case separator
+    // Items carry selectable palette actions and state.
+    case item(PaletteItem)
+}
+
+// Build menu rows from the current search text and selection state.
+struct PalettePage {
+    var searchPlaceholder: String?
+    var footerHint: String?
+    // Keep primary actions such as New Folder above the scrolling list.
+    var topAction: PaletteItem?
+    var onTab: ((String) -> Void)?
+    var rows: (String) -> [PaletteRow]
+
+    // init([searchPlaceholder = nil], [footerHint = nil], [topAction = nil],
+    // [onTab = nil], rows): Define a palette page's search, pinned action,
+    // keyboard behavior, and row provider.
+    init(
+        searchPlaceholder: String? = nil,
+        footerHint: String? = nil,
+        topAction: PaletteItem? = nil,
+        onTab: ((String) -> Void)? = nil,
+        rows: @escaping (String) -> [PaletteRow]
+    ) {
+        self.searchPlaceholder = searchPlaceholder
+        self.footerHint = footerHint
+        self.topAction = topAction
+        self.onTab = onTab
+        self.rows = rows
+    }
+}
