@@ -17322,3 +17322,1111 @@ struct PalettePage {
         self.rows = rows
     }
 }
+
+// Menu row with selection highlight, title, icon and trailing details or actions.
+final class PaletteRowButton: NSControl {
+    let item: PaletteItem
+    var isActiveRow = false { didSet { needsDisplay = true } }
+    var onHover: (() -> Void)?
+    var onActivate: (() -> Void)?
+    private var trackingArea: NSTrackingArea?
+
+    // init(item): Create a fixed-height, custom-drawn row for a palette action.
+    init(item: PaletteItem) {
+        self.item = item
+        super.init(frame: .zero)
+        translatesAutoresizingMaskIntoConstraints = false
+        heightAnchor.constraint(equalToConstant: 40).isActive = true
+        setAccessibilityRole(.button)
+        setAccessibilityLabel(item.title)
+    }
+
+    // init?(coder): Palette rows require an item supplied by the page builder.
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override var isFlipped: Bool { true }
+
+    // updateTrackingAreas(): Keep palette-row hover tracking aligned with its
+    // current bounds.
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        // Replace the tracking area to match the button's latest bounds.
+        if let trackingArea { removeTrackingArea(trackingArea) }
+        let area = NSTrackingArea(
+            rect: bounds,
+            options: [.mouseEnteredAndExited, .mouseMoved, .activeAlways, .inVisibleRect],
+            owner: self,
+            userInfo: nil
+        )
+        addTrackingArea(area)
+        trackingArea = area
+    }
+
+    // mouseEntered(event): Ask the palette to highlight this row when the
+    // pointer enters.
+    override func mouseEntered(with event: NSEvent) { onHover?() }
+    // mouseMoved(event): Keep the palette highlight in sync with pointer
+    // movement within the row.
+    override func mouseMoved(with event: NSEvent) { onHover?() }
+    // Only the pinned action uses this callback; the panel tracks hover for list rows.
+    var onHoverExit: (() -> Void)?
+    // mouseExited(event): Notify the pinned action when the pointer leaves its
+    // row.
+    override func mouseExited(with event: NSEvent) { onHoverExit?() }
+
+    // mouseDown(event): Handle releases directly so a click activates the row
+    // exactly once.
+    override func mouseDown(with event: NSEvent) {}
+    // mouseUp(event): Activate the row only when the mouse is released inside
+    // its bounds.
+    override func mouseUp(with event: NSEvent) {
+        // Activate only when the mouse release remains inside the row.
+        if bounds.contains(convert(event.locationInWindow, from: nil)) {
+            onActivate?()
+        }
+    }
+
+    // draw(dirtyRect): Draw the palette row's selection tint, text, and
+    // optional action indicators.
+    override func draw(_ dirtyRect: NSRect) {
+        let inset = NSRect(x: 6, y: 2, width: bounds.width - 12, height: bounds.height - 4)
+        // Tint the selected row and retain normal text colors.
+        if isActiveRow {
+            NSColor.controlAccentColor.withAlphaComponent(0.22).setFill()
+            NSBezierPath(roundedRect: inset, xRadius: 8, yRadius: 8).fill()
+        }
+
+        let primary: NSColor = .labelColor
+        let quiet: NSColor = isActiveRow ? .secondaryLabelColor : .tertiaryLabelColor
+        var x: CGFloat = 20
+
+        if let icon = item.icon, let image = tintedSymbol(icon, color: primary, pointSize: 13) {
+            // Center symbols in a fixed column to align row titles.
+            let iconSlotWidth: CGFloat = 20
+            image.draw(in: NSRect(
+                x: x + (iconSlotWidth - image.size.width) / 2,
+                y: (bounds.height - image.size.height) / 2,
+                width: image.size.width,
+                height: image.size.height
+            ))
+            x += iconSlotWidth + 10
+        }
+
+        let titleAttributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: 13.5, weight: .medium),
+            .foregroundColor: primary
+        ]
+        let title = item.title as NSString
+        let titleSize = title.size(withAttributes: titleAttributes)
+        // Reserve space for trailing controls before truncating the title.
+        var titleReserve: CGFloat = 20
+        // Reserve title space for a submenu chevron.
+        if item.chevron, let chevron = tintedSymbol("chevron.right", color: quiet, pointSize: 9.5) {
+            titleReserve += chevron.size.width + 10
+        }
+        // Reserve space for the current selection's checkmark.
+        if item.checked, let check = tintedSymbol("checkmark", color: .controlAccentColor, pointSize: 11) {
+            titleReserve += check.size.width + 10
+        }
+        // Account for the displayed shortcut before fitting the row title.
+        if let hotkey = item.hotkey {
+            titleReserve += ceil((hotkey as NSString).size(
+                withAttributes: [.font: NSFont.monospacedSystemFont(ofSize: 11.5, weight: .medium)]
+            ).width) + 12
+        }
+        // A pinned item needs space for its pin symbol.
+        if item.pinned == true, let pin = tintedSymbol("pin.fill", color: quiet, pointSize: 10.5) {
+            titleReserve += pin.size.width + 12
+        }
+        // Leave room for a nonempty secondary detail label.
+        if let detail = item.detail, !detail.isEmpty {
+            let naturalDetail = ceil((detail as NSString).size(
+                withAttributes: [.font: NSFont.systemFont(ofSize: 12.5, weight: .regular)]
+            ).width)
+            titleReserve += min(naturalDetail, 56) + 12
+        }
+        let drawnTitleWidth = min(ceil(titleSize.width), max(0, bounds.width - x - titleReserve))
+        // Draw the title only when the trailing accessories leave usable width.
+        if drawnTitleWidth > 0 {
+            let paragraph = NSMutableParagraphStyle()
+            paragraph.lineBreakMode = .byTruncatingTail
+            var truncatingAttributes = titleAttributes
+            truncatingAttributes[.paragraphStyle] = paragraph
+            title.draw(
+                in: NSRect(
+                    x: x,
+                    y: (bounds.height - titleSize.height) / 2,
+                    width: drawnTitleWidth,
+                    height: titleSize.height
+                ),
+                withAttributes: truncatingAttributes
+            )
+        }
+        x += drawnTitleWidth
+
+        // Trailing group, laid out right-to-left.
+        var rightX = bounds.width - 20
+
+        // Place the submenu chevron at the row's trailing edge.
+        if item.chevron, let chevron = tintedSymbol("chevron.right", color: quiet, pointSize: 9.5) {
+            rightX -= chevron.size.width
+            chevron.draw(in: NSRect(
+                x: rightX,
+                y: (bounds.height - chevron.size.height) / 2,
+                width: chevron.size.width,
+                height: chevron.size.height
+            ))
+            rightX -= 10
+        }
+
+        // Checks use the text color, as macOS menus do.
+        if item.checked, let check = tintedSymbol("checkmark", color: .labelColor, pointSize: 11) {
+            rightX -= check.size.width
+            check.draw(in: NSRect(
+                x: rightX,
+                y: (bounds.height - check.size.height) / 2,
+                width: check.size.width,
+                height: check.size.height
+            ))
+            rightX -= 10
+        }
+
+        // Draw an available keyboard shortcut beside the row's other trailing content.
+        if let hotkey = item.hotkey {
+            let attributes: [NSAttributedString.Key: Any] = [
+                .font: NSFont.monospacedSystemFont(ofSize: 11.5, weight: .medium),
+                .foregroundColor: quiet
+            ]
+            let badge = hotkey as NSString
+            let size = badge.size(withAttributes: attributes)
+            rightX -= size.width
+            badge.draw(at: NSPoint(x: rightX, y: (bounds.height - size.height) / 2), withAttributes: attributes)
+            rightX -= 12
+        }
+
+        // Show a pin only for an explicitly pinned item.
+        if item.pinned == true, let pin = tintedSymbol("pin.fill", color: quiet, pointSize: 10.5) {
+            rightX -= pin.size.width
+            pin.draw(in: NSRect(
+                x: rightX,
+                y: (bounds.height - pin.size.height) / 2,
+                width: pin.size.width,
+                height: pin.size.height
+            ))
+            rightX -= 12
+        }
+
+        if let detail = item.detail {
+            // Truncate long details before they overlap the title.
+            let paragraph = NSMutableParagraphStyle()
+            paragraph.lineBreakMode = .byTruncatingTail
+            let attributes: [NSAttributedString.Key: Any] = [
+                .font: NSFont.systemFont(ofSize: 12.5, weight: .regular),
+                .foregroundColor: quiet,
+                .paragraphStyle: paragraph
+            ]
+            let text = detail as NSString
+            let size = text.size(withAttributes: attributes)
+            // x already sits at the drawn (possibly truncated) title's end.
+            let detailLeftLimit = x + 12
+            let available = rightX - detailLeftLimit
+            // Draw secondary text only within the width left after the title and accessories.
+            if available > 0 {
+                let width = min(size.width, available)
+                text.draw(
+                    in: NSRect(
+                        x: rightX - width,
+                        y: (bounds.height - size.height) / 2,
+                        width: width,
+                        height: size.height
+                    ),
+                    withAttributes: attributes
+                )
+            }
+        }
+    }
+}
+
+// Shared child menu for search, mode options and model choices.
+// Actions returning stay refresh selections without closing it.
+final class LauncherPalettePanel: NSPanel, NSTextFieldDelegate {
+    private var pages: [PalettePage] = []
+    private var searchField: NSTextField?
+    private var listStack: NSStackView!
+    private var scrollView: NSScrollView!
+    private var footerLabel: NSTextField!
+    private var footerContainer: NSView!
+    private var searchContainer: NSView!
+    private var backContainer: NSView!
+    private var topActionContainer: NSView!
+    private var topActionSeparatorView: NSBox!
+    private var topActionButton: PaletteRowButton?
+    private var topActionHeightConstraint: NSLayoutConstraint?
+    private var searchBackButton: LauncherFooterButton!
+    private var containerView: PaletteContainerView!
+    private var scrollHeightConstraint: NSLayoutConstraint?
+    private var searchHeightConstraint: NSLayoutConstraint?
+    private var footerHeightConstraint: NSLayoutConstraint?
+    private var backHeightConstraint: NSLayoutConstraint?
+    private var magnifierLeadingConstraint: NSLayoutConstraint?
+    private var rowButtons: [PaletteRowButton] = []
+    private var highlightIndex = 0
+    private let paletteWidth: CGFloat
+    private let anchorProvider: () -> NSRect
+    private weak var presentingWindow: NSWindow?
+    private var opensUpward: Bool?
+    var onClose: (() -> Void)?
+    var onCommandComma: (() -> Void)?
+
+    private var currentPage: PalettePage? { pages.last }
+
+    // Use Liquid Glass on macOS 26. On older systems, use vibrancy with a border
+    // and a light-mode tint. Place menu rows above the background as siblings.
+    final class PaletteContainerView: NSView {
+        private var effectView: NSVisualEffectView?
+        private let lightWash = NSView()
+
+        // init(frameRect): Build the palette's rounded, clipped background and
+        // layered material.
+        override init(frame frameRect: NSRect) {
+            super.init(frame: frameRect)
+            wantsLayer = true
+            layer?.cornerRadius = 14
+            layer?.masksToBounds = true
+
+            let backing: NSView
+            // Use the native glass effect on systems that provide it.
+            if #available(macOS 26.0, *) {
+                let glass = NSGlassEffectView()
+                glass.cornerRadius = 14
+                glass.style = .regular
+                backing = glass
+            } else {
+                // Use a visual-effect material as the older-system fallback.
+                let effect = NSVisualEffectView()
+                effect.blendingMode = .behindWindow
+                effect.state = .active
+                effectView = effect
+                backing = effect
+            }
+            addFullSizeSubview(backing)
+            // Apply the light wash only when an effect view was installed.
+            if effectView != nil {
+                lightWash.wantsLayer = true
+                addFullSizeSubview(lightWash)
+            }
+            refreshColors()
+        }
+
+        // init?(coder): Palette containers are created in code with their
+        // material layers.
+        required init?(coder: NSCoder) {
+            fatalError("init(coder:) has not been implemented")
+        }
+
+        // addFullSizeSubview(view): Pin a background layer to all four edges of
+        // the palette container.
+        private func addFullSizeSubview(_ view: NSView) {
+            view.translatesAutoresizingMaskIntoConstraints = false
+            addSubview(view)
+            NSLayoutConstraint.activate([
+                view.topAnchor.constraint(equalTo: topAnchor),
+                view.leadingAnchor.constraint(equalTo: leadingAnchor),
+                view.trailingAnchor.constraint(equalTo: trailingAnchor),
+                view.bottomAnchor.constraint(equalTo: bottomAnchor)
+            ])
+        }
+
+        // viewDidChangeEffectiveAppearance(): Refresh palette background colors
+        // when the effective appearance changes.
+        override func viewDidChangeEffectiveAppearance() {
+            super.viewDidChangeEffectiveAppearance()
+            refreshColors()
+        }
+
+        // refreshColors(): Add a light-mode outline to glass as well as the
+        // older visual-effect fallback.
+        func refreshColors() {
+            let isDark = effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+            effectiveAppearance.performAsCurrentDrawingAppearance {
+                layer?.borderWidth = effectView != nil || !isDark ? 1 : 0
+                layer?.borderColor = langminControlBorderColor.cgColor
+                // Native glass supplies its own material; only the fallback needs the light wash.
+                if let effectView {
+                    effectView.material = isDark ? .menu : .sheet
+                    lightWash.layer?.backgroundColor = isDark ? nil : NSColor.white.withAlphaComponent(0.45).cgColor
+                }
+            }
+        }
+    }
+
+    // Key handling for pages without a search field.
+    final class PaletteKeyView: NSView {
+        weak var panel: LauncherPalettePanel?
+        override var acceptsFirstResponder: Bool { true }
+
+        // keyDown(event): Let the palette consume navigation keys before the
+        // view handles other typing.
+        override func keyDown(with event: NSEvent) {
+            // Let AppKit handle keys that the palette does not consume.
+            if panel?.handleKeyDown(event) != true {
+                super.keyDown(with: event)
+            }
+        }
+    }
+
+    // init(anchorProvider, [width = 400]): Create a palette panel with a
+    // caller-supplied anchor and preferred width.
+    init(anchorProvider: @escaping () -> NSRect, width: CGFloat = 400) {
+        self.anchorProvider = anchorProvider
+        self.paletteWidth = width
+        super.init(
+            contentRect: NSRect(x: 0, y: 0, width: width, height: 200),
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+        isOpaque = false
+        backgroundColor = .clear
+        hasShadow = true
+        isMovableByWindowBackground = false
+        becomesKeyOnlyIfNeeded = false
+        level = .floating
+        buildContent()
+    }
+
+    // sendEvent(event): Handle menu navigation before the search editor can
+    // consume Tab or arrows. Leave typing to the editor; Command-K closes the
+    // menu.
+    override func sendEvent(_ event: NSEvent) {
+        // Interpret palette shortcuts only for key-down events.
+        if event.type == .keyDown {
+            // Command-K toggles the palette through its dedicated handler.
+            if event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command,
+               event.charactersIgnoringModifiers?.lowercased() == "k" {
+                closePalette()
+                return
+            }
+            // Stop propagation after a palette navigation action handled the key.
+            if handleKeyDown(event) {
+                return
+            }
+        }
+        super.sendEvent(event)
+    }
+
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { false }
+
+    // buildContent(): Build the palette's search, navigation, rows, and footer
+    // inside its keyboard-routing view.
+    private func buildContent() {
+        let keyView = PaletteKeyView()
+        keyView.panel = self
+        containerView = PaletteContainerView(frame: .zero)
+        containerView.translatesAutoresizingMaskIntoConstraints = false
+        keyView.addSubview(containerView)
+
+        // Provide a Back button for nested pages; Escape also returns to the previous page.
+        backContainer = NSView()
+        backContainer.translatesAutoresizingMaskIntoConstraints = false
+        backContainer.isHidden = true
+
+        let backButton = LauncherFooterButton(
+            title: localized("back", "Back"),
+            symbolName: "chevron.backward",
+            showsChevron: false,
+            target: self,
+            action: #selector(backTapped(_:))
+        )
+        backContainer.addSubview(backButton)
+
+        let backSeparator = NativeSeparator()
+        backSeparator.boxType = .separator
+        backSeparator.translatesAutoresizingMaskIntoConstraints = false
+        backContainer.addSubview(backSeparator)
+
+        // Pinned primary action above the search row (PalettePage.topAction).
+        topActionContainer = NSView()
+        topActionContainer.translatesAutoresizingMaskIntoConstraints = false
+        topActionContainer.isHidden = true
+        let topActionSeparator = NativeSeparator()
+        topActionSeparator.boxType = .separator
+        topActionSeparator.translatesAutoresizingMaskIntoConstraints = false
+        topActionContainer.addSubview(topActionSeparator)
+        topActionSeparatorView = topActionSeparator
+
+        searchContainer = NSView()
+        searchContainer.translatesAutoresizingMaskIntoConstraints = false
+
+        // Searchable drill-ins carry their back chevron inside the search row
+        // instead of a separate bar.
+        searchBackButton = LauncherFooterButton(
+            title: "",
+            symbolName: "chevron.backward",
+            showsChevron: false,
+            target: self,
+            action: #selector(backTapped(_:))
+        )
+        searchBackButton.setAccessibilityLabel(localized("back", "Back"))
+        searchBackButton.toolTip = localized("back", "Back")
+        searchBackButton.isHidden = true
+        searchContainer.addSubview(searchBackButton)
+
+        let magnifier = NSImageView()
+        // Use a template symbol so the magnifier tint follows appearance changes.
+        magnifier.image = NSImage(systemSymbolName: "magnifyingglass", accessibilityDescription: nil)?
+            .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 13, weight: .medium))
+        magnifier.contentTintColor = .tertiaryLabelColor
+        magnifier.translatesAutoresizingMaskIntoConstraints = false
+        searchContainer.addSubview(magnifier)
+
+        let field = NSTextField()
+        field.isBordered = false
+        field.drawsBackground = false
+        field.focusRingType = .none
+        field.font = NSFont.systemFont(ofSize: 15)
+        field.textColor = .labelColor
+        field.delegate = self
+        field.translatesAutoresizingMaskIntoConstraints = false
+        searchContainer.addSubview(field)
+        searchField = field
+
+        let searchSeparator = NativeSeparator()
+        searchSeparator.boxType = .separator
+        searchSeparator.translatesAutoresizingMaskIntoConstraints = false
+        searchContainer.addSubview(searchSeparator)
+
+        listStack = NSStackView()
+        listStack.orientation = .vertical
+        listStack.alignment = .leading
+        listStack.spacing = 0
+        listStack.translatesAutoresizingMaskIntoConstraints = false
+
+        let clipDocument = FlippedStackDocumentView()
+        clipDocument.translatesAutoresizingMaskIntoConstraints = false
+        clipDocument.addSubview(listStack)
+
+        scrollView = NSScrollView()
+        scrollView.borderType = .noBorder
+        scrollView.drawsBackground = false
+        scrollView.hasVerticalScroller = true
+        scrollView.autohidesScrollers = true
+        scrollView.documentView = clipDocument
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+
+        footerLabel = NSTextField(labelWithString: "")
+        footerLabel.font = NSFont.monospacedSystemFont(ofSize: 11.5, weight: .medium)
+        footerLabel.textColor = .tertiaryLabelColor
+        footerLabel.translatesAutoresizingMaskIntoConstraints = false
+
+        let footerSeparator = NativeSeparator()
+        footerSeparator.boxType = .separator
+        footerSeparator.translatesAutoresizingMaskIntoConstraints = false
+
+        // Collapse unused footer space.
+        footerContainer = NSView()
+        footerContainer.translatesAutoresizingMaskIntoConstraints = false
+        footerContainer.addSubview(footerSeparator)
+        footerContainer.addSubview(footerLabel)
+
+        containerView.addSubview(backContainer)
+        containerView.addSubview(topActionContainer)
+        containerView.addSubview(searchContainer)
+        containerView.addSubview(scrollView)
+        containerView.addSubview(footerContainer)
+
+        NSLayoutConstraint.activate([
+            containerView.leadingAnchor.constraint(equalTo: keyView.leadingAnchor),
+            containerView.trailingAnchor.constraint(equalTo: keyView.trailingAnchor),
+            containerView.topAnchor.constraint(equalTo: keyView.topAnchor),
+            containerView.bottomAnchor.constraint(equalTo: keyView.bottomAnchor),
+
+            backContainer.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+            backContainer.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            backContainer.topAnchor.constraint(equalTo: containerView.topAnchor),
+            backButton.leadingAnchor.constraint(equalTo: backContainer.leadingAnchor, constant: 20),
+            backButton.centerYAnchor.constraint(equalTo: backContainer.centerYAnchor),
+            backSeparator.leadingAnchor.constraint(equalTo: backContainer.leadingAnchor),
+            backSeparator.trailingAnchor.constraint(equalTo: backContainer.trailingAnchor),
+            backSeparator.bottomAnchor.constraint(equalTo: backContainer.bottomAnchor),
+
+            searchContainer.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+            searchContainer.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            topActionContainer.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+            topActionContainer.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            topActionContainer.topAnchor.constraint(equalTo: backContainer.bottomAnchor),
+            topActionSeparatorView.leadingAnchor.constraint(equalTo: topActionContainer.leadingAnchor),
+            topActionSeparatorView.trailingAnchor.constraint(equalTo: topActionContainer.trailingAnchor),
+            topActionSeparatorView.bottomAnchor.constraint(equalTo: topActionContainer.bottomAnchor),
+            searchContainer.topAnchor.constraint(equalTo: topActionContainer.bottomAnchor),
+
+            searchBackButton.leadingAnchor.constraint(equalTo: searchContainer.leadingAnchor, constant: 18),
+            searchBackButton.centerYAnchor.constraint(equalTo: searchContainer.centerYAnchor, constant: -1),
+            // Align the magnifier with the search text.
+            magnifier.centerYAnchor.constraint(equalTo: searchContainer.centerYAnchor, constant: -0.5),
+            field.leadingAnchor.constraint(equalTo: magnifier.trailingAnchor, constant: 10),
+            field.trailingAnchor.constraint(equalTo: searchContainer.trailingAnchor, constant: -20),
+            field.centerYAnchor.constraint(equalTo: searchContainer.centerYAnchor),
+            searchSeparator.leadingAnchor.constraint(equalTo: searchContainer.leadingAnchor),
+            searchSeparator.trailingAnchor.constraint(equalTo: searchContainer.trailingAnchor),
+            searchSeparator.bottomAnchor.constraint(equalTo: searchContainer.bottomAnchor),
+
+            scrollView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            scrollView.topAnchor.constraint(equalTo: searchContainer.bottomAnchor),
+
+            listStack.leadingAnchor.constraint(equalTo: clipDocument.leadingAnchor),
+            listStack.trailingAnchor.constraint(equalTo: clipDocument.trailingAnchor),
+            // Keep top and bottom padding inside the scrolling document so edge rows retain clearance.
+            listStack.topAnchor.constraint(equalTo: clipDocument.topAnchor, constant: 3),
+            listStack.bottomAnchor.constraint(equalTo: clipDocument.bottomAnchor, constant: -5),
+            clipDocument.widthAnchor.constraint(equalToConstant: paletteWidth),
+
+            footerContainer.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+            footerContainer.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            footerContainer.topAnchor.constraint(equalTo: scrollView.bottomAnchor),
+            footerContainer.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
+            footerSeparator.leadingAnchor.constraint(equalTo: footerContainer.leadingAnchor),
+            footerSeparator.trailingAnchor.constraint(equalTo: footerContainer.trailingAnchor),
+            footerSeparator.topAnchor.constraint(equalTo: footerContainer.topAnchor),
+            footerLabel.leadingAnchor.constraint(equalTo: footerContainer.leadingAnchor, constant: 20),
+            footerLabel.centerYAnchor.constraint(equalTo: footerContainer.centerYAnchor, constant: 1)
+        ])
+
+        // The magnifier slides right when the in-row back chevron is shown.
+        magnifierLeadingConstraint = magnifier.leadingAnchor.constraint(
+            equalTo: searchContainer.leadingAnchor,
+            constant: 20
+        )
+        magnifierLeadingConstraint?.isActive = true
+
+        contentView = keyView
+    }
+
+    // Flipped so the stack pins to the top of the scroll area.
+    final class FlippedStackDocumentView: NSView {
+        override var isFlipped: Bool { true }
+    }
+
+    // MARK: Presentation
+
+    // present(page, parent): Present the requested palette page over its parent
+    // window.
+    func present(page: PalettePage, over parent: NSWindow) {
+        // The first layout runs before addChildWindow establishes `parent`.
+        presentingWindow = parent
+        opensUpward = nil
+        pages = [page]
+        applyCurrentPage(resetSearch: true)
+        parent.addChildWindow(self, ordered: .above)
+        makeKeyAndOrderFront(nil)
+        // Restore editor focus after the panel becomes key; AppKit may drop an earlier assignment.
+        if searchContainer?.isHidden == false {
+            makeFirstResponder(searchField)
+        } else {
+            // Without a search field, make the palette content its keyboard responder.
+            makeFirstResponder(contentView)
+        }
+    }
+
+    // push(page): Open a nested palette page with a fresh search query.
+    func push(_ page: PalettePage) {
+        pages.append(page)
+        applyCurrentPage(resetSearch: true)
+    }
+
+    // pop(): Return to the previous page, or dismiss the palette when already
+    // at its root.
+    func pop() {
+        // Going back from the root page closes the palette.
+        guard pages.count > 1 else {
+            closePalette()
+            return
+        }
+        pages.removeLast()
+        applyCurrentPage(resetSearch: true)
+    }
+
+    // closePalette(): Detach and hide the palette, then clear its presentation
+    // state.
+    func closePalette() {
+        let parentWindow = parent
+        parentWindow?.removeChildWindow(self)
+        orderOut(nil)
+        presentingWindow = nil
+        pages = []
+        onClose?()
+        parentWindow?.makeKey()
+    }
+
+    // resignKey(): Dismiss a visible palette when another window takes keyboard
+    // focus.
+    override func resignKey() {
+        super.resignKey()
+        // Clicking anywhere else dismisses the palette, like a menu.
+        if isVisible {
+            closePalette()
+        }
+    }
+
+    // cancelOperation(sender): Treat Escape as back navigation, closing the
+    // palette at its root.
+    override func cancelOperation(_ sender: Any?) {
+        pop()
+    }
+
+    // backTapped(sender): Use the Back button for the same page navigation as
+    // Escape.
+    @objc private func backTapped(_ sender: Any?) {
+        pop()
+    }
+
+    private var searchText: String { searchField?.stringValue ?? "" }
+
+    // applyCurrentPage(resetSearch): Configure the visible controls and rows
+    // for the top page in the navigation stack.
+    private func applyCurrentPage(resetSearch: Bool) {
+        // A missing current page has no content to display.
+        guard let page = currentPage else { return }
+        let hasSearch = page.searchPlaceholder != nil
+        let drilled = pages.count > 1
+        searchContainer.isHidden = !hasSearch
+        // Put Back inside search rows; use a separate bar on pages without search.
+        searchBackButton.isHidden = !(drilled && hasSearch)
+        magnifierLeadingConstraint?.constant = drilled && hasSearch ? 44 : 20
+        backContainer.isHidden = !(drilled && !hasSearch)
+        // Rebuild the pinned action outside the scrolling list and keyboard highlight cycle.
+        topActionButton?.removeFromSuperview()
+        topActionButton = nil
+        // Add the page's optional leading action above its ordinary rows.
+        if let action = page.topAction {
+            let button = PaletteRowButton(item: action)
+            button.translatesAutoresizingMaskIntoConstraints = false
+            button.onHover = { [weak button] in button?.isActiveRow = true }
+            button.onHoverExit = { [weak button] in button?.isActiveRow = false }
+            button.onActivate = { [weak self] in self?.activateTopAction() }
+            topActionContainer.addSubview(button)
+            NSLayoutConstraint.activate([
+                button.leadingAnchor.constraint(equalTo: topActionContainer.leadingAnchor),
+                button.trailingAnchor.constraint(equalTo: topActionContainer.trailingAnchor),
+                button.centerYAnchor.constraint(equalTo: topActionContainer.centerYAnchor, constant: -0.5)
+            ])
+            topActionButton = button
+        }
+        topActionContainer.isHidden = page.topAction == nil
+        // Clear the search text only when this page transition requests a reset.
+        if resetSearch {
+            searchField?.stringValue = ""
+        }
+        searchField?.placeholderString = page.searchPlaceholder ?? ""
+        footerLabel.stringValue = page.footerHint ?? ""
+        footerContainer.isHidden = page.footerHint == nil
+        reloadRows(preserveHighlight: false)
+        layoutPanel()
+        // Searchable pages put keyboard input in their search field.
+        if hasSearch {
+            makeFirstResponder(searchField)
+        } else {
+            // Other pages keep navigation focus on the palette itself.
+            makeFirstResponder(contentView)
+        }
+    }
+
+    // reloadRows([preserveHighlight = true]): Rebuild the row list from the
+    // current page and filter text.
+    func reloadRows(preserveHighlight: Bool = true) {
+        // Reload rows only while there is an active palette page.
+        guard let page = currentPage else { return }
+        hoverSuppressedAt = NSEvent.mouseLocation
+        let keptID: String? = preserveHighlight ? highlightedItem?.id : nil
+        listStack.arrangedSubviews.forEach { view in
+            listStack.removeArrangedSubview(view)
+            view.removeFromSuperview()
+        }
+        rowButtons = []
+
+        // Build the visible rows from the page's current search results.
+        for row in page.rows(searchText) {
+            // Render each row according to whether it is a heading, separator, or action.
+            switch row {
+            // Section headings label the following choices without becoming selectable rows.
+            case .header(let text):
+                let label = NSTextField(labelWithString: text.uppercased())
+                label.font = NSFont.monospacedSystemFont(ofSize: 11, weight: .semibold)
+                label.textColor = .tertiaryLabelColor
+                label.translatesAutoresizingMaskIntoConstraints = false
+                let wrapper = NSView()
+                wrapper.translatesAutoresizingMaskIntoConstraints = false
+                wrapper.addSubview(label)
+                NSLayoutConstraint.activate([
+                    label.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: 20),
+                    label.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor, constant: -6),
+                    wrapper.heightAnchor.constraint(equalToConstant: 30),
+                    wrapper.widthAnchor.constraint(equalToConstant: paletteWidth)
+                ])
+                listStack.addArrangedSubview(wrapper)
+            // Separators add visual grouping between palette sections.
+            case .separator:
+                let separator = NativeSeparator()
+                separator.boxType = .separator
+                separator.translatesAutoresizingMaskIntoConstraints = false
+                let wrapper = NSView()
+                wrapper.translatesAutoresizingMaskIntoConstraints = false
+                wrapper.addSubview(separator)
+                NSLayoutConstraint.activate([
+                    separator.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor),
+                    separator.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor),
+                    separator.centerYAnchor.constraint(equalTo: wrapper.centerYAnchor),
+                    wrapper.heightAnchor.constraint(equalToConstant: 13),
+                    wrapper.widthAnchor.constraint(equalToConstant: paletteWidth)
+                ])
+                listStack.addArrangedSubview(wrapper)
+            // Action items become interactive rows with keyboard and hover selection.
+            case .item(let item):
+                let button = PaletteRowButton(item: item)
+                button.widthAnchor.constraint(equalToConstant: paletteWidth).isActive = true
+                let index = rowButtons.count
+                button.onHover = { [weak self] in self?.hoverHighlight(index) }
+                button.onActivate = { [weak self] in self?.activate(index) }
+                rowButtons.append(button)
+                listStack.addArrangedSubview(button)
+            }
+        }
+
+        // Preserve the highlighted item's identity across a row reload when possible.
+        if let keptID, let restored = rowButtons.firstIndex(where: { $0.item.id == keptID }) {
+            highlightIndex = restored
+        } else {
+            // Select the first row when the previous item is no longer present.
+            highlightIndex = 0
+        }
+        refreshHighlight()
+        layoutPanel()
+    }
+
+    private var highlightedItem: PaletteItem? {
+        // An out-of-range highlight has no selected action.
+        guard rowButtons.indices.contains(highlightIndex) else { return nil }
+        return rowButtons[highlightIndex].item
+    }
+
+    // Ignore hover events caused by keyboard scrolling until the pointer moves,
+    // so a stationary mouse cannot replace keyboard selection.
+    private var hoverSuppressedAt: NSPoint?
+
+    // hoverHighlight(index): Honor pointer hover only after it moves away from
+    // a keyboard-navigation suppression point.
+    private func hoverHighlight(_ index: Int) {
+        let location = NSEvent.mouseLocation
+        // Ignore a stationary pointer immediately after keyboard navigation.
+        if let suppressed = hoverSuppressedAt, suppressed == location {
+            return
+        }
+        hoverSuppressedAt = nil
+        setHighlight(index)
+    }
+
+    // setHighlight(index): Change the highlighted row only for a valid,
+    // different row index.
+    private func setHighlight(_ index: Int) {
+        // Update highlighting only for a valid, newly selected row.
+        guard rowButtons.indices.contains(index), highlightIndex != index else { return }
+        highlightIndex = index
+        refreshHighlight()
+    }
+
+    // refreshHighlight(): Apply the current highlight index to the visible
+    // palette rows.
+    private func refreshHighlight() {
+        // Give exactly the highlighted row its active appearance.
+        for (index, button) in rowButtons.enumerated() {
+            button.isActiveRow = index == highlightIndex
+        }
+    }
+
+    // moveHighlight(delta): Move selection with wraparound while preventing a
+    // stationary pointer from undoing keyboard navigation.
+    private func moveHighlight(_ delta: Int) {
+        // An empty palette has no row to navigate to.
+        guard !rowButtons.isEmpty else { return }
+        hoverSuppressedAt = NSEvent.mouseLocation
+        highlightIndex = (highlightIndex + delta + rowButtons.count) % rowButtons.count
+        refreshHighlight()
+        // Scroll the newly highlighted row into view when its index is valid.
+        if rowButtons.indices.contains(highlightIndex) {
+            rowButtons[highlightIndex].scrollToVisible(rowButtons[highlightIndex].bounds)
+        }
+    }
+
+    // activate(index): Activate a row only if its index still exists in the
+    // current results.
+    private func activate(_ index: Int) {
+        // Reject stale row indices before invoking their action.
+        guard rowButtons.indices.contains(index) else { return }
+        perform(rowButtons[index].item)
+    }
+
+    // activateTopAction(): Activate the page's pinned action when one is
+    // available.
+    private func activateTopAction() {
+        // A page without a leading action has nothing to activate here.
+        guard let item = currentPage?.topAction else { return }
+        perform(item)
+    }
+
+    // perform(item): Run a palette action and apply its requested close,
+    // refresh, or navigation outcome.
+    private func perform(_ item: PaletteItem) {
+        // Informational items without an action do not change palette state.
+        guard let action = item.action else { return }
+        // Apply the navigation result returned by the selected action.
+        switch action() {
+        // Finish the interaction and close the palette.
+        case .close:
+            closePalette()
+        // Refresh the current rows after an action that keeps the page open.
+        case .stay:
+            reloadRows()
+        // Show the nested page returned by the action.
+        case .push(let page):
+            push(page)
+        // Return to the parent page after the action completes.
+        case .pop:
+            pop()
+        }
+    }
+
+    // activateHighlighted(): Activate the row currently selected by keyboard or
+    // pointer navigation.
+    private func activateHighlighted() {
+        activate(highlightIndex)
+    }
+
+    // tabOnHighlighted(): Apply the page's optional Tab action to the
+    // highlighted item, then refresh its rows.
+    private func tabOnHighlighted() {
+        // Tab actions require a current page, handler, and highlighted item.
+        guard let page = currentPage, let onTab = page.onTab, let item = highlightedItem else { return }
+        onTab(item.id)
+        reloadRows()
+    }
+
+    // handleKeyDown(event): Shared key handling for both the bare list and the
+    // search field editor.
+    func handleKeyDown(_ event: NSEvent) -> Bool {
+        // Close the palette before opening Settings with Command-comma.
+        if event.modifierFlags.contains(.command), event.charactersIgnoringModifiers == "," {
+            closePalette()
+            onCommandComma?()
+            return true
+        }
+        // Map navigation key codes to palette actions.
+        switch event.keyCode {
+        // Down Arrow advances the highlighted row.
+        case 125: moveHighlight(1); return true
+        // Up Arrow moves to the preceding row.
+        case 126: moveHighlight(-1); return true
+        // Return or keypad Enter activates the highlighted item.
+        case 36, 76: activateHighlighted(); return true
+        // Tab invokes the page-specific action for the highlighted item.
+        case 48: tabOnHighlighted(); return true
+        // Escape goes back a page or closes the root palette.
+        case 53: pop(); return true
+        // Leave other keys to ordinary text input or app shortcuts.
+        default: return false
+        }
+    }
+
+    // control(control, textView, commandSelector): Translate search-field
+    // navigation commands into palette selection and activation actions.
+    func control(_ control: NSControl, textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
+        // Match text-field command selectors to the same palette navigation actions.
+        switch commandSelector {
+        // The text system's Move Down command advances row selection.
+        case #selector(NSResponder.moveDown(_:)): moveHighlight(1); return true
+        // The text system's Move Up command selects the preceding row.
+        case #selector(NSResponder.moveUp(_:)): moveHighlight(-1); return true
+        // Return from the search field activates the highlighted choice.
+        case #selector(NSResponder.insertNewline(_:)): activateHighlighted(); return true
+        // Tab invokes the page's action for the current choice.
+        case #selector(NSResponder.insertTab(_:)): tabOnHighlighted(); return true
+        // Cancel returns to the parent palette page.
+        case #selector(NSResponder.cancelOperation(_:)): pop(); return true
+        // Leave other editing commands to the search field.
+        default: return false
+        }
+    }
+
+    // controlTextDidChange(obj): Refresh search results and reset their
+    // highlight when the query changes.
+    func controlTextDidChange(_ obj: Notification) {
+        reloadRows(preserveHighlight: false)
+    }
+
+    // layoutPanel(): Size to the content and use the room inside the presenting
+    // window.
+    private func layoutPanel() {
+        layoutIfNeeded()
+        let hasSearch = !(searchContainer?.isHidden ?? true)
+        let searchHeight: CGFloat = hasSearch ? 44 : 0
+        let backHeight: CGFloat = backContainer.isHidden ? 0 : 40
+        // Leave balanced vertical space around the pinned action's highlight.
+        let topActionHeight: CGFloat = topActionContainer.isHidden ? 0 : 49
+        let footerHeight: CGFloat = footerContainer.isHidden ? 0 : 38
+        let chromeHeight = backHeight + topActionHeight + searchHeight + footerHeight
+        // Include the document's 3pt top and 5pt bottom padding in the viewport height.
+        let listHeight = listStack.fittingSize.height + 8
+        let anchor = anchorProvider()
+        let owner = presentingWindow ?? parent
+        let screenFrame = (owner?.screen ?? NSScreen.main)?.visibleFrame
+        var availableBounds = owner.map { $0.convertToScreen($0.contentLayoutRect) }
+            ?? screenFrame ?? frame
+        // Constrain the palette to the part of its host bounds that is on screen.
+        if let screenFrame, availableBounds.intersects(screenFrame) {
+            availableBounds = availableBounds.intersection(screenFrame)
+        }
+        let placement = LauncherLogic.paletteLayout(
+            anchor: anchor, within: availableBounds.insetBy(dx: 8, dy: 8),
+            width: paletteWidth, listHeight: listHeight, chromeHeight: chromeHeight,
+            opensUpward: opensUpward
+        )
+        opensUpward = placement.opensUpward
+        let cappedList = placement.listHeight
+
+        // Create the list-height constraint once, then reuse it during resizing.
+        if scrollHeightConstraint == nil {
+            scrollHeightConstraint = scrollView.heightAnchor.constraint(equalToConstant: cappedList)
+            scrollHeightConstraint?.isActive = true
+            searchHeightConstraint = searchContainer.heightAnchor.constraint(equalToConstant: searchHeight)
+            searchHeightConstraint?.isActive = true
+            footerHeightConstraint = footerContainer.heightAnchor.constraint(equalToConstant: footerHeight)
+            footerHeightConstraint?.isActive = true
+            backHeightConstraint = backContainer.heightAnchor.constraint(equalToConstant: backHeight)
+            backHeightConstraint?.isActive = true
+            topActionHeightConstraint = topActionContainer.heightAnchor.constraint(equalToConstant: topActionHeight)
+            topActionHeightConstraint?.isActive = true
+        }
+        scrollHeightConstraint?.constant = cappedList
+        searchHeightConstraint?.constant = searchHeight
+        footerHeightConstraint?.constant = footerHeight
+        backHeightConstraint?.constant = backHeight
+        topActionHeightConstraint?.constant = topActionHeight
+
+        setFrame(placement.frame, display: true)
+    }
+}
+
+// Footer label with optional icon and a chevron that brightens on hover.
+final class LauncherFooterButton: NSButton {
+    private let symbolName: String?
+    private let showsChevron: Bool
+    private var isHovered = false
+    private var trackingArea: NSTrackingArea?
+    var footerTitle: String {
+        didSet {
+            invalidateIntrinsicContentSize()
+            needsDisplay = true
+        }
+    }
+
+    // init(title, symbolName, showsChevron, target, action): Create a compact
+    // footer action with optional symbol and disclosure chevron.
+    init(title: String, symbolName: String?, showsChevron: Bool, target: AnyObject?, action: Selector?) {
+        self.symbolName = symbolName
+        self.showsChevron = showsChevron
+        self.footerTitle = title
+        super.init(frame: .zero)
+        self.target = target
+        self.action = action
+        isBordered = false
+        // Expose a nonempty footer title as the button's accessibility label.
+        if !title.isEmpty {
+            setAccessibilityLabel(title)
+        }
+        focusRingType = .default
+        translatesAutoresizingMaskIntoConstraints = false
+    }
+
+    // init?(coder): Footer actions require their display content and target
+    // supplied in code.
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override var acceptsFirstResponder: Bool { true }
+    override var isFlipped: Bool { true }
+
+    private var titleAttributes: [NSAttributedString.Key: Any] {
+        [
+            .font: NSFont.systemFont(ofSize: 12.5, weight: .medium),
+            .foregroundColor: isHovered ? NSColor.labelColor : NSColor.secondaryLabelColor
+        ]
+    }
+
+    override var intrinsicContentSize: NSSize {
+        var width: CGFloat = 0
+        // Reserve width for the optional leading symbol.
+        if symbolName != nil { width += 19 }
+        width += ceil((footerTitle as NSString).size(withAttributes: titleAttributes).width)
+        // Include the disclosure chevron in the button's natural width.
+        if showsChevron { width += 15 }
+        return NSSize(width: width, height: 20)
+    }
+
+    // updateTrackingAreas(): Keep footer-button hover tracking aligned with its
+    // current bounds.
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        // Replace footer hover tracking when the button's geometry changes.
+        if let trackingArea { removeTrackingArea(trackingArea) }
+        let area = NSTrackingArea(
+            rect: bounds,
+            options: [.mouseEnteredAndExited, .activeInActiveApp, .inVisibleRect],
+            owner: self,
+            userInfo: nil
+        )
+        addTrackingArea(area)
+        trackingArea = area
+    }
+
+    // mouseEntered(event): Brighten the footer action while the pointer is over
+    // it.
+    override func mouseEntered(with event: NSEvent) { isHovered = true; needsDisplay = true }
+    // mouseExited(event): Restore the footer action's secondary text color when
+    // the pointer leaves.
+    override func mouseExited(with event: NSEvent) { isHovered = false; needsDisplay = true }
+
+    // draw(dirtyRect): Draw the footer's optional symbol, title, and chevron
+    // with consistent spacing.
+    override func draw(_ dirtyRect: NSRect) {
+        let color = isHovered ? NSColor.labelColor : NSColor.secondaryLabelColor
+        var x: CGFloat = 0
+        // Draw the optional footer symbol before the title.
+        if let symbolName, let icon = tintedSymbol(symbolName, color: color, pointSize: 12) {
+            icon.draw(in: NSRect(
+                x: x,
+                y: (bounds.height - icon.size.height) / 2,
+                width: icon.size.width,
+                height: icon.size.height
+            ))
+            x += 19
+        }
+        let text = footerTitle as NSString
+        let size = text.size(withAttributes: titleAttributes)
+        text.draw(at: NSPoint(x: x, y: (bounds.height - size.height) / 2), withAttributes: titleAttributes)
+        x += size.width
+        // Draw the disclosure chevron only for actions that open a choice menu.
+        if showsChevron, let chevron = tintedSymbol("chevron.down", color: color, pointSize: 8) {
+            x += 6
+            chevron.draw(in: NSRect(
+                x: x,
+                y: (bounds.height - chevron.size.height) / 2,
+                width: chevron.size.width,
+                height: chevron.size.height
+            ))
+        }
+    }
+}
