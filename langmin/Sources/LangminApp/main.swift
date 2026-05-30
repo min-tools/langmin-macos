@@ -18430,3 +18430,321 @@ final class LauncherFooterButton: NSButton {
         }
     }
 }
+
+// Send button: arrow when idle, stop square during generation.
+final class LauncherSendButton: NSButton {
+    var isBusy = false {
+        didSet {
+            needsDisplay = true
+            toolTip = isBusy
+                ? localized("cancel", "Cancel") + "  esc esc"
+                : localized("run", "Run") + "  ⌘↵"
+            setAccessibilityLabel(isBusy ? "Cancel generation" : "Run request")
+        }
+    }
+    private var isHovered = false
+    private var trackingArea: NSTrackingArea?
+
+    // init(target, action): Create the borderless circular submit control and
+    // connect its action.
+    init(target: AnyObject?, action: Selector?) {
+        super.init(frame: .zero)
+        self.target = target
+        self.action = action
+        isBordered = false
+        focusRingType = .default
+        translatesAutoresizingMaskIntoConstraints = false
+        toolTip = localized("run", "Run") + "  ⌘↵"
+        setAccessibilityLabel("Run request")
+    }
+
+    // init?(coder): The submit button is built in code with its action target.
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    // Disable clicks and use a neutral fill when input is empty.
+    override var isEnabled: Bool { didSet { needsDisplay = true } }
+
+    override var acceptsFirstResponder: Bool { true }
+    override var intrinsicContentSize: NSSize { NSSize(width: 28, height: 28) }
+
+    // updateTrackingAreas(): Keep submit-button hover tracking aligned with its
+    // circular control bounds.
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        // Replace the submit button's tracking area as its bounds change.
+        if let trackingArea { removeTrackingArea(trackingArea) }
+        let area = NSTrackingArea(
+            rect: bounds,
+            options: [.mouseEnteredAndExited, .activeInActiveApp, .inVisibleRect],
+            owner: self,
+            userInfo: nil
+        )
+        addTrackingArea(area)
+        trackingArea = area
+    }
+
+    // mouseEntered(event): Show submit-button hover feedback.
+    override func mouseEntered(with event: NSEvent) { isHovered = true; needsDisplay = true }
+    // mouseExited(event): Clear submit-button hover feedback.
+    override func mouseExited(with event: NSEvent) { isHovered = false; needsDisplay = true }
+
+    // drawFocusRingMask(): Match the keyboard focus ring to the submit button's
+    // circular shape.
+    override func drawFocusRingMask() {
+        NSBezierPath(ovalIn: bounds).fill()
+    }
+
+    // draw(dirtyRect): Draw the submit control with an enabled accent fill or a
+    // neutral disabled fill.
+    override func draw(_ dirtyRect: NSRect) {
+        let circle = NSBezierPath(ovalIn: bounds)
+        // An enabled submit action uses the accent fill.
+        if isEnabled {
+            NSColor.controlAccentColor.setFill()
+        } else {
+            // A disabled action uses a subdued fill without implying it can submit.
+            NSColor.labelColor.withAlphaComponent(0.08).setFill()
+        }
+        circle.fill()
+        // Hover brightens and a held press darkens, as overlays on the fill.
+        if isEnabled {
+            // Darken the button while it is pressed.
+            if cell?.isHighlighted == true {
+                NSColor.black.withAlphaComponent(0.2).setFill()
+                circle.fill()
+            } else if isHovered {
+                // A hover highlight applies only when the button is not pressed.
+                NSColor.white.withAlphaComponent(0.12).setFill()
+                circle.fill()
+            }
+        }
+
+        // Draw the stop square directly and use an SF Symbol for the arrow.
+        if isBusy {
+            let side: CGFloat = 10
+            let rect = NSRect(
+                x: (bounds.width - side) / 2,
+                y: (bounds.height - side) / 2,
+                width: side,
+                height: side
+            )
+            NSColor.white.setFill()
+            NSBezierPath(roundedRect: rect, xRadius: 2, yRadius: 2).fill()
+            return
+        }
+        // Draw the submit arrow only when its system symbol is available.
+        guard let arrow = NSImage(systemSymbolName: "arrow.up", accessibilityDescription: nil)?
+            .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 13, weight: .semibold))
+        // Keep the button background when no arrow image can be created.
+        else { return }
+        let tinted = NSImage(size: arrow.size)
+        tinted.lockFocus()
+        arrow.draw(at: .zero, from: NSRect(origin: .zero, size: arrow.size), operation: .sourceOver, fraction: 1)
+        // Tint the disabled arrow before fading it; sourceAtop also applies the tint color's alpha.
+        (isEnabled ? NSColor.white : NSColor.labelColor).set()
+        NSRect(origin: .zero, size: arrow.size).fill(using: .sourceAtop)
+        tinted.unlockFocus()
+        // Respect flipped coordinates so the arrow points upward.
+        tinted.draw(
+            in: NSRect(
+                x: (bounds.width - arrow.size.width) / 2,
+                y: (bounds.height - arrow.size.height) / 2,
+                width: arrow.size.width,
+                height: arrow.size.height
+            ),
+            from: .zero,
+            operation: .sourceOver,
+            fraction: isEnabled ? 1 : 0.38,
+            respectFlipped: true,
+            hints: nil
+        )
+    }
+}
+
+// Animate the activity ring with Core Animation. Keep it static with Reduce Motion enabled.
+final class LauncherResultActivityView: NSView {
+    private let trackLayer = CAShapeLayer()
+    private let arcLayer = CAShapeLayer()
+    var isAnimating = false {
+        didSet {
+            // Start or stop the animation only when its requested state changes.
+            if oldValue != isAnimating { updateAnimation() }
+        }
+    }
+
+    // init(frameRect): Create the progress track and arc layers and observe
+    // accessibility animation preferences.
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        translatesAutoresizingMaskIntoConstraints = false
+        wantsLayer = true
+        // Configure the activity track and arc as strokes rather than filled shapes.
+        for shape in [trackLayer, arcLayer] {
+            shape.fillColor = NSColor.clear.cgColor
+            shape.lineWidth = 2
+            shape.lineCap = .round
+            layer?.addSublayer(shape)
+        }
+        arcLayer.strokeEnd = 0.28
+        arcLayer.shadowOpacity = 0.18
+        arcLayer.shadowRadius = 4
+        arcLayer.shadowOffset = .zero
+
+        let symbol = NSImageView()
+        symbol.image = NSImage(systemSymbolName: "sparkles", accessibilityDescription: nil)?
+            .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 16, weight: .regular))
+        symbol.contentTintColor = .secondaryLabelColor
+        symbol.translatesAutoresizingMaskIntoConstraints = false
+        symbol.setAccessibilityElement(false)
+        addSubview(symbol)
+        NSLayoutConstraint.activate([
+            widthAnchor.constraint(equalToConstant: 48),
+            heightAnchor.constraint(equalToConstant: 48),
+            symbol.centerXAnchor.constraint(equalTo: centerXAnchor),
+            symbol.centerYAnchor.constraint(equalTo: centerYAnchor)
+        ])
+        setAccessibilityElement(false)
+        updateColors()
+        NSWorkspace.shared.notificationCenter.addObserver(
+            self, selector: #selector(accessibilityOptionsChanged(_:)),
+            name: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification, object: nil
+        )
+    }
+
+    // init?(coder): The progress indicator is constructed in code with its
+    // shape layers.
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    // deinit(): Remove accessibility notifications before releasing the
+    // progress indicator.
+    deinit {
+        NSWorkspace.shared.notificationCenter.removeObserver(self)
+    }
+
+    // layout(): Resize progress paths without implicitly animating their
+    // geometry changes.
+    override func layout() {
+        super.layout()
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        // Keep both circular layers aligned to the activity view's bounds.
+        for shape in [trackLayer, arcLayer] {
+            shape.frame = bounds
+            shape.path = CGPath(ellipseIn: bounds.insetBy(dx: 5, dy: 5), transform: nil)
+        }
+        CATransaction.commit()
+    }
+
+    // viewDidMoveToWindow(): Start or stop progress animation as the indicator
+    // enters or leaves a window.
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        updateAnimation()
+    }
+
+    // viewDidChangeEffectiveAppearance(): Refresh the progress indicator's
+    // colors for the current appearance.
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateColors()
+    }
+
+    // updateColors(): Resolve dynamic system colors in this view's effective
+    // appearance.
+    private func updateColors() {
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            trackLayer.strokeColor = NSColor.labelColor.withAlphaComponent(0.08).cgColor
+            arcLayer.strokeColor = NSColor.controlAccentColor.withAlphaComponent(0.8).cgColor
+            arcLayer.shadowColor = NSColor.controlAccentColor.cgColor
+        }
+    }
+
+    // accessibilityOptionsChanged(notification): Reevaluate progress animation
+    // when accessibility motion preferences change.
+    @objc private func accessibilityOptionsChanged(_ notification: Notification) {
+        updateAnimation()
+    }
+
+    // updateAnimation(): Keep rotation timing across status updates. Stop when
+    // detached, complete or Reduce Motion is enabled.
+    private func updateAnimation() {
+        // Animate only while visible, requested, and allowed by Reduce Motion settings.
+        guard isAnimating, window != nil,
+              !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion else {
+            arcLayer.removeAnimation(forKey: "rotation")
+            return
+        }
+        // Avoid installing a second rotation animation over an existing one.
+        guard arcLayer.animation(forKey: "rotation") == nil else { return }
+        let rotation = CABasicAnimation(keyPath: "transform.rotation.z")
+        rotation.fromValue = 0
+        rotation.toValue = -CGFloat.pi * 2
+        rotation.duration = 2.2
+        rotation.repeatCount = .infinity
+        rotation.timingFunction = CAMediaTimingFunction(name: .linear)
+        arcLayer.add(rotation, forKey: "rotation")
+    }
+}
+
+// The right pane shares one centered layout between its empty and busy states.
+final class LauncherResultPlaceholderView: NSStackView {
+    private let activity = LauncherResultActivityView(frame: .zero)
+    private let titleLabel = NSTextField(wrappingLabelWithString: "")
+    private let detailLabel = NSTextField(wrappingLabelWithString: "")
+    private(set) var isLoading = false
+
+    // init(frameRect): Build a vertically centered progress display with title
+    // and detail text.
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        orientation = .vertical
+        alignment = .centerX
+        spacing = 10
+        detachesHiddenViews = true
+        translatesAutoresizingMaskIntoConstraints = false
+        titleLabel.font = NSFont.systemFont(ofSize: 16, weight: .semibold)
+        titleLabel.maximumNumberOfLines = 2
+        detailLabel.font = NSFont.systemFont(ofSize: 15)
+        // Limit status height so long model names fit beside the activity ring.
+        detailLabel.maximumNumberOfLines = 3
+        // Use secondary text styling for placeholder title and detail labels.
+        for label in [titleLabel, detailLabel] {
+            label.textColor = .secondaryLabelColor
+            label.alignment = .center
+        }
+        // Arrange the activity indicator and explanatory labels in a fixed order.
+        for view in [activity, titleLabel, detailLabel] {
+            addArrangedSubview(view)
+        }
+        setCustomSpacing(18, after: activity)
+        NSLayoutConstraint.activate([
+            titleLabel.widthAnchor.constraint(equalTo: widthAnchor),
+            detailLabel.widthAnchor.constraint(equalTo: widthAnchor)
+        ])
+        setLoading(false, status: "")
+    }
+
+    // init?(coder): The progress display is built in code with its indicator
+    // and labels.
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    // setLoading(loading, status): Show the current generation or narration
+    // phase in the detail line.
+    func setLoading(_ loading: Bool, status: String) {
+        isLoading = loading
+        activity.isHidden = !loading
+        activity.isAnimating = loading
+        titleLabel.stringValue = loading
+            ? localized("results_loading_title", "Creating your result")
+            : localized("results_empty_title", "Ready when you are")
+        detailLabel.stringValue = loading
+            ? status
+            : localized("results_empty_hint", "Enter text on the left, then press ⌘↵ to see your result here.")
+    }
+}
