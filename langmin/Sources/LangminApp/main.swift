@@ -18748,3 +18748,5195 @@ final class LauncherResultPlaceholderView: NSStackView {
             : localized("results_empty_hint", "Enter text on the left, then press ⌘↵ to see your result here.")
     }
 }
+
+// Coordinate the main input, mode choices, result presentation, and embedded or detached Library.
+final class LauncherController: NSObject, NSWindowDelegate, NSTextFieldDelegate, @unchecked Sendable {
+    weak var appDelegate: AppDelegate?
+    var window: NSWindow?
+    var inputView: LauncherInputView!
+    var fieldContainer: LauncherFieldContainer!
+    var modeChips: [LauncherChipButton] = []
+    var chipsColumn: NSStackView!
+    var chipRowCount = 1
+    var footerRow: NSView!
+    var modelFooterButton: LauncherFooterButton!
+    var searchHintButton: LauncherFooterButton!
+    // Footer shortcut and action label, such as ⌘↵ summarize.
+    var runHintLabel: NSTextField!
+    // Layout area below the title bar; window.contentView includes the title bar.
+    var launcherContentView: NSView?
+    var sendButton: LauncherSendButton!
+    var statusSpinner: NSProgressIndicator!
+    var statusLabel: NSTextField!
+    var palettePanel: LauncherPalettePanel?
+    var selectedMode = "explain"
+    // Detached popup controls store option state. The visible menus read and update their selections.
+    var effortBox: NSPopUpButton!
+    var effortLabel: NSTextField!
+    var levelBox: NSPopUpButton!
+    var modelBox: NSPopUpButton!
+    var launcherTitleLabel: NSTextField!
+    var ttsModelForRun = defaultTTSModel
+    var activeTextTask: TextRequestHandle?
+    var activeDataTask: NarrationRequestTask?
+    var activeDataTasks: [NarrationRequestTask] = []
+    // Display name of the active request's model.
+    var lastRunTextModel = ""
+    var activeTempDir: URL?
+    var isGenerating = false
+    var activeRun: LauncherRun?
+    // Clipboard actions and replacement Services return text through the launcher pipeline
+    // without opening a result window.
+    var pendingTransformCompletion: ((LauncherRun, Result<String, Error>) -> Void)?
+    var pendingRunPresentation: LauncherRunPresentation = .standard
+    // An explicit URL language overrides the saved target list for this request.
+    var pendingExplicitTranslationTargetID: String?
+    var logicalFocusIndex = 0
+    var lastEscapePress: TimeInterval = 0
+    // Dictionary headword for the current request; cleared before each submission.
+    var pendingDictionaryHeadword: String?
+    // Original mode passed to the result and saved Library entry.
+    var pendingRunMode: String = ""
+    // Resolved response level passed to the result and saved for follow-ups.
+    var pendingRunLanguageLevel: String = "off"
+    // Title bar button that opens the Library and shows its saved count.
+    var libraryButton: LibraryTitlebarButton?
+    var composeStack: NSStackView?
+    var libraryScrollView: NSScrollView?
+    var libraryListStack: NSStackView?
+    var librarySearchField: NSSearchField?
+    var libraryKeyboardRows: [LibraryRowView] = []
+    var libraryTabStops: [NSView] = []
+    var libraryDeletedRows: [String: LibraryDeletedRowView] = [:]
+    var libraryNavigationEntryID: String?
+    var librarySearchScope = "titles"
+    var collapsedLibrarySections: Set<String> = []
+    var collapsedLibrarySearchSections: Set<String> = []
+    weak var editingLibraryRow: LibraryRowView?
+    var libraryContentSearchCache: [String: String] = [:]
+    var libraryContentCacheGeneration = 0
+    // Queue uncached result text for background search reads. Do not read files per keystroke on the
+    // main thread.
+    var pendingContentSearchLoads: [String: URL] = [:]
+    var libraryContentFillScheduled = false
+    var libraryContentFillInFlight = false
+    var pendingLibraryDeletions: [String: (entry: LibraryEntry, stagedURL: URL)] = [:]
+    var libraryDeletionFinalizeWorkItems: [String: DispatchWorkItem] = [:]
+    // The folder-filter chip row's selection; nil is the "All" chip.
+    var selectedLibraryFolder: String?
+    var libraryChipScrollView: NSScrollView?
+    var libraryChipStack: NSStackView?
+    // Reflow folder chips without reloading entries or replacing the result rows.
+    var libraryFolderChipEntries: [LibraryEntry] = []
+    var libraryFolderChipsWidth: CGFloat = 0
+    // Folder editor state, including an optional entry to file after creating the folder.
+    var libraryFolderEditor: NSTextField?
+    var libraryFolderEditorContainer: LibraryFolderChipEditorView?
+    var libraryFolderEditorHint: NSTextField?
+    var libraryFolderEditorBaseHint = ""
+    var renamingLibraryFolder: String?
+    var isCreatingLibraryFolder = false
+    var pendingFolderMoveEntryID: String?
+    // Folder names collapsed into the "⋯ N" chip, in MRU order.
+    var libraryOverflowFolders: [String] = []
+    // Host the same ViewerSession used by result windows. Detach moves that session into its own window.
+    var resultPane: LauncherFieldContainer!
+    var resultHostView: NSView!
+    var resultPlaceholderView: LauncherResultPlaceholderView!
+    var inlineResultSession: ViewerSession?
+    var launcherFrameRestored = false
+    let launcherFrameAutosaveName = "LangminLauncher"
+    // Move one Library view between the main window and its optional detached window.
+    var libraryWindow: NSWindow?
+    var libraryWindowDelegate: LibraryWindowDelegate?
+    var libraryView: NSView?
+    var libraryDetachedContentView: NSView?
+    var libraryHostConstraints: [NSLayoutConstraint] = []
+    var libraryBackButton: NSButton?
+    var libraryTitleLeadingConstraint: NSLayoutConstraint?
+    var libraryEmbeddedPositionButton: TitlebarTooltipButton?
+    var libraryDetachedPositionButton: TitlebarTooltipButton?
+    var libraryPositionButton: TitlebarTooltipButton? { isLibraryEmbedded ? libraryEmbeddedPositionButton : libraryDetachedPositionButton }
+    var isLibraryEmbedded = false
+    var libraryHostWindow: NSWindow? { isLibraryEmbedded ? window : libraryWindow }
+    var isShowingLibrary: Bool { libraryHostWindow?.isVisible == true && libraryView?.isHidden == false }
+    // Give input and result equal width; let the work area absorb window height changes.
+    let launcherCardDefaultWidth: CGFloat = 524
+    let launcherCardMinWidth: CGFloat = 440
+    let launcherResultGap: CGFloat = 44
+    let launcherInputMinHeight: CGFloat = 230
+    let launcherInputDefaultHeight: CGFloat = 580
+    // The Library window's initial content size.
+    let libraryContentSize = NSSize(width: 640, height: 685)
+
+    // prepareForLaunch(): Build and lay out the launcher before showing it on
+    // first launch.
+    func prepareForLaunch() {
+        // Build the launcher lazily before showing it.
+        if window == nil {
+            buildWindow()
+        }
+
+        // Refresh defaults when opening an idle, previously hidden launcher.
+        if !(window?.isVisible ?? false) && !isGenerating {
+            populateRunDefaults()
+        }
+
+        prepareWindowForDisplay()
+    }
+
+    // show(): Show the launcher and reset transient controls to saved defaults.
+    func show() {
+        // Prepare the launcher window only when it has not yet been created.
+        if window == nil {
+            buildWindow()
+        }
+
+        hideEmbeddedLibrary()
+
+        // Preserve an active request's choices when bringing its window forward.
+        if !(window?.isVisible ?? false) && !isGenerating {
+            populateRunDefaults()
+        }
+
+        logicalFocusIndex = 0
+        // Do not configure an unavailable launcher window.
+        guard let window else {
+            return
+        }
+
+        updateLibraryButtonCount()
+        centerLauncherIfNeeded(window)
+        window.contentView?.layoutSubtreeIfNeeded()
+        window.makeKeyAndOrderFront(nil)
+        refreshResultPaneState()
+        NSApp.activate(ignoringOtherApps: true)
+        // Restore window-button insets after the first visible title bar layout.
+        reinsetLauncherTrafficLights()
+        window.makeFirstResponder(inputView)
+    }
+
+    // prepareWindowForDisplay(): Center, lay out, and focus before the window
+    // is shown.
+    func prepareWindowForDisplay() {
+        // Window presentation requires the launcher to have been built.
+        guard let window else {
+            return
+        }
+
+        logicalFocusIndex = 0
+        centerLauncherIfNeeded(window)
+        window.contentView?.layoutSubtreeIfNeeded()
+        insetNativeTrafficLights(in: window)
+        window.makeFirstResponder(inputView)
+    }
+
+    // buildWindow(): Build the launcher with input and result panes, mode chips
+    // and footer controls.
+    func buildWindow() {
+        let contentSize = defaultLauncherContentSize
+        let window = LauncherWindow(
+            contentRect: NSRect(origin: .zero, size: contentSize),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.launcherController = self
+        window.title = launcherWindowTitle(for: selectedMode)
+        window.titleVisibility = .hidden
+        configureNativeWindow(window)
+        installTitlebarTitle(on: window)
+        installLibraryButton(on: window)
+        insetNativeTrafficLights(in: window)
+        window.isReleasedWhenClosed = false
+        window.animationBehavior = .none
+        window.delegate = self
+        window.autorecalculatesKeyViewLoop = false
+        let contentView = installNativeContent(in: window)
+        launcherContentView = contentView
+        window.setContentSize(nativeContentSize(contentSize, in: window))
+
+        effortLabel = optionLabel(localized("style", "Style"))
+        effortBox = popupButton(items: effortOptions.map { $0.displayValue })
+        effortBox.target = self
+        effortBox.action = #selector(launcherChoiceChanged(_:))
+        effortBox.setAccessibilityLabel("Style")
+
+        modelBox = popupButton(items: [])
+        modelBox.menu = launcherModelMenu(options: enabledExplanationModelOptions())
+        modelBox.target = self
+        modelBox.action = #selector(launcherChoiceChanged(_:))
+        modelBox.setAccessibilityLabel("Text model")
+
+        levelBox = popupButton(items: languageLevelOptions.map { $0.displayValue })
+        levelBox.target = self
+        levelBox.action = #selector(launcherChoiceChanged(_:))
+        levelBox.setAccessibilityLabel("Language level")
+
+        fieldContainer = LauncherFieldContainer()
+        fieldContainer.translatesAutoresizingMaskIntoConstraints = false
+
+        inputView = LauncherInputView(frame: .zero)
+        inputView.font = NSFont.systemFont(ofSize: 16)
+        inputView.textColor = .labelColor
+        inputView.insertionPointColor = .controlAccentColor
+        inputView.drawsBackground = false
+        inputView.isRichText = false
+        inputView.allowsUndo = true
+        inputView.importsGraphics = false
+        inputView.isAutomaticQuoteSubstitutionEnabled = false
+        inputView.isAutomaticDashSubstitutionEnabled = false
+        inputView.isAutomaticTextReplacementEnabled = false
+        inputView.textContainerInset = NSSize(width: 18, height: 18)
+        inputView.textContainer?.lineFragmentPadding = 0
+        inputView.textContainer?.widthTracksTextView = true
+        inputView.isHorizontallyResizable = false
+        inputView.isVerticallyResizable = true
+        inputView.minSize = NSSize(width: 0, height: 0)
+        inputView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+        inputView.autoresizingMask = [.width]
+        inputView.onSubmit = { [weak self] in self?.submit(nil) }
+        inputView.setAccessibilityLabel("Text to process")
+
+        let inputScrollView = NSScrollView()
+        inputScrollView.borderType = .noBorder
+        inputScrollView.drawsBackground = false
+        inputScrollView.hasVerticalScroller = true
+        inputScrollView.autohidesScrollers = true
+        inputScrollView.documentView = inputView
+        inputScrollView.translatesAutoresizingMaskIntoConstraints = false
+        fieldContainer.addSubview(inputScrollView)
+
+        // Keep the file-drop hint at the bottom of the input field.
+        let dropHint = NSTextField(labelWithString: localized("drop_hint", "Drop or paste documents, images, or audio"))
+        dropHint.font = NSFont.monospacedSystemFont(ofSize: 12, weight: .medium)
+        dropHint.textColor = .tertiaryLabelColor
+        dropHint.lineBreakMode = .byTruncatingTail
+        dropHint.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        dropHint.translatesAutoresizingMaskIntoConstraints = false
+        fieldContainer.addSubview(dropHint)
+
+        // Float the invitation above the editor while letting every click and drop pass through.
+        installLauncherInputPlaceholder(in: fieldContainer, input: inputView, scrollView: inputScrollView, dropHint: dropHint)
+
+        // Pinned mode chips flow into as many left-aligned rows as they need.
+        chipsColumn = NSStackView()
+        chipsColumn.orientation = .vertical
+        chipsColumn.alignment = .leading
+        chipsColumn.spacing = 10
+        chipsColumn.translatesAutoresizingMaskIntoConstraints = false
+
+        // Show model and action controls while idle; use the same space for progress while running.
+        footerRow = NSView()
+        footerRow.translatesAutoresizingMaskIntoConstraints = false
+
+        modelFooterButton = LauncherFooterButton(
+            title: "",
+            symbolName: "sparkles",
+            showsChevron: true,
+            target: self,
+            action: #selector(showModelPalette(_:))
+        )
+        modelFooterButton.setAccessibilityLabel("Text model")
+        footerRow.addSubview(modelFooterButton)
+
+        searchHintButton = LauncherFooterButton(
+            title: localized("search_actions_hint", "⌘K search"),
+            symbolName: nil,
+            showsChevron: false,
+            target: self,
+            action: #selector(showActionPalette(_:))
+        )
+        searchHintButton.setAccessibilityLabel("Search actions")
+        footerRow.addSubview(searchHintButton)
+
+        // Name the action performed by the send shortcut.
+        runHintLabel = NSTextField(labelWithString: runHintText(for: selectedMode))
+        runHintLabel.font = NSFont.systemFont(ofSize: 12.5, weight: .medium)
+        runHintLabel.textColor = .secondaryLabelColor
+        runHintLabel.lineBreakMode = .byTruncatingTail
+        runHintLabel.translatesAutoresizingMaskIntoConstraints = false
+        footerRow.addSubview(runHintLabel)
+
+        // Keep Send inside the input field; use the same button to cancel generation.
+        sendButton = LauncherSendButton(target: self, action: #selector(sendButtonClicked(_:)))
+        fieldContainer.addSubview(sendButton)
+        // Update Send availability after typing, pasting or dropping content.
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(inputTextDidChange(_:)),
+            name: NSText.didChangeNotification,
+            object: inputView
+        )
+
+        statusSpinner = NSProgressIndicator()
+        statusSpinner.style = .spinning
+        statusSpinner.controlSize = .small
+        statusSpinner.isDisplayedWhenStopped = false
+        statusSpinner.isHidden = true
+        statusSpinner.translatesAutoresizingMaskIntoConstraints = false
+        footerRow.addSubview(statusSpinner)
+
+        statusLabel = NSTextField(labelWithString: "")
+        statusLabel.font = NSFont.systemFont(ofSize: 12.5, weight: .medium)
+        statusLabel.textColor = .secondaryLabelColor
+        statusLabel.lineBreakMode = .byTruncatingTail
+        statusLabel.isHidden = true
+        statusLabel.translatesAutoresizingMaskIntoConstraints = false
+        footerRow.addSubview(statusLabel)
+
+        // Place input and result side by side, with an arrow between them.
+        let workRow = NSView()
+        workRow.translatesAutoresizingMaskIntoConstraints = false
+        workRow.addSubview(fieldContainer)
+        buildResultPane(in: workRow)
+
+        let contentStack = NSStackView(views: [
+            workRow,
+            chipsColumn,
+            footerRow
+        ])
+        contentStack.orientation = .vertical
+        contentStack.alignment = .leading
+        contentStack.spacing = 0
+        contentStack.setCustomSpacing(18, after: workRow)
+        // Chips and footer keep their heights; only the work row stretches.
+        chipsColumn.setContentHuggingPriority(.required, for: .vertical)
+        footerRow.setContentHuggingPriority(.required, for: .vertical)
+        // Lower the footer slightly to balance the gaps above and below it.
+        contentStack.setCustomSpacing(19, after: chipsColumn)
+        contentStack.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(contentStack)
+        composeStack = contentStack
+
+        // Public builds offer purchase access only after the independent trial expires.
+        let sourcePurchaseFooter = SourcePurchaseFooter(frame: .zero)
+        sourcePurchaseFooter.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(sourcePurchaseFooter)
+
+        NSLayoutConstraint.activate([
+            // Fill the window with the stack; let the work area use the remaining height.
+            // Keep these insets in sync with launcherContentHeight.
+            contentStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 32),
+            contentStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -32),
+            contentStack.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 24),
+
+            workRow.widthAnchor.constraint(equalTo: contentStack.widthAnchor),
+            workRow.heightAnchor.constraint(greaterThanOrEqualToConstant: launcherInputMinHeight),
+            fieldContainer.leadingAnchor.constraint(equalTo: workRow.leadingAnchor),
+            fieldContainer.widthAnchor.constraint(equalTo: resultPane.widthAnchor),
+            fieldContainer.topAnchor.constraint(equalTo: workRow.topAnchor),
+            fieldContainer.bottomAnchor.constraint(equalTo: workRow.bottomAnchor),
+            inputScrollView.leadingAnchor.constraint(equalTo: fieldContainer.leadingAnchor, constant: 1),
+            inputScrollView.trailingAnchor.constraint(equalTo: fieldContainer.trailingAnchor, constant: -1),
+            inputScrollView.topAnchor.constraint(equalTo: fieldContainer.topAnchor, constant: 1),
+            inputScrollView.bottomAnchor.constraint(equalTo: fieldContainer.bottomAnchor, constant: -48),
+            dropHint.leadingAnchor.constraint(equalTo: fieldContainer.leadingAnchor, constant: 16),
+            dropHint.bottomAnchor.constraint(equalTo: fieldContainer.bottomAnchor, constant: -13),
+            dropHint.trailingAnchor.constraint(lessThanOrEqualTo: sendButton.leadingAnchor, constant: -12),
+            // Leave space below text and beside the rounded corner for the send button.
+            sendButton.trailingAnchor.constraint(equalTo: fieldContainer.trailingAnchor, constant: -11),
+            sendButton.bottomAnchor.constraint(equalTo: fieldContainer.bottomAnchor, constant: -12),
+
+            chipsColumn.widthAnchor.constraint(lessThanOrEqualTo: contentStack.widthAnchor),
+
+            footerRow.widthAnchor.constraint(equalTo: contentStack.widthAnchor),
+            footerRow.heightAnchor.constraint(equalToConstant: 22),
+            modelFooterButton.leadingAnchor.constraint(equalTo: footerRow.leadingAnchor),
+            modelFooterButton.centerYAnchor.constraint(equalTo: footerRow.centerYAnchor),
+            searchHintButton.leadingAnchor.constraint(equalTo: modelFooterButton.trailingAnchor, constant: 18),
+            searchHintButton.centerYAnchor.constraint(equalTo: footerRow.centerYAnchor),
+            runHintLabel.trailingAnchor.constraint(equalTo: footerRow.trailingAnchor),
+            runHintLabel.centerYAnchor.constraint(equalTo: footerRow.centerYAnchor),
+            runHintLabel.leadingAnchor.constraint(greaterThanOrEqualTo: searchHintButton.trailingAnchor, constant: 18),
+            statusSpinner.leadingAnchor.constraint(equalTo: footerRow.leadingAnchor),
+            statusSpinner.centerYAnchor.constraint(equalTo: footerRow.centerYAnchor),
+            statusLabel.leadingAnchor.constraint(equalTo: statusSpinner.trailingAnchor, constant: 8),
+            statusLabel.centerYAnchor.constraint(equalTo: footerRow.centerYAnchor),
+            statusLabel.trailingAnchor.constraint(lessThanOrEqualTo: footerRow.trailingAnchor)
+        ])
+
+        // Reserve banner space only while the expired-trial notice is visible.
+        let bottomInset = contentStack.bottomAnchor.constraint(
+            equalTo: sourcePurchaseFooter.topAnchor,
+            constant: SourcePurchaseFooter.shouldBeVisible ? -12 : -21
+        )
+        sourcePurchaseFooter.onVisibilityChange = { [weak self] visible in
+            bottomInset.constant = visible ? -12 : -21
+            self?.updateLauncherMinimumSize()
+        }
+        NSLayoutConstraint.activate([
+            bottomInset,
+            sourcePurchaseFooter.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            sourcePurchaseFooter.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            sourcePurchaseFooter.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
+        ])
+
+        rebuildModeChips()
+        updateModelFooter()
+
+        window.initialFirstResponder = inputView
+        configureFocusHandlers()
+
+        self.window = window
+        // Remember the user's size and position; only a first launch centers.
+        launcherFrameRestored = window.setFrameUsingName(launcherFrameAutosaveName)
+        _ = window.setFrameAutosaveName(launcherFrameAutosaveName)
+        updateLauncherMinimumSize()
+    }
+
+    // installTitlebarTitle(window): Replace the centered native title with text
+    // aligned to the traffic lights.
+    func installTitlebarTitle(on window: NSWindow) {
+        let controller = NSTitlebarAccessoryViewController()
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: 300, height: 46))
+
+        let titleLabel = NSTextField(labelWithString: launcherWindowTitle(for: selectedMode))
+        titleLabel.font = NSFont.systemFont(ofSize: 13, weight: .semibold)
+        titleLabel.textColor = .labelColor
+        titleLabel.alignment = .left
+        titleLabel.lineBreakMode = .byTruncatingTail
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        launcherTitleLabel = titleLabel
+
+        let back = libraryTitlebarButton(symbol: "chevron.left", label: localized("back", "Back"), action: #selector(backFromLibrary(_:)))
+        back.isHidden = !isLibraryEmbedded
+        libraryBackButton = back
+        let titleStack = NSStackView(views: [back, titleLabel])
+        titleStack.orientation = .horizontal
+        titleStack.alignment = .centerY
+        titleStack.spacing = 4
+        titleStack.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(titleStack)
+        let leading = titleStack.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: plainTitleGap)
+        libraryTitleLeadingConstraint = leading
+        NSLayoutConstraint.activate([
+            leading,
+            titleStack.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            titleStack.trailingAnchor.constraint(lessThanOrEqualTo: container.trailingAnchor)
+        ])
+
+        controller.view = container
+        controller.layoutAttribute = .left
+        window.addTitlebarAccessoryViewController(controller)
+    }
+
+    // installLibraryButton(window): Place Library and its saved count at the
+    // trailing edge of the title bar.
+    func installLibraryButton(on window: NSWindow) {
+        let controller = NSTitlebarAccessoryViewController()
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: 200, height: 46))
+        let button = LibraryTitlebarButton(target: self, action: #selector(showLibrary(_:)))
+        button.toolTip = "Browse saved results"
+        button.translatesAutoresizingMaskIntoConstraints = false
+        libraryButton = button
+        container.addSubview(button)
+
+        // Library replaces its browse button with the same unbordered action used by result title bars.
+        let detach = libraryTitlebarButton(
+            symbol: "arrow.down.left.and.arrow.up.right", label: localized("detach_library", "Open Library in a Separate Window"),
+            action: #selector(toggleLibraryPosition(_:))
+        )
+        detach.isHidden = !isLibraryEmbedded
+        libraryEmbeddedPositionButton = detach
+        container.addSubview(detach)
+        NSLayoutConstraint.activate([
+            button.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -13),
+            button.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            button.heightAnchor.constraint(equalToConstant: 22),
+            detach.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -7),
+            detach.centerYAnchor.constraint(equalTo: container.centerYAnchor)
+        ])
+        controller.view = container
+        controller.layoutAttribute = .right
+        window.addTitlebarAccessoryViewController(controller)
+        updateLibraryButtonCount()
+    }
+
+    // updateLibraryButtonCount(): Refresh the titlebar Library button's "· N
+    // saved" count from the store.
+    func updateLibraryButtonCount() {
+        libraryButton?.savedCount = LibraryStore.list().count
+    }
+
+    // libraryDidChange(): Refresh the saved count and open Library list after
+    // an entry changes.
+    func libraryDidChange() {
+        updateLibraryButtonCount()
+        // Refresh a visible Library when its saved contents change.
+        if isShowingLibrary {
+            refreshLibrary()
+        }
+    }
+
+    // showLibrary(sender): Open Library in the main window unless the user last
+    // chose to detach it.
+    @objc func showLibrary(_ sender: Any?) {
+        // Bring an already open Library forward instead of opening another copy.
+        if isShowingLibrary {
+            // Restore a minimized Library before making it key.
+            if libraryHostWindow?.isMiniaturized == true { libraryHostWindow?.deminiaturize(nil) }
+            libraryHostWindow?.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            focusLibrarySearch()
+            return
+        }
+        presentLibrary(detached: preferencesStore.bool(forKey: PreferenceKey.libraryDetached))
+        // A fresh visit starts with All; moving between hosts preserves the current filter.
+        selectedLibraryFolder = nil
+        cancelLibraryFolderEditing()
+        refreshLibrary()
+        prewarmLibraryContentSearchCache()
+        focusLibrarySearch()
+    }
+
+    // presentLibrary(detached): Keep the view and its scroll position when
+    // switching hosts. Finish editing before moving it.
+    func presentLibrary(detached: Bool) {
+        closePalette()
+        libraryHostWindow?.makeFirstResponder(nil)
+        cancelLibraryFolderEditing()
+        let scrollOrigin = libraryScrollView?.contentView.bounds.origin ?? .zero
+        // Present the Library in its own window when the detached preference is selected.
+        if detached {
+            // Create the detached Library window on first use.
+            if libraryWindow == nil { buildLibraryWindow() }
+            // The detached presentation needs both its window and content host.
+            guard let libraryWindow, let host = libraryDetachedContentView else { return }
+            setLibraryEmbedded(false)
+            mountLibraryView(in: host)
+            // Center a newly shown Library window before presentation.
+            if !libraryWindow.isVisible { libraryWindow.center() }
+            // Restore a minimized detached Library window before focusing it.
+            if libraryWindow.isMiniaturized { libraryWindow.deminiaturize(nil) }
+            libraryWindow.makeKeyAndOrderFront(nil)
+        } else {
+            // The embedded presentation reuses the main launcher's content host.
+            // Prepare the launcher before embedding the Library into it.
+            if window == nil { prepareForLaunch() }
+            // Embedding requires the main window and its content container.
+            guard let window, let host = launcherContentView else { return }
+            centerLauncherIfNeeded(window)
+            setLibraryEmbedded(true)
+            mountLibraryView(in: host)
+            libraryWindow?.orderOut(nil)
+            // Restore the launcher from the Dock when showing its Library.
+            if window.isMiniaturized { window.deminiaturize(nil) }
+            window.makeKeyAndOrderFront(nil)
+        }
+        libraryView?.isHidden = false
+        updateLibraryPositionControls()
+        libraryHostWindow?.contentView?.layoutSubtreeIfNeeded()
+        reflowLibraryFolderChips()
+        // Keep the Library's scroll position when changing its host.
+        if let scroll = libraryScrollView {
+            let bounds = NSRect(origin: scrollOrigin, size: scroll.contentView.bounds.size)
+            scroll.contentView.scroll(to: scroll.contentView.constrainBoundsRect(bounds).origin)
+            scroll.reflectScrolledClipView(scroll.contentView)
+        }
+        libraryWindowDidResize()
+        NSApp.activate(ignoringOtherApps: true)
+        appDelegate?.setActiveSession(nil)
+        focusLibrarySearch()
+    }
+
+    // mountLibraryView(host): Create the Library view once and mount it in the
+    // requested host.
+    func mountLibraryView(in host: NSView) {
+        // Create a single Library content view for both presentation styles.
+        if libraryView == nil {
+            let view = NSView()
+            view.translatesAutoresizingMaskIntoConstraints = false
+            buildLibraryView(in: view)
+            libraryView = view
+        }
+        // Avoid reattaching the Library when it already belongs to the requested host.
+        guard let libraryView, libraryView.superview !== host else { return }
+        NSLayoutConstraint.deactivate(libraryHostConstraints)
+        libraryView.removeFromSuperview()
+        host.addSubview(libraryView)
+        libraryHostConstraints = [
+            libraryView.leadingAnchor.constraint(equalTo: host.leadingAnchor),
+            libraryView.trailingAnchor.constraint(equalTo: host.trailingAnchor),
+            libraryView.topAnchor.constraint(equalTo: host.topAnchor),
+            libraryView.bottomAnchor.constraint(equalTo: host.bottomAnchor)
+        ]
+        NSLayoutConstraint.activate(libraryHostConstraints)
+    }
+
+    // setLibraryEmbedded(embedded): Hide the composer without discarding its
+    // input, result or in-flight request.
+    func setLibraryEmbedded(_ embedded: Bool) {
+        isLibraryEmbedded = embedded
+        composeStack?.isHidden = embedded
+        libraryButton?.isHidden = embedded
+        updateLibraryPositionControls()
+        // Pause the hidden inline result's audio while the Library occupies its pane.
+        if embedded { inlineResultSession?.pauseAudio() }
+        updateLauncherWindowTitle(for: selectedMode)
+        refreshResultPaneState()
+        reinsetLauncherTrafficLights()
+    }
+
+    // toggleLibraryPosition(sender): Move the Library between embedded and
+    // detached presentation and remember the choice.
+    @objc func toggleLibraryPosition(_ sender: Any?) {
+        let detached = isLibraryEmbedded
+        presentLibrary(detached: detached)
+        preferencesStore.set(detached, forKey: PreferenceKey.libraryDetached)
+    }
+
+    // backFromLibrary(sender): Return from the embedded Library to the
+    // launcher's text input.
+    @objc func backFromLibrary(_ sender: Any?) {
+        hideEmbeddedLibrary()
+        window?.makeFirstResponder(inputView)
+    }
+
+    // hideEmbeddedLibrary(): Leaving Library commits pending deletions, just
+    // like closing its detached window.
+    func hideEmbeddedLibrary() {
+        // The Back action applies only while Library is embedded in the launcher.
+        guard isLibraryEmbedded else { return }
+        closePalette()
+        window?.makeFirstResponder(nil)
+        libraryView?.isHidden = true
+        setLibraryEmbedded(false)
+        libraryWindowWillClose()
+    }
+
+    // updateLibraryPositionControls(): Keep Library navigation controls and
+    // title alignment consistent with its current presentation.
+    func updateLibraryPositionControls() {
+        libraryBackButton?.isHidden = !isLibraryEmbedded
+        libraryEmbeddedPositionButton?.isHidden = !isLibraryEmbedded
+        // Align the chevron with the title's visible left edge while keeping its full click target.
+        libraryTitleLeadingConstraint?.constant = plainTitleGap - (isLibraryEmbedded ? 7 : 0)
+    }
+
+    // handleLibraryKeyEvent(event): Both hosts use the same Library shortcuts;
+    // Escape returns to the composer when embedded.
+    func handleLibraryKeyEvent(_ event: NSEvent) -> Bool {
+        // Library navigation consumes keyboard events only.
+        guard event.type == .keyDown else { return false }
+        let mods = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        // Command-F focuses Library search.
+        if mods == .command, event.charactersIgnoringModifiers?.lowercased() == "f" {
+            return focusLibrarySearch()
+        }
+        // Let Escape resolve an active Library interaction before closing the view.
+        if event.keyCode == 53 {
+            // Close the Library presentation only when no internal Escape action handled it.
+            if !handleLibraryEscapeKey() {
+                // Embedded Library returns to the launcher; detached Library closes its window.
+                if isLibraryEmbedded { backFromLibrary(nil) } else { /* Close the embedded Library or its separate window as appropriate. */ libraryWindow?.close() }
+            }
+            return true
+        }
+        // Consume a keyboard action that the Library navigation handler completed.
+        if handleLibraryNavigationKey(event) { return true }
+        // Use the Library's focus order for Tab and Shift-Tab.
+        if let forward = tabDirection(for: event) { return moveLibraryFocus(forward: forward) }
+        return false
+    }
+
+    // buildLibraryWindow(): Build the resizable Library window and connect its
+    // keyboard handlers.
+    func buildLibraryWindow() {
+        let window = LibraryWindow(
+            contentRect: NSRect(origin: .zero, size: libraryContentSize),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.launcherController = self
+        window.title = "\(appName) • Library"
+        window.titleVisibility = .hidden
+        configureNativeWindow(window)
+        installLibraryTitlebarTitle(on: window)
+        window.isReleasedWhenClosed = false
+        window.animationBehavior = .none
+        let delegate = LibraryWindowDelegate(controller: self)
+        libraryWindowDelegate = delegate
+        window.delegate = delegate
+        let contentView = installNativeContent(in: window)
+        let size = nativeContentSize(libraryContentSize, in: window)
+        window.contentMinSize = nativeContentSize(NSSize(width: 520, height: 360), in: window)
+        window.setContentSize(size)
+        insetNativeTrafficLights(in: window)
+        libraryDetachedContentView = contentView
+        libraryWindow = window
+    }
+
+    // libraryWindowDidResize(): AppKit can reset traffic-light positions during
+    // resize. Reflow chips after layout settles.
+    func libraryWindowDidResize() {
+        // Traffic-light adjustment requires the current Library host window.
+        guard let window = libraryHostWindow else { return }
+        insetNativeTrafficLights(in: window)
+        // Avoid an extra deferred adjustment during continuous live resizing.
+        guard !window.inLiveResize else { return }
+        DispatchQueue.main.async { [weak self, weak window] in
+            // Reapply the inset only while the controller and original host window still exist.
+            guard let self, let window else { return }
+            insetNativeTrafficLights(in: window)
+            self.reflowLibraryFolderChips()
+        }
+    }
+
+
+    // installLibraryTitlebarTitle(window): The same left-aligned title as the
+    // launcher and result windows.
+    func installLibraryTitlebarTitle(on window: NSWindow) {
+        let controller = NSTitlebarAccessoryViewController()
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: 300, height: 46))
+        let titleLabel = NSTextField(labelWithString: localized("library", "Library"))
+        titleLabel.font = NSFont.systemFont(ofSize: 13, weight: .semibold)
+        titleLabel.textColor = .labelColor
+        titleLabel.lineBreakMode = .byTruncatingTail
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(titleLabel)
+        NSLayoutConstraint.activate([
+            titleLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: plainTitleGap),
+            titleLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: container.trailingAnchor)
+        ])
+        controller.view = container
+        controller.layoutAttribute = .left
+        window.addTitlebarAccessoryViewController(controller)
+
+        let positionController = NSTitlebarAccessoryViewController()
+        let positionContainer = NSView(frame: NSRect(x: 0, y: 0, width: 48, height: 40))
+        let attach = libraryTitlebarButton(
+            symbol: "arrow.up.right.and.arrow.down.left", label: localized("attach_library", "Move Library to Main Window"),
+            action: #selector(toggleLibraryPosition(_:))
+        )
+        libraryDetachedPositionButton = attach
+        positionContainer.addSubview(attach)
+        NSLayoutConstraint.activate([
+            attach.trailingAnchor.constraint(equalTo: positionContainer.trailingAnchor, constant: -7),
+            attach.centerYAnchor.constraint(equalTo: positionContainer.centerYAnchor)
+        ])
+        positionController.view = positionContainer
+        positionController.layoutAttribute = .right
+        window.addTitlebarAccessoryViewController(positionController)
+    }
+
+    // libraryWindowWillClose(): Closing the Library commits its pending
+    // deletions.
+    func libraryWindowWillClose() {
+        finalizeAllPendingLibraryDeletions()
+        cancelLibraryFolderEditing()
+        appDelegate?.updateMenuForActiveWindow()
+    }
+
+    // MARK: Launcher size
+
+    // Minimum width: margins, both cards at their floor, and the arrow gap.
+    var launcherMinimumContentWidth: CGFloat {
+        32 + launcherCardMinWidth * 2 + launcherResultGap + 32
+    }
+
+    // Choose a default pane size that fits the screen.
+    var defaultLauncherContentSize: NSSize {
+        var size = NSSize(
+            width: 32 + launcherCardDefaultWidth * 2 + launcherResultGap + 32,
+            height: launcherContentHeight(inputHeight: launcherInputDefaultHeight)
+        )
+        // Keep the initial launcher size within the current screen's visible area.
+        if let visible = NSScreen.main?.visibleFrame {
+            size.width = max(launcherMinimumContentWidth, min(size.width, visible.width - 40))
+            size.height = max(
+                launcherContentHeight(inputHeight: launcherInputMinHeight),
+                min(size.height, visible.height - 92)
+            )
+        }
+        return size
+    }
+
+    // launcherContentHeight(inputHeight): Top padding + the work row + chips
+    // rows + footer.
+    func launcherContentHeight(inputHeight: CGFloat) -> CGFloat {
+        var height: CGFloat = 24 + inputHeight + 18
+        height += CGFloat(chipRowCount) * 38 + CGFloat(max(0, chipRowCount - 1)) * 10
+        height += 19 + 22
+        // Match the expired-trial banner when it has not been dismissed.
+        height += SourcePurchaseFooter.shouldBeVisible ? 12 + SourcePurchaseFooter.visibleHeight : 21
+        return height
+    }
+
+    // launcherChipRowWidth(): The chips wrap to the content width, which
+    // follows the window.
+    func launcherChipRowWidth() -> CGFloat {
+        let contentWidth = launcherContentView?.bounds.width ?? defaultLauncherContentSize.width
+        return max(contentWidth, launcherMinimumContentWidth) - 64
+    }
+
+    // updateLauncherMinimumSize(): Increase the minimum height when chips wrap
+    // so the input area retains enough room.
+    func updateLauncherMinimumSize() {
+        // Minimum-size updates require an existing launcher window.
+        guard let window else {
+            return
+        }
+        let minimum = nativeContentSize(
+            NSSize(
+                width: launcherMinimumContentWidth,
+                height: launcherContentHeight(inputHeight: launcherInputMinHeight)
+            ),
+            in: window
+        )
+        window.contentMinSize = minimum
+        let current = window.frame.size
+        // Expand dimensions that are smaller than the current layout's minimum.
+        if current.width < minimum.width || current.height < minimum.height {
+            window.setContentSize(NSSize(
+                width: max(current.width, minimum.width),
+                height: max(current.height, minimum.height)
+            ))
+        }
+        reinsetLauncherTrafficLights()
+    }
+
+    // centerLauncherIfNeeded(window): Center only until a frame has been saved;
+    // after that the launcher reopens where the user left it.
+    func centerLauncherIfNeeded(_ window: NSWindow) {
+        // Do not center over a previously restored launcher frame.
+        guard !launcherFrameRestored else {
+            return
+        }
+        window.center()
+        launcherFrameRestored = true
+    }
+
+    // resetLauncherFrame(): Forget saved launcher geometry and return to the
+    // centered default size.
+    func resetLauncherFrame() {
+        NSWindow.removeFrame(usingName: launcherFrameAutosaveName)
+        // Clear the restoration flag when no launcher window exists.
+        guard let window else {
+            launcherFrameRestored = false
+            return
+        }
+        window.setContentSize(nativeContentSize(defaultLauncherContentSize, in: window))
+        window.center()
+        launcherFrameRestored = true
+        updateLauncherMinimumSize()
+    }
+
+    // launcherWindowDidResize(): A resize re-centers the traffic lights and may
+    // change how many rows the chips need.
+    func launcherWindowDidResize() {
+        reinsetLauncherTrafficLights()
+        updateChipRowsIfNeeded()
+        // Update the Library's title-bar layout when it is embedded in the resized launcher.
+        if isLibraryEmbedded { libraryWindowDidResize() }
+    }
+
+    // updateChipRowsIfNeeded(): Reflow mode chips into rows when the available
+    // launcher width changes.
+    func updateChipRowsIfNeeded() {
+        // Mode-chip layout needs both its container and at least one chip.
+        guard chipsColumn != nil, !modeChips.isEmpty else {
+            return
+        }
+        let rows = LauncherLogic.chipRows(
+            widths: modeChips.map { $0.intrinsicContentSize.width },
+            spacing: 10,
+            maxRowWidth: launcherChipRowWidth()
+        )
+        // Rebuild chip rows only when the required row count changes.
+        if max(1, rows.count) != chipRowCount {
+            rebuildModeChips()
+        }
+    }
+
+    // buildResultPane(workRow): Build the right result pane with a placeholder
+    // for empty and loading states. A completed request replaces it with the
+    // session's shared content.
+    func buildResultPane(in workRow: NSView) {
+        let pane = LauncherFieldContainer()
+        pane.translatesAutoresizingMaskIntoConstraints = false
+        workRow.addSubview(pane)
+
+        let arrow = NSImageView()
+        arrow.image = NSImage(systemSymbolName: "arrow.right", accessibilityDescription: nil)?
+            .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 18, weight: .semibold))
+        arrow.contentTintColor = .tertiaryLabelColor
+        arrow.translatesAutoresizingMaskIntoConstraints = false
+        workRow.addSubview(arrow)
+
+        // Clip session views inside the card border and rounded corners.
+        let host = NSView()
+        host.wantsLayer = true
+        host.layer?.cornerRadius = 11
+        host.layer?.masksToBounds = true
+        host.translatesAutoresizingMaskIntoConstraints = false
+        pane.addSubview(host)
+
+        let placeholder = LauncherResultPlaceholderView(frame: .zero)
+        pane.addSubview(placeholder)
+        let preferredWidth = placeholder.widthAnchor.constraint(equalToConstant: 340)
+        preferredWidth.priority = .defaultHigh
+
+        NSLayoutConstraint.activate([
+            pane.leadingAnchor.constraint(equalTo: fieldContainer.trailingAnchor, constant: launcherResultGap),
+            pane.trailingAnchor.constraint(equalTo: workRow.trailingAnchor),
+            pane.topAnchor.constraint(equalTo: workRow.topAnchor),
+            pane.bottomAnchor.constraint(equalTo: workRow.bottomAnchor),
+            arrow.centerXAnchor.constraint(equalTo: fieldContainer.trailingAnchor, constant: launcherResultGap / 2),
+            arrow.centerYAnchor.constraint(equalTo: workRow.centerYAnchor),
+            host.leadingAnchor.constraint(equalTo: pane.leadingAnchor, constant: 1),
+            host.trailingAnchor.constraint(equalTo: pane.trailingAnchor, constant: -1),
+            host.topAnchor.constraint(equalTo: pane.topAnchor, constant: 1),
+            host.bottomAnchor.constraint(equalTo: pane.bottomAnchor, constant: -1),
+            placeholder.centerXAnchor.constraint(equalTo: pane.centerXAnchor),
+            placeholder.centerYAnchor.constraint(equalTo: pane.centerYAnchor),
+            preferredWidth,
+            placeholder.widthAnchor.constraint(lessThanOrEqualTo: pane.widthAnchor, constant: -48)
+        ])
+
+        resultPane = pane
+        resultHostView = host
+        resultPlaceholderView = placeholder
+    }
+
+    // refreshResultPaneState(): Show progress for requests targeting this pane.
+    // Retain the previous result for cancellation or failure.
+    func refreshResultPaneState() {
+        // Placeholder updates need the result pane and its placeholder view.
+        guard let placeholder = resultPlaceholderView, let host = resultHostView else { return }
+        let loading = isGenerating && activeRun.map {
+            !$0.returnsTransformedText && shouldShowInlineResult(for: $0)
+        } == true
+        // Pause previous result audio when the pane first enters a loading state.
+        if loading && !placeholder.isLoading {
+            inlineResultSession?.pauseAudio()
+        }
+        host.isHidden = loading
+        placeholder.isHidden = !loading && inlineResultSession != nil
+        placeholder.setLoading(loading, status: statusLabel?.stringValue ?? "")
+        // File commands must refer to a visible result, not the hidden prior one.
+        if window?.isKeyWindow == true {
+            appDelegate?.setActiveSession(loading || isLibraryEmbedded ? nil : inlineResultSession)
+        }
+    }
+
+    // shouldShowInlineResult(run): Present in the launcher pane when requested;
+    // otherwise open a result window.
+    func shouldShowInlineResult(for run: LauncherRun) -> Bool {
+        // Only standard launcher runs can use inline result presentation.
+        guard case .standard = run.presentation else {
+            return false
+        }
+        return window?.isVisible ?? false
+    }
+
+    // showInlineResult(session): Replace the inline result and make it active
+    // for menu actions while the launcher is key.
+    func showInlineResult(_ session: ViewerSession) {
+        // Keep an unsaved inline edit and present the new result separately if replacement is declined.
+        guard inlineResultSession?.confirmEndingTextEdit() ?? true else {
+            appDelegate?.presentResultSession(session)
+            return
+        }
+        discardInlineResult()
+        inlineResultSession = session
+        session.onDetachRequested = { [weak self] in self?.detachInlineResult(nil) }
+        session.onCloseRequested = { [weak self] in self?.closeInlineResult(nil) }
+        session.embed(in: resultHostView)
+        // A newly attached inline result must remain paused behind the embedded Library.
+        if isLibraryEmbedded { session.pauseAudio() }
+        refreshResultPaneState()
+    }
+
+    // discardInlineResult(): Drop the pane's result; its temp files go with it.
+    func discardInlineResult() {
+        // There is no inline result to discard when no session is attached.
+        guard let session = inlineResultSession else {
+            return
+        }
+        inlineResultSession = nil
+        session.leaveHost(releasing: true)
+        refreshResultPaneState()
+        // Clear the app's active-session pointer only if it refers to the discarded result.
+        if appDelegate?.activeSession === session {
+            appDelegate?.setActiveSession(nil)
+        }
+    }
+
+    // detachInlineResult(sender): Move the inline session, including its state
+    // and assets, into a result window.
+    @objc func detachInlineResult(_ sender: Any?) {
+        // Detachment requires a current inline result session.
+        guard let session = inlineResultSession else {
+            return
+        }
+        // Resolve unsaved edits before moving the result into a separate window.
+        guard session.confirmEndingTextEdit() else { return }
+        inlineResultSession = nil
+        session.leaveHost(releasing: false)
+        refreshResultPaneState()
+        appDelegate?.presentResultSession(session)
+    }
+
+    // closeInlineResult(sender): Resolve any active edit, discard the inline
+    // result, and return focus to the input.
+    @objc func closeInlineResult(_ sender: Any?) {
+        // Honor the editing confirmation before dismissing the inline result.
+        guard inlineResultSession?.confirmEndingTextEdit() ?? true else { return }
+        discardInlineResult()
+        window?.makeFirstResponder(inputView)
+    }
+
+    // reinsetLauncherTrafficLights(): Restore window-button insets after
+    // resize, immediately and on the next event-loop turn.
+    func reinsetLauncherTrafficLights() {
+        // Title-bar updates require an existing launcher window.
+        guard let window else {
+            return
+        }
+        insetNativeTrafficLights(in: window)
+        DispatchQueue.main.async { [weak window] in
+            // Reapply native traffic-light spacing after the window becomes available.
+            if let window {
+                insetNativeTrafficLights(in: window)
+            }
+        }
+    }
+
+    // buildLibraryView(contentView): Build the scrollable Library list into the
+    // Library window's content.
+    func buildLibraryView(in contentView: NSView) {
+        let scroll = NSScrollView()
+        scroll.borderType = .noBorder
+        scroll.drawsBackground = false
+        scroll.hasVerticalScroller = true
+        scroll.autohidesScrollers = true
+        scroll.translatesAutoresizingMaskIntoConstraints = false
+
+        let searchField = OpticallyAlignedSearchField()
+        searchField.placeholderString = localized("search_library", "Search Library")
+        searchField.sendsSearchStringImmediately = true
+        searchField.sendsWholeSearchString = false
+        searchField.target = self
+        searchField.action = #selector(librarySearchChanged(_:))
+        searchField.searchMenuTemplate = librarySearchMenu()
+        searchField.translatesAutoresizingMaskIntoConstraints = false
+
+        let doc = LibraryDocumentView()
+        doc.translatesAutoresizingMaskIntoConstraints = false
+
+        let list = NSStackView()
+        list.orientation = .vertical
+        list.alignment = .leading
+        list.spacing = 4
+        list.translatesAutoresizingMaskIntoConstraints = false
+        doc.addSubview(list)
+
+        // Keep folders in one row between search and results; use overflow for the rest.
+        let chipStack = NSStackView()
+        chipStack.orientation = .horizontal
+        chipStack.alignment = .centerY
+        chipStack.spacing = 8
+        chipStack.translatesAutoresizingMaskIntoConstraints = false
+        let chipDoc = NSView()
+        chipDoc.translatesAutoresizingMaskIntoConstraints = false
+        chipDoc.addSubview(chipStack)
+        let chipScroll = NSScrollView()
+        chipScroll.borderType = .noBorder
+        chipScroll.drawsBackground = false
+        chipScroll.hasVerticalScroller = false
+        chipScroll.hasHorizontalScroller = false
+        chipScroll.verticalScrollElasticity = .none
+        chipScroll.translatesAutoresizingMaskIntoConstraints = false
+        chipScroll.documentView = chipDoc
+
+        scroll.documentView = doc
+        contentView.addSubview(searchField)
+        contentView.addSubview(chipScroll)
+        contentView.addSubview(scroll)
+
+        NSLayoutConstraint.activate([
+            searchField.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 32),
+            searchField.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -32),
+            searchField.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 18),
+            searchField.heightAnchor.constraint(equalToConstant: 28),
+
+            // Add 4pt of clipping clearance on each side while keeping chips aligned to the content
+            // margin.
+            chipScroll.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 28),
+            chipScroll.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -28),
+            // Allow vertical room for focus rings around the folder chips.
+            chipScroll.topAnchor.constraint(equalTo: searchField.bottomAnchor, constant: 7),
+            chipScroll.heightAnchor.constraint(equalToConstant: 34),
+
+            chipDoc.topAnchor.constraint(equalTo: chipScroll.contentView.topAnchor),
+            chipDoc.bottomAnchor.constraint(equalTo: chipScroll.contentView.bottomAnchor),
+            chipDoc.leadingAnchor.constraint(equalTo: chipScroll.contentView.leadingAnchor),
+            chipDoc.widthAnchor.constraint(greaterThanOrEqualTo: chipScroll.contentView.widthAnchor),
+            // Allow the document to be wider than its chips; an equality would conflict with the
+            // viewport width.
+            chipDoc.trailingAnchor.constraint(greaterThanOrEqualTo: chipStack.trailingAnchor, constant: 4),
+            chipStack.leadingAnchor.constraint(equalTo: chipDoc.leadingAnchor, constant: 4),
+            chipStack.centerYAnchor.constraint(equalTo: chipDoc.centerYAnchor),
+
+            scroll.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            scroll.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            scroll.topAnchor.constraint(equalTo: chipScroll.bottomAnchor, constant: 7),
+            scroll.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+
+            doc.topAnchor.constraint(equalTo: scroll.contentView.topAnchor),
+            doc.leadingAnchor.constraint(equalTo: scroll.contentView.leadingAnchor),
+            doc.widthAnchor.constraint(equalTo: scroll.contentView.widthAnchor),
+
+            list.topAnchor.constraint(equalTo: doc.topAnchor, constant: 8),
+            list.bottomAnchor.constraint(equalTo: doc.bottomAnchor, constant: -20),
+            list.leadingAnchor.constraint(equalTo: doc.leadingAnchor, constant: 24),
+            list.trailingAnchor.constraint(equalTo: doc.trailingAnchor, constant: -24)
+        ])
+
+        librarySearchField = searchField
+        libraryChipScrollView = chipScroll
+        libraryChipStack = chipStack
+        libraryScrollView = scroll
+        libraryListStack = list
+        updateLibraryPositionControls()
+    }
+
+    // libraryTitlebarButton(symbol, label, action): Create a Library titlebar
+    // action with a symbol and the shared tooltip treatment.
+    func libraryTitlebarButton(symbol: String, label: String, action: Selector) -> TitlebarTooltipButton {
+        let button = TitlebarTooltipButton(title: "", target: self, action: action)
+        button.isBordered = false
+        button.bezelStyle = .regularSquare
+        button.tooltipMessage = label
+        button.setAccessibilityLabel(label)
+        button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: label)?
+            .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 14, weight: .regular))
+        button.imagePosition = .imageOnly
+        button.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            button.widthAnchor.constraint(equalToConstant: 24),
+            button.heightAnchor.constraint(equalToConstant: 24)
+        ])
+        return button
+    }
+
+    // librarySearchMenu(): Default search to titles; offer saved result text as
+    // an additional search scope.
+    func librarySearchMenu() -> NSMenu {
+        let menu = NSMenu(title: "Search")
+        let titleItem = NSMenuItem(
+            title: "Titles",
+            action: #selector(librarySearchScopeChanged(_:)),
+            keyEquivalent: ""
+        )
+        titleItem.target = self
+        titleItem.representedObject = "titles"
+        titleItem.state = librarySearchScope == "titles" ? .on : .off
+        menu.addItem(titleItem)
+
+        let contentItem = NSMenuItem(
+            title: "Titles and Contents",
+            action: #selector(librarySearchScopeChanged(_:)),
+            keyEquivalent: ""
+        )
+        contentItem.target = self
+        contentItem.representedObject = "contents"
+        contentItem.state = librarySearchScope == "contents" ? .on : .off
+        menu.addItem(contentItem)
+        return menu
+    }
+
+    // librarySearchChanged(sender): Reset search-only collapse choices for a
+    // new query and refresh the Library listing.
+    @objc func librarySearchChanged(_ sender: NSSearchField) {
+        // Expand groups for each new query. Keep search collapse state separate from normal browsing.
+        collapsedLibrarySearchSections.removeAll()
+        refreshLibrary()
+        // Start a new Library search at the top of its results.
+        if let scrollView = libraryScrollView {
+            scrollView.contentView.scroll(to: .zero)
+            scrollView.reflectScrolledClipView(scrollView.contentView)
+        }
+    }
+
+    // librarySearchScopeChanged(sender): Switch between title and full-content
+    // search using the selected menu item's stored scope.
+    @objc func librarySearchScopeChanged(_ sender: NSMenuItem) {
+        // Ignore search-scope menu items without a stored scope identifier.
+        guard let scope = sender.representedObject as? String else {
+            return
+        }
+        librarySearchScope = scope == "contents" ? "contents" : "titles"
+        collapsedLibrarySearchSections.removeAll()
+        // Update the checkmarks in the search field's scope menu.
+        if let menu = librarySearchField?.searchMenuTemplate {
+            // Mark only the currently selected search scope.
+            for item in menu.items {
+                item.state = (item.representedObject as? String) == librarySearchScope ? .on : .off
+            }
+        }
+        refreshLibrary()
+        libraryScrollView?.contentView.scroll(to: .zero)
+        // Refresh scroll indicators after rebuilding search results.
+        if let scrollView = libraryScrollView {
+            scrollView.reflectScrolledClipView(scrollView.contentView)
+        }
+    }
+
+    @discardableResult
+    // focusLibrarySearch(): Focus the Library search field and clear any row
+    // keyboard highlight.
+    func focusLibrarySearch() -> Bool {
+        // Focusing Library search requires its search field and current host window.
+        guard let searchField = librarySearchField, let libraryWindow = libraryHostWindow else {
+            return false
+        }
+        clearLibraryRowKeyboardFocus()
+        libraryNavigationEntryID = nil
+        libraryWindow.makeFirstResponder(searchField)
+        return true
+    }
+
+    // clearLibraryRowKeyboardFocus(): Clear explicit keyboard highlights from
+    // every visible Library row.
+    func clearLibraryRowKeyboardFocus() {
+        libraryKeyboardRows.forEach { $0.setKeyboardFocused(false) }
+    }
+
+    // libraryFocusStops(): List visible Library controls in their intended
+    // Tab-navigation order.
+    func libraryFocusStops() -> [NSView] {
+        var stops: [NSView] = []
+        // Include the Back control in navigation only when it is visible.
+        if let back = libraryBackButton, !back.isHidden { stops.append(back) }
+        // Visible search participates in the Library's tab order.
+        if let searchField = librarySearchField, !searchField.isHidden {
+            stops.append(searchField)
+        }
+        // Include the Library position control when present.
+        if let position = libraryPositionButton { stops.append(position) }
+        stops.append(contentsOf: libraryTabStops)
+        return stops
+    }
+
+    // currentLibraryFocusIndex(stops): Locate the current responder within the
+    // Library's logical focus stops.
+    func currentLibraryFocusIndex(in stops: [NSView]) -> Int? {
+        // Treat the search field's shared editor as focus on the search control.
+        if librarySearchHasFocus(), let searchField = librarySearchField {
+            return stops.firstIndex { $0 === searchField }
+        }
+        // Resolve Library focus only from a view in the current responder chain.
+        guard let responderView = libraryHostWindow?.firstResponder as? NSView else { return nil }
+        // Match focused child buttons before their row so Tab can advance through every action.
+        if let exactIndex = stops.firstIndex(where: { responderView === $0 }) {
+            return exactIndex
+        }
+        return stops.firstIndex { responderView.isDescendant(of: $0) }
+    }
+
+    @discardableResult
+    // focusLibraryControl(control): Focus a Library control while applying the
+    // special handling needed by its search field.
+    func focusLibraryControl(_ control: NSView) -> Bool {
+        // Changing Library focus requires its current host window.
+        guard let libraryWindow = libraryHostWindow else { return false }
+        // Use the specialized search focus path for the search field.
+        if control === librarySearchField {
+            return focusLibrarySearch()
+        }
+
+        let focusedRow = libraryKeyboardRows.first {
+            control === $0 || control.isDescendant(of: $0)
+        }
+        // Update remembered row focus only after AppKit accepts the responder change.
+        guard libraryWindow.makeFirstResponder(control) else { return false }
+        libraryNavigationEntryID = focusedRow?.entryID
+        libraryKeyboardRows.forEach { $0.setKeyboardFocused($0 === focusedRow) }
+        // Scroll a focused list control into view when it belongs to a scroll view.
+        if control.enclosingScrollView != nil {
+            control.scrollToVisible(control.bounds)
+        }
+        return true
+    }
+
+    // librarySearchHasFocus(): Recognize search focus whether AppKit uses the
+    // field itself or its shared field editor.
+    func librarySearchHasFocus() -> Bool {
+        // Search cannot have focus without both its host window and field.
+        guard let libraryWindow = libraryHostWindow, let searchField = librarySearchField else { return false }
+        return libraryWindow.firstResponder === searchField
+            || searchField.currentEditor() === libraryWindow.firstResponder
+    }
+
+    // currentLibraryRow(): Find the Library row that owns the current
+    // responder, including its child controls.
+    func currentLibraryRow() -> LibraryRowView? {
+        // Resolve the focused row only from an actual view responder.
+        guard let responderView = libraryHostWindow?.firstResponder as? NSView else { return nil }
+        return libraryKeyboardRows.first {
+            responderView === $0 || responderView.isDescendant(of: $0)
+        }
+    }
+
+    @discardableResult
+    // focusLibraryRow(index, [scrollIntoView = true]): Focus a bounded Library
+    // row index and optionally bring it into view.
+    func focusLibraryRow(at index: Int, scrollIntoView: Bool = true) -> Bool {
+        // Row navigation needs a nonempty visible list and a Library host.
+        guard !libraryKeyboardRows.isEmpty, let libraryWindow = libraryHostWindow else {
+            return false
+        }
+
+        let boundedIndex = min(max(index, 0), libraryKeyboardRows.count - 1)
+        let row = libraryKeyboardRows[boundedIndex]
+        // Record a row selection only after it successfully becomes first responder.
+        guard libraryWindow.makeFirstResponder(row) else { return false }
+        libraryNavigationEntryID = row.entryID
+        libraryKeyboardRows.forEach { $0.setKeyboardFocused($0 === row) }
+        // Scroll to the selected row only when requested by the caller.
+        if scrollIntoView {
+            row.scrollToVisible(row.bounds)
+        }
+        return true
+    }
+
+    @discardableResult
+    // moveLibraryRowSelection(offset): Move Library row selection relative to
+    // the remembered entry and current visible rows.
+    func moveLibraryRowSelection(by offset: Int) -> Bool {
+        // An empty Library result list has no row to navigate.
+        guard !libraryKeyboardRows.isEmpty else { return false }
+        let currentIndex = libraryNavigationEntryID.flatMap { entryID in
+            libraryKeyboardRows.firstIndex(where: { $0.entryID == entryID })
+        }
+        // Start at the appropriate edge when no prior row selection remains.
+        guard let index = currentIndex else {
+            return focusLibraryRow(at: offset < 0 ? libraryKeyboardRows.count - 1 : 0)
+        }
+        return focusLibraryRow(at: index + offset)
+    }
+
+    // handleLibraryNavigationKey(event): The Library behaves like a native
+    // source list: arrows move selection and Return opens it. Down/Up from
+    // Search enters the first/last visible result.
+    func handleLibraryNavigationKey(_ event: NSEvent) -> Bool {
+        // Title editing retains its own arrow-key behavior.
+        guard editingLibraryRow == nil else { return false }
+        let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        // Leave modified navigation keys to app shortcuts or text editing.
+        guard modifiers.intersection([.command, .control, .option]).isEmpty else { return false }
+
+        // Map unmodified navigation keys to Library row and action movement.
+        switch event.keyCode {
+        case 123: // Left Arrow
+            // Moving left requires a focused row and its current host window.
+            guard let row = currentLibraryRow(), let libraryWindow = libraryHostWindow else { return false }
+            return row.moveKeyboardFocusHorizontally(forward: false, in: libraryWindow)
+        case 124: // Right Arrow
+            // Moving right requires a focused row and its current host window.
+            guard let row = currentLibraryRow(), let libraryWindow = libraryHostWindow else { return false }
+            return row.moveKeyboardFocusHorizontally(forward: true, in: libraryWindow)
+        case 125: // Down Arrow
+            return librarySearchHasFocus()
+                ? focusLibraryRow(at: 0)
+                : moveLibraryRowSelection(by: 1)
+        case 126: // Up Arrow
+            return librarySearchHasFocus()
+                ? focusLibraryRow(at: libraryKeyboardRows.count - 1)
+                : moveLibraryRowSelection(by: -1)
+        case 36, 76: // Return or keypad Enter
+            // Delete only an eligible current row through its normal deletion action.
+            guard
+                let row = currentLibraryRow(),
+                libraryHostWindow?.firstResponder === row
+            else {
+                // Let AppKit activate a focused Rename or Delete button.
+                return false
+            }
+            row.openFromKeyboard()
+            return true
+        // Leave unrecognized navigation keys to the responder chain.
+        default:
+            return false
+        }
+    }
+
+    // activateFocusedLibraryNavigationControl(): Activate a focused Library
+    // navigation button from the keyboard.
+    func activateFocusedLibraryNavigationControl() -> Bool {
+        // Focused navigation controls require an existing launcher window.
+        guard let window else { return false }
+
+        // Activate the Library button only when it is visible, enabled, and focused.
+        if let libraryButton,
+           !libraryButton.isHidden,
+           window.firstResponder === libraryButton
+        {
+            libraryButton.performClick(nil)
+            return true
+        }
+
+        return false
+    }
+
+    // libraryEntry(entry, query): Match a Library entry against the query using
+    // the selected title or content scope.
+    func libraryEntry(_ entry: LibraryEntry, matches query: String) -> Bool {
+        let options: String.CompareOptions = [.caseInsensitive, .diacriticInsensitive, .widthInsensitive]
+        // A title match is sufficient regardless of the selected search scope.
+        if libraryDisplayTitle(entry.title).range(of: query, options: options) != nil {
+            return true
+        }
+        // Search saved text only when the user selected the contents scope.
+        guard librarySearchScope == "contents" else {
+            return false
+        }
+
+        // Use cached text when available to keep search responsive.
+        if let cached = libraryContentSearchCache[entry.id] {
+            return cached.range(of: query, options: options) != nil
+        }
+        // Queue uncached text for a background read. Match titles until the content arrives, then
+        // refresh.
+        let entryDirectory = pendingLibraryDeletions[entry.id]?.stagedURL
+            ?? LibraryStore.entryDirectory(id: entry.id)
+        pendingContentSearchLoads[entry.id] = entryDirectory.appendingPathComponent(entry.textFile)
+        scheduleLibraryContentFill()
+        return false
+    }
+
+    // scheduleLibraryContentFill(): Batch cache misses from one refresh into a
+    // single background read.
+    func scheduleLibraryContentFill() {
+        // Coalesce cache misses into one scheduled background batch.
+        guard !libraryContentFillScheduled else { return }
+        libraryContentFillScheduled = true
+        DispatchQueue.main.async { [weak self] in
+            // Do not start a queued cache fill after the launcher has been released.
+            guard let self else { return }
+            self.libraryContentFillScheduled = false
+            guard !self.libraryContentFillInFlight else {
+                // The running batch reschedules when it completes.
+                return
+            }
+            let requests = self.pendingContentSearchLoads
+            let generation = self.libraryContentCacheGeneration
+            self.pendingContentSearchLoads.removeAll()
+            // An empty batch needs no background file reads.
+            guard !requests.isEmpty else { return }
+            self.libraryContentFillInFlight = true
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                var loaded: [String: String] = [:]
+                // Read each requested result once, treating unreadable content as empty.
+                for (id, url) in requests {
+                    loaded[id] = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
+                }
+                DispatchQueue.main.async {
+                    // Discard background results if their owning launcher no longer exists.
+                    guard let self else { return }
+                    self.libraryContentFillInFlight = false
+                    // Discard text read before an iCloud import replaced the saved files.
+                    guard generation == self.libraryContentCacheGeneration else {
+                        self.scheduleLibraryContentFill()
+                        return
+                    }
+                    // Fill only cache entries that have not already been populated.
+                    for (id, text) in loaded where self.libraryContentSearchCache[id] == nil {
+                        self.libraryContentSearchCache[id] = text
+                    }
+                    // Schedule another batch for misses collected while this one was running.
+                    if !self.pendingContentSearchLoads.isEmpty {
+                        self.scheduleLibraryContentFill()
+                    }
+                    let query = self.librarySearchField?.stringValue
+                        .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                    // Refresh visible content-search results after new text enters the cache.
+                    if self.isShowingLibrary, self.librarySearchScope == "contents", !query.isEmpty {
+                        self.refreshLibrary()
+                    }
+                }
+            }
+        }
+    }
+
+    // prewarmLibraryContentSearchCache(): Preload result text to reduce delays
+    // on the first content search.
+    func prewarmLibraryContentSearchCache() {
+        // Queue only Library entries with neither cached text nor a pending read.
+        for entry in LibraryStore.list()
+        where libraryContentSearchCache[entry.id] == nil && pendingContentSearchLoads[entry.id] == nil {
+            pendingContentSearchLoads[entry.id] = LibraryStore.entryDirectory(id: entry.id)
+                .appendingPathComponent(entry.textFile)
+        }
+        scheduleLibraryContentFill()
+    }
+
+    // toggleLibrarySection(mode): Toggle a Library group using separate
+    // collapse state for search and normal browsing.
+    func toggleLibrarySection(_ mode: String) {
+        let query = librarySearchField?.stringValue
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        // Keep ordinary browsing collapse state separate from search-result collapse state.
+        if query.isEmpty {
+            // Expand a previously collapsed browsing section.
+            if collapsedLibrarySections.contains(mode) {
+                collapsedLibrarySections.remove(mode)
+            } else {
+                // Remember that this browsing section should be collapsed.
+                collapsedLibrarySections.insert(mode)
+            }
+        } else if collapsedLibrarySearchSections.contains(mode) {
+            // Expand a previously collapsed search-result section.
+            collapsedLibrarySearchSections.remove(mode)
+        } else {
+            // Collapse the search section without changing normal browsing preferences.
+            collapsedLibrarySearchSections.insert(mode)
+        }
+        refreshLibrary()
+    }
+
+    // refreshLibrary(): Refresh folder chips and results: group All by mode, or
+    // show a folder's entries by date.
+    func refreshLibrary() {
+        // Library rendering waits until its list stack has been built.
+        guard let list = libraryListStack else {
+            return
+        }
+        libraryKeyboardRows.removeAll()
+        libraryTabStops.removeAll()
+        libraryDeletedRows.removeAll()
+        list.arrangedSubviews.forEach { $0.removeFromSuperview() }
+
+        var allEntries = LibraryStore.list()
+        // Keep pending deletions visible as undo rows after their files leave the live Library.
+        for pending in pendingLibraryDeletions.values
+        where !allEntries.contains(where: { $0.id == pending.entry.id }) {
+            allEntries.append(pending.entry)
+        }
+        allEntries.sort { $0.createdAt > $1.createdAt }
+
+        // Rebuild chips before rows to preserve Tab order and update counts.
+        rebuildLibraryFolderChips(entries: allEntries)
+
+        let query = librarySearchField?.stringValue
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let isSearching = !query.isEmpty
+
+        // Show an empty-Library explanation when there are no saved or undoable entries.
+        guard !allEntries.isEmpty else {
+            showLibraryEmptyState(
+                title: localized("library_empty_title", "No saved items yet"),
+                subtitle: localized("library_empty_subtitle", "Click a result's bookmark button to save it here."),
+                symbolName: "bookmark"
+            )
+            return
+        }
+
+        // Apply the folder filter to both browsing and search.
+        let scopedEntries = selectedLibraryFolder == nil
+            ? allEntries
+            : allEntries.filter { $0.folder == selectedLibraryFolder }
+        let visibleEntries = isSearching
+            ? scopedEntries.filter { libraryEntry($0, matches: query) }
+            : scopedEntries
+
+        // Explain an empty filtered view separately from an entirely empty Library.
+        if visibleEntries.isEmpty {
+            let title: String
+            let subtitle: String
+            // Name the active search scope when a query has no matches.
+            if isSearching {
+                let scope = librarySearchScope == "contents" ? localized("search_scope_titles_contents", "titles or contents") : localized("search_scope_titles", "titles")
+                title = localized("library_search_empty_title", "No results")
+                subtitle = String(format: localized("no_search_matches", "No %@ match \u{201c}%@\u{201d}."), scope, query)
+            } else {
+                // Explain how to file entries in an empty folder.
+                title = localized("folder_empty_title", "Nothing in this folder yet")
+                subtitle = localized("folder_empty_subtitle", "Drag results onto a folder chip, or right-click one and file it here.")
+            }
+            showLibraryEmptyState(
+                title: title, subtitle: subtitle,
+                symbolName: isSearching ? "magnifyingglass" : "folder"
+            )
+            return
+        }
+
+        // Fixed mode order matching the mode cards; unknown modes fall to "Other".
+        let order = ["proofread", "rewrite", "explain", "summarize", "translate", "dictionary"]
+        // groupKey(entry): Place unknown saved modes in the fallback Library
+        // group.
+        func groupKey(for entry: LibraryEntry) -> String {
+            order.contains(entry.mode) ? entry.mode : "other"
+        }
+        var allGrouped: [String: [LibraryEntry]] = [:]
+        // Group all scoped entries to calculate section totals.
+        for entry in scopedEntries {
+            allGrouped[groupKey(for: entry), default: []].append(entry)
+        }
+        var visibleGrouped: [String: [LibraryEntry]] = [:]
+        // Group matching entries to build the visible section rows.
+        for entry in visibleEntries {
+            visibleGrouped[groupKey(for: entry), default: []].append(entry)
+        }
+        var sections = order.filter { visibleGrouped[$0] != nil }
+        // Include an Other section only when unmatched modes need it.
+        if visibleGrouped["other"] != nil {
+            sections.append("other")
+        }
+
+        var previous: NSView?
+        // append(view, spacingBefore): Append a full-width Library view with
+        // explicit spacing after the preceding view.
+        func append(_ view: NSView, spacingBefore: CGFloat) {
+            list.addArrangedSubview(view)
+            view.widthAnchor.constraint(equalTo: list.widthAnchor).isActive = true
+            // Apply row spacing relative to the preceding arranged view.
+            if let previous {
+                list.setCustomSpacing(spacingBefore, after: previous)
+            }
+            previous = view
+        }
+
+        // Reuse one folder list for every row menu in this refresh.
+        let moveMenuFolders = libraryFolderNames(entries: allEntries)
+
+        // appendEntryRow(entry, rowIndex, [firstRowSpacing = 6]): Render either
+        // a saved entry row or its pending-deletion Undo replacement.
+        func appendEntryRow(_ entry: LibraryEntry, rowIndex: Int, firstRowSpacing: CGFloat = 6) {
+            // Render a pending deletion as an Undo row instead of an active result row.
+            if pendingLibraryDeletions[entry.id] != nil {
+                let displayTitle = libraryDisplayTitle(entry.title)
+                let deletedRow = LibraryDeletedRowView(
+                    entryID: entry.id,
+                    title: displayTitle.isEmpty ? localized("untitled", "Untitled") : displayTitle,
+                    undoHandler: { [weak self] keyboardInitiated in
+                        self?.undoLibraryDeletion(id: entry.id, focusRestoredRow: keyboardInitiated)
+                    }
+                )
+                libraryDeletedRows[entry.id] = deletedRow
+                libraryTabStops.append(deletedRow.keyboardFocusControl)
+                append(deletedRow, spacingBefore: rowIndex == 0 ? firstRowSpacing : 4)
+            } else {
+                // Normal entries receive open, rename, export, and delete actions.
+                let row = LibraryRowView(
+                    entry: entry,
+                    subtitleDetail: selectedLibraryFolder == nil ? entry.folder : nil,
+                    moveMenu: libraryMoveMenu(for: entry, folders: moveMenuFolders),
+                    onOpen: { [weak self] in self?.appDelegate?.openSavedEntry(entry) },
+                    onRename: { [weak self] title, keyboardInitiated in
+                        self?.renameLibraryEntry(
+                            entry,
+                            to: title,
+                            focusRenamedRow: keyboardInitiated
+                        )
+                    },
+                    onEditingChanged: { [weak self] row, editing in
+                        self?.libraryRow(row, didChangeEditing: editing)
+                    },
+                    onDelete: { [weak self] keyboardInitiated in
+                        self?.deleteLibraryEntry(entry, focusUndo: keyboardInitiated)
+                    },
+                    onExportText: { [weak self] in
+                        self?.exportLibraryEntryText(entry)
+                    },
+                    onExportAudio: entry.audioFile == nil ? nil : { [weak self] in
+                        self?.exportLibraryEntryAudio(entry)
+                    }
+                )
+                libraryKeyboardRows.append(row)
+                libraryTabStops.append(contentsOf: row.keyboardFocusControls)
+                append(row, spacingBefore: rowIndex == 0 ? firstRowSpacing : 4)
+            }
+        }
+
+        // Show folder contents newest first without mode groups.
+        if selectedLibraryFolder != nil {
+            // Render folder entries directly in their existing newest-first order.
+            for (rowIndex, entry) in visibleEntries.enumerated() {
+                appendEntryRow(entry, rowIndex: rowIndex, firstRowSpacing: 2)
+            }
+            return
+        }
+
+        // Build each mode section with its title, count, and collapse state.
+        for (sectionIndex, mode) in sections.enumerated() {
+            let title = mode == "other" ? localized("other", "Other") : featureTitle(for: mode)
+            let matches = visibleGrouped[mode] ?? []
+            let totalCount = allGrouped[mode]?.count ?? matches.count
+            let countText = isSearching ? "\(matches.count) of \(totalCount)" : "\(totalCount)"
+            let collapsed = isSearching
+                ? collapsedLibrarySearchSections.contains(mode)
+                : collapsedLibrarySections.contains(mode)
+            append(
+                librarySectionHeader(
+                    mode: mode,
+                    title: title,
+                    countText: countText,
+                    collapsed: collapsed,
+                    deletableEntries: matches.filter { pendingLibraryDeletions[$0.id] == nil },
+                    isSearching: isSearching
+                ),
+                // Keep each header's top gap stable when its section collapses.
+                spacingBefore: sectionIndex == 0 ? (previous == nil ? 0 : 22) : 22
+            )
+            // Collapsed sections retain their heading but omit entry rows.
+            guard !collapsed else {
+                continue
+            }
+            // Add the matching entries beneath an expanded mode heading.
+            for (rowIndex, entry) in matches.enumerated() {
+                appendEntryRow(entry, rowIndex: rowIndex)
+            }
+        }
+    }
+
+    // librarySectionHeader(mode, title, countText, collapsed, [deletableEntries
+    // = []], [isSearching = false]): Combine created folder names with those
+    // used by entries and sort them. Reuse the caller's entry list during a
+    // refresh.
+    func librarySectionHeader(
+        mode: String,
+        title: String,
+        countText: String,
+        collapsed: Bool,
+        deletableEntries: [LibraryEntry] = [],
+        isSearching: Bool = false
+    ) -> NSView {
+        let button = LibrarySectionHeaderButton(
+            title: title,
+            countText: countText,
+            collapsed: collapsed,
+            allowsToggling: true,
+            toggleHandler: { [weak self] in self?.toggleLibrarySection(mode) }
+        )
+        button.heightAnchor.constraint(equalToConstant: 24).isActive = true
+        if !deletableEntries.isEmpty {
+            // Capture the entries shown by this header on each refresh.
+            let menu = NSMenu()
+            let itemTitle = isSearching
+                ? String(format: localized("delete_n_shown", "Delete %d Shown…"), deletableEntries.count)
+                : String(format: localized("delete_all_n", "Delete All %d…"), deletableEntries.count)
+            let item = NSMenuItem(
+                title: itemTitle,
+                action: #selector(bulkDeleteMenuItemChosen(_:)),
+                keyEquivalent: ""
+            )
+            item.target = self
+            item.representedObject = LibraryBulkDeletionRequest(
+                entries: deletableEntries,
+                sectionTitle: title,
+                isSearching: isSearching
+            )
+            menu.addItem(item)
+            button.menu = menu
+        }
+        return button
+    }
+
+    // bulkDeleteMenuItemChosen(sender): Delete the section's visible entries,
+    // with a separate Undo row for each.
+    @objc func bulkDeleteMenuItemChosen(_ sender: NSMenuItem) {
+        // Bulk deletion requires the entries captured by its menu action.
+        guard let request = sender.representedObject as? LibraryBulkDeletionRequest else { return }
+        let alert = NSAlert()
+        alert.messageText = request.entries.count == 1
+            ? String(format: localized("bulk_delete_confirm_one", "Delete 1 item from %@?"), request.sectionTitle)
+            : String(format: localized("bulk_delete_confirm_many", "Delete %d items from %@?"), request.entries.count, request.sectionTitle)
+        alert.informativeText = (request.isSearching
+            ? localized("bulk_delete_search_note", "Only the items matching the current search are deleted.") + " "
+            : "") + localized("bulk_delete_undo_note", "Use Undo to restore an item before it disappears.")
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: localized("delete", "Delete"))
+        alert.addButton(withTitle: localized("cancel", "Cancel"))
+        // Delete a section's entries only after the user confirms the displayed request.
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        deleteLibraryEntries(request.entries)
+    }
+
+    // deleteLibraryEntries(entries): Stage a batch of Library deletions for
+    // undo and collect any per-entry failures.
+    func deleteLibraryEntries(_ entries: [LibraryEntry]) {
+        var failures: [String] = []
+        var stagedAny = false
+        // Stage only entries that do not already have a pending deletion.
+        for entry in entries where pendingLibraryDeletions[entry.id] == nil {
+            // Move an entry into undoable staging before showing it as deleted.
+            do {
+                let stagedURL = try LibraryStore.stageDeletion(id: entry.id)
+                pendingLibraryDeletions[entry.id] = (entry, stagedURL)
+                libraryContentSearchCache.removeValue(forKey: entry.id)
+                stagedAny = true
+                let id = entry.id
+                let workItem = DispatchWorkItem { [weak self] in
+                    self?.finalizeLibraryDeletion(id: id)
+                }
+                libraryDeletionFinalizeWorkItems[id] = workItem
+                DispatchQueue.main.asyncAfter(deadline: .now() + 8, execute: workItem)
+            } catch {
+                // Collect per-entry deletion failures while continuing the remaining batch.
+                let displayTitle = libraryDisplayTitle(entry.title)
+                failures.append(displayTitle.isEmpty ? localized("untitled", "Untitled") : displayTitle)
+            }
+        }
+        // Refresh the Library when at least one entry was staged for deletion.
+        if stagedAny {
+            refreshLibrary()
+            updateLibraryButtonCount()
+        }
+        // Show the entries that could not be deleted after the batch finishes.
+        if !failures.isEmpty {
+            let alert = NSAlert()
+            alert.messageText = failures.count == 1
+                ? localized("could_not_delete_one_saved_item", "Could not delete one saved item")
+                : localized("could_not_delete_some_saved_items", "Could not delete some saved items")
+            alert.informativeText = failures.joined(separator: "\n")
+            alert.alertStyle = .warning
+            alert.runModal()
+        }
+    }
+
+    // showLibraryEmptyState(title, subtitle, symbolName): Center guidance in the
+    // visible Library area for empty libraries, folders, and searches.
+    func showLibraryEmptyState(title: String, subtitle: String, symbolName: String) {
+        // Wait until the list and its viewport share a view hierarchy.
+        guard let list = libraryListStack, let scroll = libraryScrollView else { return }
+        let empty = LibraryEmptyStateView(title: title, subtitle: subtitle, symbolName: symbolName)
+        list.addArrangedSubview(empty)
+        empty.widthAnchor.constraint(equalTo: list.widthAnchor).isActive = true
+
+        // Fill the viewport after the list's 8pt top and 20pt bottom insets.
+        // Let the minimum message height take priority in short windows.
+        let viewportHeight = empty.heightAnchor.constraint(
+            equalTo: scroll.contentView.heightAnchor, constant: -28
+        )
+        viewportHeight.priority = .defaultHigh
+        viewportHeight.isActive = true
+    }
+
+    // libraryRow(row, editing): Track the active rename row so other Library
+    // interactions can respect its edit state.
+    func libraryRow(_ row: LibraryRowView, didChangeEditing editing: Bool) {
+        // Remember the row that currently owns inline title editing.
+        if editing {
+            editingLibraryRow = row
+        } else if editingLibraryRow === row {
+            // Clear the editing pointer only when that same row finishes.
+            editingLibraryRow = nil
+        }
+
+        let activeRow = editingLibraryRow
+        // Lock other rows while a title edit owns the Library interaction.
+        for case let otherRow as LibraryRowView in libraryListStack?.arrangedSubviews ?? [] {
+            otherRow.setInteractionLocked(activeRow != nil && otherRow !== activeRow)
+        }
+    }
+
+    // deleteLibraryEntry(entry, [focusUndo = false]): Move the entry into
+    // deletion staging and replace its row with Undo. Restore all assets on
+    // undo.
+    func deleteLibraryEntry(_ entry: LibraryEntry, focusUndo: Bool = false) {
+        // Stage this deletion so the user can still undo it.
+        do {
+            let stagedURL = try LibraryStore.stageDeletion(id: entry.id)
+            pendingLibraryDeletions[entry.id] = (entry, stagedURL)
+        } catch {
+            // Report a failed deletion without presenting an Undo row for it.
+            let alert = NSAlert()
+            alert.messageText = localized("could_not_delete_this_saved_item", "Could not delete this saved item")
+            alert.informativeText = error.localizedDescription
+            alert.alertStyle = .warning
+            alert.runModal()
+            return
+        }
+
+        libraryContentSearchCache.removeValue(forKey: entry.id)
+        refreshLibrary()
+        updateLibraryButtonCount()
+        // Keyboard-initiated deletion moves focus to the matching Undo action.
+        if focusUndo, let deletedRow = libraryDeletedRows[entry.id], let window = libraryHostWindow {
+            clearLibraryRowKeyboardFocus()
+            _ = deletedRow.focusUndo(in: window)
+        }
+
+        let workItem = DispatchWorkItem { [weak self] in
+            self?.finalizeLibraryDeletion(id: entry.id)
+        }
+        libraryDeletionFinalizeWorkItems[entry.id] = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 8, execute: workItem)
+    }
+
+    // undoLibraryDeletion(id, [focusRestoredRow = false]): Restore a staged
+    // entry and optionally put keyboard focus back on its row.
+    func undoLibraryDeletion(id: String, focusRestoredRow: Bool = false) {
+        // Undo needs a still-pending deletion and its staged files.
+        guard let pending = pendingLibraryDeletions[id] else { return }
+
+        // Restore staged files before replacing the Undo row with the saved entry.
+        do {
+            try LibraryStore.restoreDeletion(id: pending.entry.id, from: pending.stagedURL)
+            libraryDeletionFinalizeWorkItems.removeValue(forKey: id)?.cancel()
+            pendingLibraryDeletions.removeValue(forKey: id)
+            refreshLibrary()
+            updateLibraryButtonCount()
+            // Restore keyboard focus to the recovered entry when requested.
+            if focusRestoredRow,
+               let rowIndex = libraryKeyboardRows.firstIndex(where: { $0.entryID == id })
+            {
+                _ = focusLibraryRow(at: rowIndex, scrollIntoView: false)
+            }
+        } catch {
+            // Report restoration failure while leaving the pending deletion available.
+            let alert = NSAlert()
+            alert.messageText = localized("could_not_restore_this_saved_item", "Could not restore this saved item")
+            alert.informativeText = error.localizedDescription
+            alert.alertStyle = .warning
+            alert.runModal()
+        }
+    }
+
+    // finalizeLibraryDeletion(id): Cancel the pending timer and permanently
+    // discard one staged deletion.
+    func finalizeLibraryDeletion(id: String) {
+        libraryDeletionFinalizeWorkItems.removeValue(forKey: id)?.cancel()
+        // Finalize only a deletion that still exists in the pending set.
+        guard let pending = pendingLibraryDeletions.removeValue(forKey: id) else {
+            return
+        }
+        LibraryStore.finalizeDeletion(at: pending.stagedURL)
+        // Remove the expired Undo row from a visible Library.
+        if isShowingLibrary {
+            refreshLibrary()
+        }
+    }
+
+    // finalizeAllPendingLibraryDeletions(): Finalize all staged deletions and
+    // clear their pending timers and UI state.
+    func finalizeAllPendingLibraryDeletions() {
+        let pending = Array(pendingLibraryDeletions.values)
+        libraryDeletionFinalizeWorkItems.values.forEach { $0.cancel() }
+        libraryDeletionFinalizeWorkItems.removeAll()
+        pendingLibraryDeletions.removeAll()
+        pending.forEach { LibraryStore.finalizeDeletion(at: $0.stagedURL) }
+        // Refresh visible rows after clearing a nonempty batch of pending deletions.
+        if !pending.isEmpty, isShowingLibrary {
+            refreshLibrary()
+        }
+    }
+
+    // exportLibraryFile(source, suggestedName, contentType, panelTitle): Export
+    // through the system save panel to obtain sandbox access to the
+    // destination.
+    private func exportLibraryFile(
+        source: URL,
+        suggestedName: String,
+        contentType: UTType,
+        panelTitle: String
+    ) {
+        let panel = NSSavePanel()
+        panel.title = panelTitle
+        panel.nameFieldStringValue = suggestedName
+        panel.allowedContentTypes = [contentType]
+        panel.canCreateDirectories = true
+        // Export only after a destination was selected in the save panel.
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            // Replace the user-selected export file when it already exists.
+            if FileManager.default.fileExists(atPath: url.path) {
+                try FileManager.default.removeItem(at: url)
+            }
+            try FileManager.default.copyItem(at: source, to: url)
+        } catch {
+            // Report export failures without changing the saved Library entry.
+            let alert = NSAlert()
+            alert.messageText = localized("could_not_export_this_saved_item", "Could not export this saved item")
+            alert.informativeText = error.localizedDescription
+            alert.alertStyle = .warning
+            alert.runModal()
+        }
+    }
+
+    // exportFileName(entry): Derive an export filename from the display title
+    // while replacing path separators.
+    private func exportFileName(for entry: LibraryEntry) -> String {
+        let displayTitle = libraryDisplayTitle(entry.title)
+            .replacingOccurrences(of: "/", with: "-")
+            .replacingOccurrences(of: ":", with: "-")
+        return displayTitle.isEmpty ? localized("untitled", "Untitled") : displayTitle
+    }
+
+    // exportLibraryEntryText(entry): Export saved result text from either its
+    // Library directory or pending-deletion staging area.
+    func exportLibraryEntryText(_ entry: LibraryEntry) {
+        // A pending-deleted entry's files live in the undo staging area.
+        let dir = pendingLibraryDeletions[entry.id]?.stagedURL
+            ?? LibraryStore.entryDirectory(id: entry.id)
+        exportLibraryFile(
+            source: dir.appendingPathComponent(entry.textFile),
+            suggestedName: exportFileName(for: entry) + ".md",
+            contentType: UTType(filenameExtension: "md") ?? .plainText,
+            panelTitle: localized("export_text_panel", "Export Text")
+        )
+    }
+
+    // exportLibraryEntryAudio(entry): Export available narration from the
+    // entry's current Library or staging location.
+    func exportLibraryEntryAudio(_ entry: LibraryEntry) {
+        // Audio export requires a saved narration filename.
+        guard let audioFile = entry.audioFile else { return }
+        let dir = pendingLibraryDeletions[entry.id]?.stagedURL
+            ?? LibraryStore.entryDirectory(id: entry.id)
+        let ext = (audioFile as NSString).pathExtension
+        exportLibraryFile(
+            source: dir.appendingPathComponent(audioFile),
+            suggestedName: exportFileName(for: entry) + "." + (ext.isEmpty ? "m4a" : ext),
+            contentType: UTType(filenameExtension: ext) ?? .mpeg4Audio,
+            panelTitle: localized("export_audio_panel", "Export Audio")
+        )
+    }
+
+    // renameLibraryEntry(entry, displayTitle, [focusRenamedRow = false]): Save
+    // a renamed Library title and update any result window showing the same
+    // entry.
+    func renameLibraryEntry(
+        _ entry: LibraryEntry,
+        to displayTitle: String,
+        focusRenamedRow: Bool = false
+    ) {
+        let storedTitle = appWindowTitle(
+            mode: featureTitle(for: entry.mode),
+            title: displayTitle
+        )
+        // Persist the normalized Library title before notifying open result windows.
+        do {
+            try LibraryStore.rename(id: entry.id, title: storedTitle)
+            appDelegate?.libraryEntryWasRenamed(id: entry.id, title: storedTitle)
+            refreshLibrary()
+        } catch {
+            // Show rename persistence failures instead of silently claiming the title was saved.
+            let alert = NSAlert()
+            alert.messageText = localized("could_not_rename_this_saved_item", "Could not rename this saved item")
+            alert.informativeText = error.localizedDescription
+            alert.alertStyle = .warning
+            alert.runModal()
+            refreshLibrary()
+        }
+        // Return keyboard focus to the renamed entry when requested.
+        if focusRenamedRow,
+           let rowIndex = libraryKeyboardRows.firstIndex(where: { $0.entryID == entry.id })
+        {
+            _ = focusLibraryRow(at: rowIndex, scrollIntoView: false)
+        }
+    }
+
+    // MARK: - Mode chips and palettes
+
+    // modeSymbolName(mode): Choose the system symbol for the requested mode.
+    func modeSymbolName(for mode: String) -> String {
+        // Choose the familiar mode icon used for each Library section.
+        switch mode {
+        // Proofreading uses the editing pencil.
+        case "proofread": return "pencil"
+        // Rewriting uses the circular rewrite arrows.
+        case "rewrite": return "arrow.triangle.2.circlepath"
+        // Summaries use the compact text-lines symbol.
+        case "summarize": return "text.alignleft"
+        // Translation uses the language globe.
+        case "translate": return "globe"
+        // Dictionary entries use the dictionary-book symbol.
+        case "dictionary": return "character.book.closed"
+        // Other mode values use the explanation lightbulb.
+        default: return "lightbulb"
+        }
+    }
+
+    // localizedModeTitle(mode): Map stored mode IDs to localized Library
+    // section names.
+    func localizedModeTitle(for mode: String) -> String {
+        // Resolve mode identifiers into localized feature names.
+        switch mode {
+        // Display the localized Proofread label.
+        case "proofread": return localized("proofread", "Proofread")
+        // Display the localized Rewrite label.
+        case "rewrite": return localized("rewrite", "Rewrite")
+        // Display the localized Summarize label.
+        case "summarize": return localized("summarize", "Summarize")
+        // Display the localized Translate label.
+        case "translate": return localized("translate", "Translate")
+        // Display the localized Dictionary label.
+        case "dictionary": return localized("dictionary", "Dictionary")
+        // Use Explain as the fallback feature label.
+        default: return localized("explain", "Explain")
+        }
+    }
+
+    // hotkeyBadge(mode): Use the mode's position for its default shortcut
+    // badge.
+    func hotkeyBadge(for mode: String) -> String {
+        LauncherLogic.hotkeyBadge(forModeIndex: launcherModeOptions.firstIndex { $0.id == mode })
+    }
+
+    // pinnedModeIDs(): Pinned chips; an empty stored preference means "all
+    // modes pinned".
+    func pinnedModeIDs() -> [String] {
+        LauncherLogic.normalizedPinnedModes(
+            stored: loadLauncherPreferences().pinnedModes,
+            allModes: launcherModeOptions.map { $0.id }
+        )
+    }
+
+    // togglePinnedMode(mode): Save pin changes even when Remember Choices is
+    // off. Keep at least one mode pinned.
+    func togglePinnedMode(_ mode: String) {
+        let pins = pinnedModeIDs()
+        let toggled = LauncherLogic.togglingPinnedMode(
+            mode,
+            pins: pins,
+            allModes: launcherModeOptions.map { $0.id }
+        )
+        // Avoid writing preferences when pin toggling produced no change.
+        guard toggled != pins else { return }
+        var preferences = loadLauncherPreferences()
+        preferences.pinnedModes = toggled
+        saveLauncherPreferences(preferences)
+        rebuildModeChips()
+    }
+
+    // modeHasOptions(mode): Every mode except Proofread has at least one option
+    // behind its chip.
+    func modeHasOptions(_ mode: String) -> Bool {
+        !secondaryOptions(for: mode).isEmpty || languageLevelModes.contains(mode)
+    }
+
+    // chipSuffix(mode): Show the translation target and, when needed, the
+    // extra-target count.
+    func chipSuffix(for mode: String) -> String {
+        // Only the Translate chip displays a target-language suffix.
+        guard mode == "translate" else { return "" }
+        let targets = selectedTranslationTargets()
+        let targetID: String
+        // Use the active translation selector while Translate is selected.
+        if selectedMode == "translate" {
+            targetID = selectedSecondaryID(for: "translate")
+        } else {
+            // Otherwise show the first saved translation target.
+            targetID = targets.first ?? ""
+        }
+        return LauncherLogic.translateChipSuffix(
+            primaryTitle: preferenceDisplayValue(for: targetID, options: translationTargetOptions),
+            isSetPrimary: targetID == targets.first,
+            targetCount: targets.count
+        )
+    }
+
+    // Wrap pinned modes and the selected mode into left-aligned rows.
+    private var isRebuildingChips = false
+    // rebuildModeChips(): Rebuild visible mode chips with a reentrancy guard
+    // around layout updates.
+    func rebuildModeChips() {
+        // Avoid rebuilding chips before setup or recursively during an existing rebuild.
+        guard chipsColumn != nil, !isRebuildingChips else { return }
+        isRebuildingChips = true
+        // Release the rebuild guard after chip layout completes.
+        defer { isRebuildingChips = false }
+        var displayIDs = pinnedModeIDs()
+        // Keep the selected mode visible even when it is not pinned.
+        if !displayIDs.contains(selectedMode) {
+            displayIDs.append(selectedMode)
+        }
+
+        modeChips = displayIDs.map { id in
+            let chip = LauncherChipButton(
+                modeID: id,
+                title: localizedModeTitle(for: id),
+                symbolName: modeSymbolName(for: id),
+                target: self,
+                action: #selector(chipClicked(_:))
+            )
+            chip.translatesAutoresizingMaskIntoConstraints = false
+            chip.hotkeyBadge = hotkeyBadge(for: id)
+            chip.reservesChevronSpace = modeHasOptions(id)
+            chip.isEnabled = !isGenerating
+            chip.focusHandler = { [weak self, weak chip] in
+                self?.syncLogicalFocusIndex(to: chip)
+            }
+            return chip
+        }
+        refreshChipDecorations()
+
+        chipsColumn.arrangedSubviews.forEach { view in
+            chipsColumn.removeArrangedSubview(view)
+            view.removeFromSuperview()
+        }
+
+        let rows = LauncherLogic.chipRows(
+            widths: modeChips.map { $0.intrinsicContentSize.width },
+            spacing: 10,
+            maxRowWidth: launcherChipRowWidth()
+        )
+        // Create one horizontal chip stack for each fitted row.
+        for row in rows {
+            let rowStack = NSStackView(views: row.map { modeChips[$0] })
+            rowStack.orientation = .horizontal
+            rowStack.alignment = .centerY
+            rowStack.spacing = 10
+            rowStack.translatesAutoresizingMaskIntoConstraints = false
+            chipsColumn.addArrangedSubview(rowStack)
+        }
+        chipRowCount = max(1, rows.count)
+        updateLauncherMinimumSize()
+    }
+
+    // refreshChipDecorations(): Refresh chip selection, target labels and
+    // option chevrons.
+    func refreshChipDecorations() {
+        var widthsChanged = false
+        // Update each chip's selection and presentation from the current mode.
+        for chip in modeChips {
+            let selected = chip.modeID == selectedMode
+            chip.state = selected ? .on : .off
+            let suffix = chipSuffix(for: chip.modeID)
+            let chevron = selected && modeHasOptions(chip.modeID)
+            // Chevron space is reserved; only suffix changes can affect chip width.
+            if chip.suffixText != suffix {
+                widthsChanged = true
+            }
+            chip.suffixText = suffix
+            chip.showsChevron = chevron
+        }
+        if widthsChanged, chipsColumn?.superview != nil, !modeChips.isEmpty {
+            // Re-wrap rows only when a chip's width change alters the row count.
+            let neededRows = LauncherLogic.chipRows(
+                widths: modeChips.map { $0.intrinsicContentSize.width },
+                spacing: 10,
+                maxRowWidth: launcherChipRowWidth()
+            ).count
+            // Rebuild chips when their required number of rows changes.
+            if neededRows != chipRowCount {
+                rebuildModeChips()
+            }
+        }
+    }
+
+    // chipClicked(sender): A click on an unselected chip selects its mode; a
+    // second click on the selected chip opens that mode's options menu.
+    @objc func chipClicked(_ sender: LauncherChipButton) {
+        // Clicking the active configurable mode opens its options.
+        if sender.modeID == selectedMode, modeHasOptions(sender.modeID) {
+            sender.state = .on
+            showChipOptions(for: sender.modeID, anchor: sender)
+            return
+        }
+        selectMode(sender.modeID)
+    }
+
+    // selectMode(mode): Shared mode-selection path for chips and the ⌘K
+    // palette.
+    func selectMode(_ mode: String) {
+        hideEmbeddedLibrary()
+        applySelectedMode(mode)
+        let preferences = loadAppPreferences()
+        let launcherPreferences = loadLauncherPreferences()
+        configureSecondaryPicker(
+            mode: selectedLauncherMode(),
+            selectedID: secondarySelection(
+                for: selectedLauncherMode(),
+                preferences: preferences,
+                launcherPreferences: launcherPreferences,
+                useRememberedChoices: preferences.rememberLauncherChoices
+            )
+        )
+        saveLauncherChoicesIfNeeded()
+    }
+
+    // MARK: Palette presentation
+
+    // closePalette(): Dismiss the launcher palette and clear its active
+    // control.
+    func closePalette() {
+        palettePanel?.closePalette()
+    }
+
+    // toggleActionPalette(): Toggle the action palette between its open and
+    // closed states.
+    func toggleActionPalette() {
+        // Close an already open palette when its toggle is invoked.
+        if palettePanel != nil {
+            closePalette()
+        } else {
+            // Open the action palette when none is currently visible.
+            showActionPalette(nil)
+        }
+    }
+
+    // handleCommandK(): ⌘K from anywhere in the compose window toggles the
+    // action palette.
+    func handleCommandK() -> Bool {
+        // Do not open the action palette during generation.
+        guard !isGenerating else { return false }
+        toggleActionPalette()
+        return true
+    }
+
+    // presentPalette(page, anchorRect, width): Present a palette in the active
+    // launcher or Library window at the supplied anchor.
+    func presentPalette(_ page: PalettePage, anchorRect: NSRect, width: CGFloat) {
+        // Attach the palette to the key Library host or the main launcher window.
+        guard let window = libraryHostWindow?.isKeyWindow == true ? libraryHostWindow : window else { return }
+        let isLibraryPalette = isShowingLibrary && libraryHostWindow === window
+        palettePanel?.closePalette()
+        let panel = LauncherPalettePanel(anchorProvider: { anchorRect }, width: width)
+        panel.onClose = { [weak self] in
+            // A dismissed palette must not update a released launcher.
+            guard let self else { return }
+            self.palettePanel = nil
+            // Return focus to search when closing a Library-owned palette.
+            if isLibraryPalette && self.isShowingLibrary {
+                self.focusLibrarySearch()
+            } else {
+                // Return ordinary launcher input focus after closing its palette.
+                self.window?.makeFirstResponder(self.inputView)
+            }
+        }
+        panel.onCommandComma = { [weak self] in
+            self?.appDelegate?.showPreferences(nil)
+        }
+        palettePanel = panel
+        panel.present(page: page, over: window)
+    }
+
+    // screenRect(view): Convert a view's bounds to screen coordinates for
+    // anchoring a separate palette panel.
+    func screenRect(of view: NSView) -> NSRect {
+        // Screen-coordinate conversion requires the view's window.
+        guard let window = view.window else { return .zero }
+        return window.convertToScreen(view.convert(view.bounds, to: nil))
+    }
+
+    // showActionPalette(sender): ⌘K: every mode with its pin state and hotkey;
+    // Return runs, Tab pins.
+    @objc func showActionPalette(_ sender: Any?) {
+        // An action palette needs an idle launcher and its window.
+        guard let window, !isGenerating else { return }
+        let page = PalettePage(
+            searchPlaceholder: localized("search_actions", "Search actions"),
+            footerHint: localized("palette_legend_chip", "↵ run    ⇥ pin chip    ⌘, options"),
+            onTab: { [weak self] id in self?.togglePinnedMode(id) },
+            rows: { [weak self] filter in
+                // A released launcher supplies no palette action rows.
+                guard let self else { return [] }
+                let pinned = Set(self.pinnedModeIDs())
+                return launcherModeOptions
+                    .filter { option in
+                        filter.isEmpty
+                            || self.localizedModeTitle(for: option.id).localizedCaseInsensitiveContains(filter)
+                    }
+                    .map { option in
+                        .item(PaletteItem(
+                            id: option.id,
+                            icon: self.modeSymbolName(for: option.id),
+                            title: self.localizedModeTitle(for: option.id),
+                            checked: false,
+                            pinned: pinned.contains(option.id),
+                            hotkey: self.hotkeyBadge(for: option.id),
+                            action: { [weak self] in
+                                self?.activateModeFromPalette(option.id)
+                                return .close
+                            }
+                        ))
+                    }
+            }
+        )
+        let frame = window.frame
+        let width: CGFloat = 480
+        let anchor = NSRect(x: frame.midX - width / 2, y: frame.maxY - 108, width: width, height: 0)
+        presentPalette(page, anchorRect: anchor, width: width)
+    }
+
+    // activateModeFromPalette(mode): Activating from ⌘K selects the mode and,
+    // with text ready, runs it.
+    func activateModeFromPalette(_ mode: String) {
+        selectMode(mode)
+        // Run the chosen action immediately only when the input contains text.
+        if !inputView.string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            submit(nil)
+        }
+    }
+
+    // showChipOptions(mode, anchor): Show mode options, answer language, level
+    // and applicable extra languages.
+    func showChipOptions(for mode: String, anchor: NSView) {
+        // Keep mode options fixed while a request is running.
+        guard !isGenerating else { return }
+        // Match the model menu width; truncate longer row details.
+        presentPalette(chipOptionsPage(for: mode), anchorRect: screenRect(of: anchor), width: 380)
+    }
+
+    // chipOptionsPage(mode): Build the option page appropriate to the selected
+    // launcher mode.
+    func chipOptionsPage(for mode: String) -> PalettePage {
+        PalettePage(rows: { [weak self] _ in
+            // Mode-option rows need a live launcher controller.
+            guard let self else { return [] }
+            var rows: [PaletteRow] = []
+
+            // Translation has a target-list page distinct from other mode options.
+            switch mode {
+            case "translate":
+                // Use the shared Extra Languages label. Translation keeps its own target list,
+                // independent of other modes' extra-language settings.
+                rows.append(.header(localized("extra_languages", "Extra languages")))
+                // Keep selected targets listed and leave the menu open after toggling. The first target
+                // is primary.
+                let selected = self.selectedTranslationTargets()
+                var listIDs = self.recentTranslationTargetIDs(currentID: selected.first ?? "")
+                // Keep selected languages visible even when absent from the recent-language list.
+                for id in selected where !listIDs.contains(id) {
+                    listIDs.append(id)
+                }
+                // Build target toggles in the retained recent and selected order.
+                for id in listIDs {
+                    let title = preferenceDisplayValue(for: id, options: translationTargetOptions)
+                    rows.append(.item(PaletteItem(
+                        id: id,
+                        title: title,
+                        checked: selected.contains(id),
+                        action: { [weak self] in
+                            self?.toggleTranslationTarget(id)
+                            return .stay
+                        }
+                    )))
+                }
+                // Open the full language list; this row does not select every language.
+                rows.append(.item(PaletteItem(
+                    id: "all-languages",
+                    title: localized("more_languages", "More languages"),
+                    chevron: true,
+                    action: { [weak self] in
+                        // Close the palette if its owner disappears before opening all languages.
+                        guard let self else { return .close }
+                        return .push(self.allLanguagesPage(mode: mode))
+                    }
+                )))
+            // Other modes use their own style or depth options.
+            default:
+                let options = secondaryOptions(for: mode)
+                // Do not add a style heading when this mode has no style choices.
+                if !options.isEmpty {
+                    rows.append(.header(secondaryLabelTitle(for: mode)))
+                    let currentID = self.selectedSecondaryID(for: mode)
+                    // Create one selectable row for each supported mode option.
+                    for option in options {
+                        rows.append(.item(PaletteItem(
+                            id: option.id,
+                            title: option.displayValue,
+                            checked: option.id == currentID,
+                            action: { [weak self] in
+                                self?.setSecondaryFromPalette(mode: mode, id: option.id)
+                                return .close
+                            }
+                        )))
+                    }
+                }
+            }
+
+            // Show language-level controls only for modes that support them.
+            if languageLevelModes.contains(mode) {
+                rows.append(.separator)
+                if ["explain", "summarize"].contains(mode) {
+                    // Set the main answer language for this mode. Extra Languages adds translated
+                    // sections separately.
+                    let current = mode == "explain"
+                        ? loadAppPreferences().explainAnswerLanguage
+                        : loadAppPreferences().summarizeAnswerLanguage
+                    rows.append(.item(PaletteItem(
+                        id: "answer-language",
+                        title: localized("answer_language", "Answer language"),
+                        detail: preferenceDisplayValue(
+                            for: current,
+                            options: languageOptions,
+                            fallbackID: defaultOutputLanguage
+                        ),
+                        chevron: true,
+                        action: { [weak self] in
+                            // Open answer-language choices only while the launcher still exists.
+                            guard let self else { return .close }
+                            return .push(self.answerLanguagePage(mode: mode))
+                        }
+                    )))
+                }
+                let level = self.selectedLanguageLevel(for: mode)
+                rows.append(.item(PaletteItem(
+                    id: "language-level",
+                    title: localized("language_level", "Language level"),
+                    detail: preferenceDisplayValue(for: level, options: languageLevelOptions, fallbackID: "off"),
+                    chevron: true,
+                    action: { [weak self] in
+                        // Open language-level choices only while their owner remains available.
+                        guard let self else { return .close }
+                        return .push(self.languageLevelPage(mode: mode))
+                    }
+                )))
+            }
+
+            // Expose extra output languages only for modes that use them.
+            if self.extraLanguagesApply(to: mode) {
+                let count = loadAppPreferences().extraLanguages.count
+                rows.append(.item(PaletteItem(
+                    id: "extra-languages",
+                    title: localized("extra_languages", "Extra languages"),
+                    detail: count == 0 ? localized("none", "None") : "\(count)",
+                    chevron: true,
+                    action: { [weak self] in
+                        // Close a stale palette action instead of navigating without its owner.
+                        guard let self else { return .close }
+                        return .push(self.extraLanguagesPage())
+                    }
+                )))
+            }
+
+            if mode == "dictionary" {
+                // Choose the pronunciation voice. If None is selected, a speaker click opens the voice
+                // picker.
+                rows.append(.separator)
+                let currentVoice = loadAppPreferences().dictionaryVoice
+                rows.append(.item(PaletteItem(
+                    id: "dictionary-voice",
+                    title: localized("pronunciation_voice", "Pronunciation voice"),
+                    detail: preferenceDisplayValue(
+                        for: currentVoice,
+                        options: currentReaderOptions(),
+                        fallbackID: "none"
+                    ),
+                    chevron: true,
+                    action: { [weak self] in
+                        // Dictionary voice navigation requires the current launcher controller.
+                        guard let self else { return .close }
+                        return .push(self.dictionaryVoicePage())
+                    }
+                )))
+            }
+
+            return rows
+        })
+    }
+
+    // dictionaryVoicePage(): List dictionary pronunciation voices by provider
+    // and language.
+    func dictionaryVoicePage() -> PalettePage {
+        PalettePage(
+            searchPlaceholder: localized("search_voices", "Search voices"),
+            rows: { filter in
+                let current = loadAppPreferences().dictionaryVoice
+                var rows: [PaletteRow] = []
+                // pick(id): Save the chosen dictionary voice and close its
+                // selection palette.
+                func pick(_ id: String) -> PaletteAction {
+                    var preferences = loadAppPreferences()
+                    preferences.dictionaryVoice = id
+                    saveAppPreferences(preferences)
+                    return .close
+                }
+                // Show the unfiltered page's leading choice only when no search is active.
+                if filter.isEmpty {
+                    rows.append(.item(PaletteItem(
+                        id: "none",
+                        title: readerNoneOption.displayValue,
+                        checked: current == "none",
+                        action: { pick("none") }
+                    )))
+                }
+                // Include provider names when flattening language subgroups into menu sections.
+                var provider = ""
+                // Build voice groups from named provider and language sections.
+                for section in readerVoiceSections() where !section.header.isEmpty {
+                    // A top-level section establishes the provider for its nested voices.
+                    if section.indentLevel == 0 {
+                        provider = section.header
+                    }
+                    let header = section.indentLevel > 0 && !provider.isEmpty
+                        ? "\(provider) · \(section.header)"
+                        : section.header
+                    // Search voice names, descriptions and provider/language headers.
+                    let matching = section.options.filter { option in
+                        filter.isEmpty
+                            || option.title.localizedCaseInsensitiveContains(filter)
+                            || option.note.localizedCaseInsensitiveContains(filter)
+                            || header.localizedCaseInsensitiveContains(filter)
+                    }
+                    // Omit groups with no voices matching the current search.
+                    guard !matching.isEmpty else { continue }
+                    rows.append(.header(header))
+                    // Add each matching voice with its saved selection state.
+                    for option in matching {
+                        rows.append(.item(PaletteItem(
+                            id: option.id,
+                            title: option.displayValue,
+                            detail: option.note.isEmpty ? nil : option.note,
+                            checked: option.id == current,
+                            action: { pick(option.id) }
+                        )))
+                    }
+                }
+                return rows
+            }
+        )
+    }
+
+    // allLanguagesPage(mode): Offer the full searchable language list with the
+    // same toggles as Recent.
+    func allLanguagesPage(mode: String) -> PalettePage {
+        PalettePage(
+            searchPlaceholder: localized("search_languages", "Search languages"),
+            rows: { [weak self] filter in
+                // Language rows require a live launcher to resolve its target choices.
+                guard let self else { return [] }
+                let selected = self.selectedTranslationTargets()
+                return translationTargetOptions
+                    .filter { filter.isEmpty || $0.title.localizedCaseInsensitiveContains(filter) }
+                    .map { option in
+                        .item(PaletteItem(
+                            id: option.id,
+                            title: option.displayValue,
+                            checked: selected.contains(option.id),
+                            action: { [weak self] in
+                                self?.toggleTranslationTarget(option.id)
+                                return .stay
+                            }
+                        ))
+                    }
+            }
+        )
+    }
+
+    // selectedTranslationTargets(): Read translation targets from their shared
+    // preference, with the primary language first.
+    func selectedTranslationTargets() -> [String] {
+        let stored = loadAppPreferences().translationTargets
+            .filter { id in translationTargetOptions.contains { $0.id == id } }
+        // Fall back to the current translation selector when no target list is saved.
+        if stored.isEmpty {
+            let current = selectedSecondaryID(for: "translate")
+            return current.isEmpty ? [defaultTranslationTargetID] : [current]
+        }
+        return stored
+    }
+
+    // toggleTranslationTarget(id): Keep at least one translation target and
+    // update the detached primary-language control. Leave other modes'
+    // extra-language list unchanged.
+    func toggleTranslationTarget(_ id: String) {
+        pendingExplicitTranslationTargetID = nil
+        let current = selectedTranslationTargets()
+        let targets = LauncherLogic.togglingTranslationTarget(id, targets: current)
+        // Avoid rewriting target preferences when toggling leaves the selection unchanged.
+        guard targets != current else { return }
+        // Newly selected targets also enter the recent-language list.
+        if targets.count > current.count {
+            pushRecentTranslationTarget(id)
+        }
+        var preferences = loadAppPreferences()
+        preferences.translationTargets = targets
+        saveAppPreferences(preferences)
+        setPopupSelection(
+            effortBox,
+            id: targets[0],
+            options: secondaryOptions(for: "translate"),
+            fallbackID: targets[0]
+        )
+        saveLauncherChoicesIfNeeded()
+        refreshChipDecorations()
+    }
+
+    // answerLanguagePage(mode): Choose an answer language for Explain or
+    // Summarize. Each mode saves its own choice; Match question stays first.
+    func answerLanguagePage(mode: String) -> PalettePage {
+        PalettePage(
+            searchPlaceholder: localized("search_languages", "Search languages"),
+            rows: { filter in
+                let preferences = loadAppPreferences()
+                let current = mode == "explain"
+                    ? preferences.explainAnswerLanguage
+                    : preferences.summarizeAnswerLanguage
+                var rows: [PaletteRow] = []
+                // Filter the supported answer languages by their displayed names.
+                for option in languageOptions {
+                    // Skip languages that do not match a nonempty search.
+                    guard filter.isEmpty || option.title.localizedCaseInsensitiveContains(filter) else {
+                        continue
+                    }
+                    rows.append(.item(PaletteItem(
+                        id: option.id,
+                        title: option.displayValue,
+                        checked: option.id == current,
+                        action: {
+                            var updated = loadAppPreferences()
+                            // Store Explain's answer language independently of Summarize.
+                            if mode == "explain" {
+                                updated.explainAnswerLanguage = option.id
+                            } else {
+                                // The summary page changes only the summary answer-language preference.
+                                updated.summarizeAnswerLanguage = option.id
+                            }
+                            saveAppPreferences(updated)
+                            return .close
+                        }
+                    )))
+                }
+                return rows
+            }
+        )
+    }
+
+    // languageLevelPage(mode): Build the language-level choices for the
+    // requested mode.
+    func languageLevelPage(mode: String) -> PalettePage {
+        PalettePage(rows: { [weak self] _ in
+            // Return no level choices after the owning launcher has been released.
+            guard let self else { return [] }
+            var rows: [PaletteRow] = [.header(localized("language_level", "Language level"))]
+            let current = self.selectedLanguageLevel(for: mode)
+            // Offer each supported language level in its declared order.
+            for option in languageLevelOptions {
+                rows.append(.item(PaletteItem(
+                    id: option.id,
+                    title: option.descriptiveDisplayValue,
+                    checked: option.id == current,
+                    action: { [weak self] in
+                        // Do not apply a level choice through a released launcher.
+                        guard let self else { return .close }
+                        setPopupSelection(
+                            self.levelBox,
+                            id: option.id,
+                            options: languageLevelOptions,
+                            fallbackID: "off"
+                        )
+                        // Also save the level as the default for new requests.
+                        var preferences = loadAppPreferences()
+                        preferences.languageLevel = option.id
+                        saveAppPreferences(preferences)
+                        self.saveLauncherChoicesIfNeeded()
+                        return .close
+                    }
+                )))
+            }
+            return rows
+        })
+    }
+
+    // extraLanguagesPage(): Update the shared extra-language list without
+    // closing the palette.
+    func extraLanguagesPage() -> PalettePage {
+        PalettePage(
+            searchPlaceholder: localized("search_languages", "Search languages"),
+            rows: { filter in
+                let selected = Set(loadAppPreferences().extraLanguages)
+                return translationTargetOptions
+                    .filter { filter.isEmpty || $0.title.localizedCaseInsensitiveContains(filter) }
+                    .map { option in
+                        .item(PaletteItem(
+                            id: option.id,
+                            title: option.displayValue,
+                            checked: selected.contains(option.id),
+                            action: {
+                                var preferences = loadAppPreferences()
+                                // A checked extra language is removed when toggled.
+                                if preferences.extraLanguages.contains(option.id) {
+                                    preferences.extraLanguages.removeAll { $0 == option.id }
+                                } else {
+                                    // A newly checked language is appended in selection order.
+                                    preferences.extraLanguages.append(option.id)
+                                }
+                                saveAppPreferences(preferences)
+                                return .stay
+                            }
+                        ))
+                    }
+            }
+        )
+    }
+
+    // extraLanguagesApply(mode): An empty extra-language list disables extra
+    // sections. Translate uses its own target list.
+    func extraLanguagesApply(to mode: String) -> Bool {
+        ["dictionary", "explain", "summarize"].contains(mode)
+    }
+
+    // setSecondaryFromPalette(mode, id): Update the popup used when submitting,
+    // and save the choice for new launchers and clipboard actions.
+    func setSecondaryFromPalette(mode: String, id: String) {
+        pendingExplicitTranslationTargetID = nil
+        setPopupSelection(
+            effortBox,
+            id: id,
+            options: secondaryOptions(for: mode),
+            fallbackID: id
+        )
+        var preferences = loadAppPreferences()
+        // Persist each mode's secondary choice in its own preference field.
+        switch mode {
+        // Rewrite saves its selected wording or length style.
+        case "rewrite": preferences.rewriteStyle = id
+        // Summarize saves its selected depth.
+        case "summarize": preferences.summaryStyle = id
+        // Dictionary saves its selected entry depth.
+        case "dictionary": preferences.dictionaryStyle = id
+        // Explain saves its selected explanation effort.
+        case "explain": preferences.explanationEffort = id
+        // Other modes have no shared secondary-style preference to save here.
+        default: break
+        }
+        saveAppPreferences(preferences)
+        // A translation choice also updates the recent target-language history.
+        if mode == "translate" {
+            pushRecentTranslationTarget(id)
+        }
+        saveLauncherChoicesIfNeeded()
+        refreshChipDecorations()
+    }
+
+    // recentTranslationTargetIDs(currentID): List recent targets first, then
+    // fill from saved targets and common defaults.
+    func recentTranslationTargetIDs(currentID: String) -> [String] {
+        LauncherLogic.recentTargetList(
+            stored: loadLauncherPreferences().recentTranslationTargets,
+            currentID: currentID,
+            padding: loadAppPreferences().translationTargets + ["en", "es", "de"],
+            validIDs: translationTargetOptions.map { $0.id }
+        )
+    }
+
+    // pushRecentTranslationTarget(id): Move a translation target into the saved
+    // recent-target list using the shared ordering rules.
+    func pushRecentTranslationTarget(_ id: String) {
+        var preferences = loadLauncherPreferences()
+        preferences.recentTranslationTargets = LauncherLogic.pushingRecentTarget(
+            id,
+            recents: preferences.recentTranslationTargets
+        )
+        saveLauncherPreferences(preferences)
+    }
+
+    // showModelPalette(sender): Model picker behind the footer button, grouped
+    // like the Settings list.
+    @objc func showModelPalette(_ sender: Any?) {
+        // Model selection remains fixed while generation is in progress.
+        guard !isGenerating else { return }
+        let anchorView: NSView? = sender as? NSView ?? modelFooterButton
+        let page = PalettePage(rows: { [weak self] _ in
+            // A released launcher supplies no model-picker rows.
+            guard let self else { return [] }
+            let preferences = loadAppPreferences()
+            let options = enabledExplanationModelOptions(preferences)
+            let currentID = self.selectedModelIDForRun(preferences: preferences)
+            var rows: [PaletteRow] = []
+            let appleOptions = options.filter { textProvider(for: $0.id).provider == .apple }
+            let providerOptions = options.filter { textProvider(for: $0.id).provider != .apple }
+
+            // Show an on-device group only when local model choices are available.
+            if !appleOptions.isEmpty {
+                rows.append(.header(localized("on_this_mac", "On this Mac")))
+                // List local models before remote-provider choices.
+                for option in appleOptions {
+                    rows.append(.item(self.modelPaletteItem(option: option, detail: nil, currentID: currentID)))
+                }
+            }
+            // Omit the provider heading when no remote choices are available.
+            if !providerOptions.isEmpty {
+                rows.append(.header(localized("your_providers", "Your providers")))
+                // Add remote model choices with their provider details.
+                for option in providerOptions {
+                    let provider = textProvider(for: option.id).provider
+                    rows.append(.item(self.modelPaletteItem(
+                        option: option,
+                        detail: modelProviderSectionName(provider),
+                        currentID: currentID
+                    )))
+                }
+            }
+            rows.append(.separator)
+            // Model keys and the custom endpoint are configured in Settings → Models.
+            rows.append(.item(PaletteItem(
+                id: "all-models",
+                title: localized("all_models", "All models"),
+                chevron: true,
+                action: { [weak self] in
+                    // Opening the full model catalog requires a live launcher.
+                    guard let self else { return .close }
+                    return .push(self.allModelsPage())
+                }
+            )))
+            return rows
+        })
+        // Anchor the model palette only when its initiating control exists.
+        if let anchorView {
+            presentPalette(page, anchorRect: screenRect(of: anchorView), width: 380)
+        }
+    }
+
+    // allModelsPage(): Edit the enabled-model list in place. At least one model
+    // must stay enabled.
+    func allModelsPage() -> PalettePage {
+        PalettePage(
+            searchPlaceholder: localized("search_models", "Search models"),
+            rows: { [weak self] filter in
+                let preferences = loadAppPreferences()
+                let hasCustomModel = !preferences.customModelName
+                    .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                let enabled = Set(preferences.preferredTextModels)
+                var rows: [PaletteRow] = []
+                var lastProvider: TextModelProvider?
+                let catalog = displayedExplanationModelOptions(
+                    customName: preferences.customDisplayName,
+                    extraModels: preferences.extraModels
+                )
+                for option in catalog {
+                    // An unconfigured Custom Endpoint stays hidden, matching
+                    // the launcher's enabled-model rule.
+                    if option.id == customModelID, !hasCustomModel {
+                        continue
+                    }
+                    let provider = textProvider(for: option.id).provider
+                    let providerName = modelProviderSectionName(provider)
+                    // Search matches either the model name or its provider.
+                    if !filter.isEmpty,
+                       !option.title.localizedCaseInsensitiveContains(filter),
+                       !providerName.localizedCaseInsensitiveContains(filter) {
+                        continue
+                    }
+                    // Start a new section whenever the model provider changes.
+                    if provider != lastProvider {
+                        rows.append(.header(providerName))
+                        lastProvider = provider
+                    }
+                    rows.append(.item(PaletteItem(
+                        id: option.id,
+                        title: option.displayValue,
+                        checked: enabled.contains(option.id),
+                        action: {
+                            self?.toggleEnabledModel(option.id)
+                            return .stay
+                        }
+                    )))
+                }
+                return rows
+            }
+        )
+    }
+
+    // toggleEnabledModel(id): Toggle a model in the shared list. If disabled,
+    // replace the active model with an enabled default.
+    func toggleEnabledModel(_ id: String) {
+        var preferences = loadAppPreferences()
+        // Toggling an enabled model removes it from the preferred list.
+        if preferences.preferredTextModels.contains(id) {
+            let effective = enabledExplanationModelOptions(preferences).map(\.id)
+            // Keep at least one effective model enabled.
+            guard effective != [id] else { return }
+            preferences.preferredTextModels.removeAll { $0 == id }
+        } else {
+            // Append a newly enabled model to the preferred list.
+            preferences.preferredTextModels.append(id)
+        }
+        saveAppPreferences(preferences)
+        refreshModelOptions()
+    }
+
+    // modelPaletteItem(option, detail, currentID): Build a selectable model row
+    // with provider-specific decoration and current-model state.
+    private func modelPaletteItem(option: PreferenceOption, detail: String?, currentID: String) -> PaletteItem {
+        PaletteItem(
+            id: option.id,
+            icon: textProvider(for: option.id).provider == .apple ? "sparkles" : nil,
+            title: option.displayValue,
+            detail: detail,
+            checked: option.id == currentID,
+            action: { [weak self] in
+                // Do not apply a model selection after its launcher has disappeared.
+                guard let self else { return .close }
+                setPopupSelection(
+                    self.modelBox,
+                    id: option.id,
+                    options: enabledExplanationModelOptions(),
+                    fallbackID: option.id
+                )
+                self.saveLauncherChoicesIfNeeded()
+                self.updateModelFooter()
+                return .close
+            }
+        )
+    }
+
+    // updateModelFooter(): Match the footer label to the selected model.
+    func updateModelFooter() {
+        // Footer model updates wait until the footer button exists.
+        guard modelFooterButton != nil else { return }
+        let preferences = loadAppPreferences()
+        let id = selectedModelIDForRun(preferences: preferences)
+        modelFooterButton.footerTitle = preferenceDisplayValue(
+            for: id,
+            options: enabledExplanationModelOptions(preferences),
+            fallbackID: defaultEnabledExplanationModel(preferences)
+        )
+    }
+
+    // configureFocusHandlers(): Track focus changes so window-level Tab
+    // advances from the visible control.
+    func configureFocusHandlers() {
+        inputView.onFocusChange = { [weak self] focused in
+            self?.fieldContainer.isFocused = focused
+            // Synchronize logical navigation when the input gains real keyboard focus.
+            if focused {
+                self?.syncLogicalFocusIndex(to: self?.inputView)
+            }
+        }
+
+        // Chips are rebuilt dynamically; each rebuild wires its own focus
+        // handlers in rebuildModeChips.
+    }
+
+    // launcherFocusViews(): Follow the launcher's visual order for keyboard
+    // navigation.
+    func launcherFocusViews() -> [NSView] {
+        var views: [NSView] = []
+        // Include the Library button in tab navigation only while visible.
+        if let libraryButton, !libraryButton.isHidden {
+            views.append(libraryButton)
+        }
+        views.append(inputView)
+        // An editable inline follow-up composer participates in launcher focus order.
+        if let composer = inlineResultSession?.followUpComposer, composer.input.isEditable {
+            views.append(composer.input)
+            views.append(composer.modelButton)
+        }
+        views.append(contentsOf: modeChips)
+        // Include the model footer action when built.
+        if let modelFooterButton {
+            views.append(modelFooterButton)
+        }
+        // Include the action-search hint when available.
+        if let searchHintButton {
+            views.append(searchHintButton)
+        }
+        // Skipped while disabled (empty input) so Tab never lands on a
+        // button that cannot act.
+        if let sendButton, sendButton.isEnabled {
+            views.append(sendButton)
+        }
+        return views
+    }
+
+    // syncLogicalFocusIndex(view): Synchronize logical keyboard focus with the
+    // control that AppKit actually focused.
+    func syncLogicalFocusIndex(to view: NSView?) {
+        // A missing view cannot identify a logical focus position.
+        guard let view else {
+            return
+        }
+
+        // Update the logical index only for views in the current focus order.
+        if let index = launcherFocusViews().firstIndex(where: { $0 === view }) {
+            logicalFocusIndex = index
+        }
+    }
+
+    // currentLauncherFocusIndex(): Find the launcher's current focus position,
+    // including text-field editors.
+    func currentLauncherFocusIndex() -> Int? {
+        // Real focus cannot be resolved without the launcher window.
+        guard let window else {
+            return nil
+        }
+
+        let firstResponder = window.firstResponder
+        return launcherFocusViews().firstIndex { view in
+            // A direct responder match identifies the focused control.
+            if firstResponder === view {
+                return true
+            }
+
+            // Treat a focused child view as focus within its containing control.
+            if let responderView = firstResponder as? NSView {
+                return responderView === view || responderView.isDescendant(of: view)
+            }
+
+            return false
+        }
+    }
+
+    // moveLibraryFocus(forward): Move through the Library search field and row
+    // controls without relying on the hidden field editor.
+    func moveLibraryFocus(forward: Bool) -> Bool {
+        // Library Tab navigation pauses during renaming and requires an active host.
+        guard editingLibraryRow == nil, libraryHostWindow != nil else { return false }
+        let stops = libraryFocusStops()
+        // There is no next focus target in an empty Library tab order.
+        guard !stops.isEmpty else { return false }
+        let currentIndex = currentLibraryFocusIndex(in: stops)
+        let nextIndex: Int
+        // Wrap forward or backward from the current focus position.
+        if let currentIndex {
+            nextIndex = (currentIndex + (forward ? 1 : stops.count - 1)) % stops.count
+        } else {
+            // Start at the appropriate edge when no control currently has focus.
+            nextIndex = forward ? 0 : stops.count - 1
+        }
+        return focusLibraryControl(stops[nextIndex])
+    }
+
+    // moveFocus(forward): Move forward or backward through the launcher's
+    // logical focus order.
+    func moveFocus(forward: Bool) -> Bool {
+        // Moving launcher focus requires its window.
+        guard let window else {
+            return false
+        }
+
+        let views = launcherFocusViews()
+        let currentIndex = currentLauncherFocusIndex() ?? min(logicalFocusIndex, views.count - 1)
+        let delta = forward ? 1 : views.count - 1
+        let nextIndex = (currentIndex + delta) % views.count
+        logicalFocusIndex = nextIndex
+        window.makeFirstResponder(views[nextIndex])
+        return true
+    }
+
+    // optionLabel(title): Use compact uppercase captions for option labels.
+    func optionLabel(_ title: String) -> NSTextField {
+        let label = NSTextField(labelWithString: title.uppercased())
+        label.textColor = .tertiaryLabelColor
+        label.font = NSFont.monospacedSystemFont(ofSize: 12, weight: .semibold)
+        label.alignment = .left
+        label.setContentHuggingPriority(.required, for: .horizontal)
+        return label
+    }
+
+    // popupButton(items): Build a roomy native popup for per-run style, model,
+    // and reader choices.
+    func popupButton(items: [String]) -> NSPopUpButton {
+        let button = LauncherPopUpButton(frame: .zero, pullsDown: false)
+        button.addItems(withTitles: items)
+        button.isBordered = false
+        button.controlSize = .large
+        button.font = NSFont.systemFont(ofSize: 17, weight: .regular)
+        button.refusesFirstResponder = false
+        button.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        button.setContentCompressionResistancePriority(.required, for: .horizontal)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.heightAnchor.constraint(equalToConstant: 48).isActive = true
+        return button
+    }
+
+    // launcherModelMenu(options): Group models by provider. Keep titles intact
+    // because selection and preference migration use them as lookup keys.
+    func launcherModelMenu(options: [PreferenceOption]) -> NSMenu {
+        let menu = NSMenu()
+        var lastProvider: TextModelProvider?
+        // Build model menu items in the enabled-model order.
+        for option in options {
+            let provider = textProvider(for: option.id).provider
+            // Insert a provider header when entering a new provider group.
+            if provider != lastProvider {
+                menu.addItem(readerSectionHeaderItem(modelProviderSectionName(provider)))
+                lastProvider = provider
+            }
+            let item = NSMenuItem(title: option.displayValue, action: nil, keyEquivalent: "")
+            item.representedObject = option.id
+            item.indentationLevel = 1
+            menu.addItem(item)
+        }
+        return menu
+    }
+
+    // refreshModelOptions([modelID = nil]): Rebuild the model picker titles
+    // (e.g. after the Custom Endpoint name changes).
+    func refreshModelOptions(selecting modelID: String? = nil) {
+        // Refresh the hidden model selector only after it has been created.
+        guard modelBox != nil else {
+            return
+        }
+        let preferences = loadAppPreferences()
+        let currentID = modelID ?? preferenceID(
+            from: modelBox.selectedItem?.title ?? "",
+            options: displayedExplanationModelOptions()
+        )
+        let options = enabledExplanationModelOptions(preferences)
+        modelBox.menu = launcherModelMenu(options: options)
+        setPopupSelection(
+            modelBox,
+            id: currentID,
+            options: options,
+            fallbackID: defaultEnabledExplanationModel(preferences)
+        )
+        updateModelFooter()
+    }
+
+    // selectedLauncherMode(): Current launcher mode ID, repaired to explain
+    // when preferences are stale.
+    func selectedLauncherMode() -> String {
+        launcherModeOptions.contains(where: { $0.id == selectedMode }) ? selectedMode : "explain"
+    }
+
+    // applySelectedMode(mode): Keep the selected chip, placeholder, and busy
+    // row in sync.
+    func applySelectedMode(_ mode: String) {
+        pendingExplicitTranslationTargetID = nil
+        let validMode = launcherModeOptions.contains(where: { $0.id == mode }) ? mode : "explain"
+        selectedMode = validMode
+        if !modeChips.isEmpty {
+            // An unpinned mode selected from ⌘K appears as a transient chip.
+            if !modeChips.contains(where: { $0.modeID == validMode }) || modeChips.contains(where: { chip in
+                chip.modeID != validMode && !pinnedModeIDs().contains(chip.modeID)
+            }) {
+                rebuildModeChips()
+            } else {
+                // Update existing chip styling when the visible chip set needs no rebuild.
+                refreshChipDecorations()
+            }
+        }
+        updateQuestionPlaceholder(for: validMode)
+        updateLauncherWindowTitle(for: validMode)
+    }
+
+    // launcherWindowTitle(mode): Compose the main window title for the selected
+    // mode.
+    func launcherWindowTitle(for mode: String) -> String {
+        appWindowTitle(mode: featureTitle(for: mode), title: appName)
+    }
+
+    // updateLauncherWindowTitle(mode): Refresh the native title, visible title
+    // label, and run hint for the current presentation.
+    func updateLauncherWindowTitle(for mode: String) {
+        let title = isLibraryEmbedded ? "\(appName) • \(localized("library", "Library"))" : launcherWindowTitle(for: mode)
+        window?.title = title
+        launcherTitleLabel?.stringValue = title
+        runHintLabel?.stringValue = runHintText(for: mode)
+    }
+
+    // runHintText(mode): Name the send action beside its shortcut.
+    // Cmd/Ctrl+Return submits; Return inserts a newline.
+    func runHintText(for mode: String) -> String {
+        let verb: String
+        // Choose a localized action verb for the current submission hint.
+        switch mode {
+        // The proofreading hint describes proofreading the input.
+        case "proofread":
+            verb = localized("run_verb_proofread", "proofread")
+        // The rewriting hint names the rewrite action.
+        case "rewrite":
+            verb = localized("run_verb_rewrite", "rewrite")
+        // The summary hint names the summarize action.
+        case "summarize":
+            verb = localized("run_verb_summarize", "summarize")
+        // The translation hint names the translate action.
+        case "translate":
+            verb = localized("run_verb_translate", "translate")
+        // Dictionary submission uses the natural verb “look up.”
+        case "dictionary":
+            verb = localized("run_verb_dictionary", "look up")
+        // Use the explanation verb for the fallback mode.
+        default:
+            verb = localized("run_verb_explain", "explain")
+        }
+        return "⌘↵ " + verb
+    }
+
+    // secondaryOptions(mode): Pick the contextual options shown next to the
+    // mode picker.
+    func secondaryOptions(for mode: String) -> [PreferenceOption] {
+        // Select the secondary option catalog appropriate to each mode.
+        switch mode {
+        // Proofreading has no style selector.
+        case "proofread":
+            return []
+        // Rewriting offers wording and length styles.
+        case "rewrite":
+            return rewriteStyleOptions
+        // Translation selects a destination language.
+        case "translate":
+            return translationTargetOptions
+        // Summaries and dictionary entries share the depth-choice catalog.
+        case "summarize", "dictionary":
+            return summaryStyleOptions
+        // The fallback explanation mode uses its effort choices.
+        default:
+            return effortOptions
+        }
+    }
+
+    // secondaryLabelTitle(mode): Label the contextual picker in plain language.
+    func secondaryLabelTitle(for mode: String) -> String {
+        // Name the secondary selector according to what it controls.
+        switch mode {
+        // Translation's secondary choice identifies the target language.
+        case "translate":
+            return "To language"
+        // Dictionary depth is presented as a style choice.
+        case "dictionary":
+            return "Style"
+        // Summary depth uses the Style label.
+        case "summarize":
+            return "Style"
+        // Rewrite variations use the Style label.
+        case "rewrite":
+            return "Style"
+        // Other secondary choices retain the generic Style label.
+        default:
+            return "Style"
+        }
+    }
+
+    // defaultTranslationTarget(preferences): Use the first valid translation
+    // target, or the built-in default if none is valid.
+    func defaultTranslationTarget(from preferences: AppPreferences) -> String {
+        // Use the first saved target that is still supported by the language catalog.
+        if let preferred = preferences.translationTargets.first(where: { id in translationTargetOptions.contains { $0.id == id } }) {
+            return preferred
+        }
+        return defaultTranslationTargetID
+    }
+
+    // defaultSecondaryID(mode, preferences): Choose the saved secondary option
+    // appropriate to a mode, with its normal default fallback.
+    func defaultSecondaryID(for mode: String, preferences: AppPreferences) -> String {
+        // Resolve each mode's default secondary selection from app preferences.
+        switch mode {
+        // An empty rewrite preference uses the built-in rewrite style.
+        case "rewrite":
+            return nonEmpty(preferences.rewriteStyle, fallback: defaultRewriteStyle)
+        // Translation defaults to the first valid target language.
+        case "translate":
+            return defaultTranslationTarget(from: preferences)
+        // An empty summary preference uses the built-in summary depth.
+        case "summarize":
+            return nonEmpty(preferences.summaryStyle, fallback: defaultSummaryStyle)
+        // An empty dictionary preference uses the built-in entry depth.
+        case "dictionary":
+            return nonEmpty(preferences.dictionaryStyle, fallback: defaultDictionaryStyle)
+        // The fallback mode uses the saved or default explanation effort.
+        default:
+            return nonEmpty(preferences.explanationEffort, fallback: defaultExplanationEffort)
+        }
+    }
+
+    // selectedModelIDForRun(preferences): Resolve the model selected for
+    // submission from enabled options and the saved default.
+    func selectedModelIDForRun(preferences: AppPreferences) -> String {
+        selectedPreferenceID(
+            from: modelBox,
+            options: enabledExplanationModelOptions(preferences),
+            fallbackID: defaultEnabledExplanationModel(preferences)
+        )
+    }
+
+    // selectedReaderIDForRun(preferences): Use the saved narration voice for
+    // this request. None leaves audio off until the user chooses a voice.
+    func selectedReaderIDForRun(preferences: AppPreferences) -> String {
+        let reader = preferences.launcherReader.trimmingCharacters(in: .whitespacesAndNewlines)
+        return reader.isEmpty ? "none" : reader
+    }
+
+    // secondarySelection(mode, preferences, launcherPreferences,
+    // useRememberedChoices): Restore the remembered contextual choice for the
+    // chosen launcher mode.
+    func secondarySelection(
+        for mode: String,
+        preferences: AppPreferences,
+        launcherPreferences: LauncherPreferences,
+        useRememberedChoices: Bool
+    ) -> String {
+        // Restore remembered per-mode choices against the current option catalogs.
+        switch mode {
+        // Proofreading has no secondary value to restore.
+        case "proofread":
+            return ""
+        // Validate the remembered rewrite style against supported rewrite choices.
+        case "rewrite":
+            let fallback = defaultSecondaryID(for: mode, preferences: preferences)
+            return useRememberedChoices
+                ? nonEmpty(launcherPreferences.rewriteStyle, fallback: fallback)
+                : fallback
+        // Validate the remembered translation target against supported languages.
+        case "translate":
+            let fallback = defaultTranslationTarget(from: preferences)
+            return useRememberedChoices
+                ? nonEmpty(launcherPreferences.translationTarget, fallback: fallback)
+                : fallback
+        // Validate the remembered summary depth against supported styles.
+        case "summarize":
+            let fallback = defaultSecondaryID(for: mode, preferences: preferences)
+            return useRememberedChoices
+                ? nonEmpty(launcherPreferences.summaryStyle, fallback: fallback)
+                : fallback
+        // Validate the remembered dictionary depth against supported styles.
+        case "dictionary":
+            let fallback = defaultSecondaryID(for: mode, preferences: preferences)
+            return useRememberedChoices
+                ? nonEmpty(launcherPreferences.dictionaryStyle, fallback: fallback)
+                : fallback
+        // Validate the explanation effort before using its remembered choice.
+        default:
+            let fallback = defaultSecondaryID(for: mode, preferences: preferences)
+            return useRememberedChoices
+                ? nonEmpty(launcherPreferences.explanationEffort, fallback: fallback)
+                : fallback
+        }
+    }
+
+    // configureSecondaryPicker(mode, selectedID): Update the hidden popup that
+    // stores the chip menu's selection.
+    func configureSecondaryPicker(mode: String, selectedID: String) {
+        let options = secondaryOptions(for: mode)
+        effortLabel.stringValue = secondaryLabelTitle(for: mode).uppercased()
+        effortBox.removeAllItems()
+        // Hide or refresh dependent controls when the mode has no secondary options.
+        guard !options.isEmpty else {
+            updateLauncherControlVisibility()
+            return
+        }
+        effortBox.addItems(withTitles: options.map { $0.displayValue })
+        setPopupSelection(
+            effortBox,
+            id: selectedID,
+            options: options,
+            fallbackID: options.first?.id ?? ""
+        )
+        updateLauncherControlVisibility()
+    }
+
+    // selectedSecondaryID(mode): The chip menus always drive the contextual
+    // option state directly.
+    func selectedSecondaryID(for mode: String) -> String {
+        let options = secondaryOptions(for: mode)
+        // An absent secondary selector catalog has no selected identifier.
+        guard !options.isEmpty else {
+            return ""
+        }
+
+        return selectedPreferenceID(
+            from: effortBox,
+            options: options,
+            fallbackID: options.first?.id ?? ""
+        )
+    }
+
+    // updateLauncherControlVisibility([preferences = loadAppPreferences()]):
+    // Refresh mode-chip decorations and the launcher's minimum size after
+    // option changes.
+    func updateLauncherControlVisibility(preferences: AppPreferences = loadAppPreferences()) {
+        refreshChipDecorations()
+        updateLauncherMinimumSize()
+    }
+
+    // selectedLanguageLevel(mode, [preferences = loadAppPreferences()]): Use
+    // the launcher's level when its picker is shown; otherwise use the saved
+    // default. Proofread never applies a level.
+    func selectedLanguageLevel(for mode: String, preferences: AppPreferences = loadAppPreferences()) -> String {
+        // Modes without language-level support always use the off value.
+        guard languageLevelModes.contains(mode) else {
+            return "off"
+        }
+        // Before the level selector exists, use the saved preference.
+        guard let levelBox else {
+            return preferences.languageLevel
+        }
+        return selectedPreferenceID(from: levelBox, options: languageLevelOptions, fallbackID: preferences.languageLevel)
+    }
+
+    // updateQuestionPlaceholder(mode): Keep the empty input prompt matched to
+    // the active mode.
+    func updateQuestionPlaceholder(for mode: String) {
+        let text: String
+        // Describe the selected task in the input placeholder.
+        switch mode {
+        // Ask for the text to proofread.
+        case "proofread":
+            text = localized("placeholder_proofread", "What would you like proofread?")
+        // Ask for the text to rewrite.
+        case "rewrite":
+            text = localized("placeholder_rewrite", "What would you like rewritten?")
+        // Ask for the text to translate.
+        case "translate":
+            text = localized("placeholder_translate", "What would you like translated?")
+        // Ask for the text to summarize.
+        case "summarize":
+            text = localized("placeholder_summarize", "What would you like summarized?")
+        // Dictionary input prompts for a word to look up.
+        case "dictionary":
+            text = localized("placeholder_dictionary", "Look up a word…")
+        // The fallback placeholder asks what to explain.
+        default:
+            text = localized("placeholder_explain", "What would you like explained?")
+        }
+
+        inputView?.placeholderString = text
+    }
+
+    // populateRunDefaults(): Load the saved choices into the launcher's
+    // controls.
+    func populateRunDefaults() {
+        let preferences = loadAppPreferences()
+        let launcherPreferences = loadLauncherPreferences()
+        let useRememberedChoices = preferences.rememberLauncherChoices
+        ttsModelForRun = defaultTTSModel
+        let mode = useRememberedChoices ? nonEmpty(launcherPreferences.mode, fallback: "explain") : "explain"
+        applySelectedMode(mode)
+        configureSecondaryPicker(
+            mode: selectedLauncherMode(),
+            selectedID: secondarySelection(
+                for: selectedLauncherMode(),
+                preferences: preferences,
+                launcherPreferences: launcherPreferences,
+                useRememberedChoices: useRememberedChoices
+            )
+        )
+        setPopupSelection(
+            modelBox,
+            id: preferences.launcherShowsModel && useRememberedChoices
+                ? nonEmpty(launcherPreferences.explanationModel, fallback: preferences.explanationModel)
+                : preferences.explanationModel,
+            options: enabledExplanationModelOptions(preferences),
+            fallbackID: defaultEnabledExplanationModel(preferences)
+        )
+        setPopupSelection(
+            levelBox,
+            id: useRememberedChoices && !launcherPreferences.languageLevel.isEmpty
+                ? launcherPreferences.languageLevel
+                : preferences.languageLevel,
+            options: languageLevelOptions,
+            fallbackID: preferences.languageLevel
+        )
+        inputView.string = ""
+        updateFooterStatus(busy: false, text: "")
+        updateModelFooter()
+        updateLauncherControlVisibility(preferences: preferences)
+    }
+
+    // handleAutomation(text, mode, run, [language = nil], [level = nil], [model
+    // = nil], [presentation = .standard], [transformCompletion = nil]): Prepare
+    // a menu-bar, Service, or URL request. Compose reveals the launcher for
+    // editing; direct requests may run hidden.
+    func handleAutomation(
+        text: String,
+        mode: String,
+        run: Bool,
+        language: String? = nil,
+        level: String? = nil,
+        model: String? = nil,
+        presentation: LauncherRunPresentation = .standard,
+        transformCompletion: ((LauncherRun, Result<String, Error>) -> Void)? = nil
+    ) {
+        // Reject new work while the launcher or a selected-text Service is already running.
+        guard !isGenerating, appDelegate?.serviceTransformInFlight != true else {
+            let failure = HelperFailure(message: "Wait for the current request to finish, then try again.")
+            // Return a busy failure through the caller's transform completion when provided.
+            if let transformCompletion {
+                let rejectedRun = LauncherRun(
+                    transformCompletion: transformCompletion,
+                    presentation: presentation
+                )
+                transformCompletion(rejectedRun, .failure(failure))
+            } else {
+                // Interactive requests receive a visible busy explanation instead.
+                presentError("Langmin is already working", details: failure.localizedDescription)
+            }
+            return
+        }
+        // Prepare the launcher for immediate execution when the caller requested a run.
+        if run {
+            prepareForLaunch()
+            populateRunDefaults()
+        } else {
+            // Prefill-only requests show the launcher for user review.
+            show()
+        }
+        applySelectedMode(mode)
+
+        let preferences = loadAppPreferences()
+        var secondary = defaultSecondaryID(for: selectedLauncherMode(), preferences: preferences)
+        // Apply an explicit target language only to a translation request.
+        if selectedLauncherMode() == "translate", let language {
+            let requested = language.trimmingCharacters(in: .whitespacesAndNewlines)
+            // Accept an explicit language only when its code or name matches a supported option.
+            if let option = translationTargetOptions.first(where: {
+                $0.id.caseInsensitiveCompare(requested) == .orderedSame ||
+                $0.title.caseInsensitiveCompare(requested) == .orderedSame ||
+                (Locale(identifier: "en").localizedString(forLanguageCode: $0.id) ?? "")
+                    .caseInsensitiveCompare(requested) == .orderedSame
+            }) {
+                secondary = option.id
+                pendingExplicitTranslationTargetID = option.id
+            }
+        }
+        configureSecondaryPicker(mode: selectedLauncherMode(), selectedID: secondary)
+
+        // Honor an explicit level only for modes that support language levels.
+        if let level, languageLevelModes.contains(selectedLauncherMode()) {
+            setPopupSelection(
+                levelBox,
+                id: normalizedLanguageLevel(level),
+                options: languageLevelOptions,
+                fallbackID: preferences.languageLevel
+            )
+        }
+        let enabledModels = enabledExplanationModelOptions(preferences)
+        // Use an explicit model only if it is currently enabled.
+        if let model, enabledModels.contains(where: { $0.id == model }) {
+            setPopupSelection(
+                modelBox,
+                id: model,
+                options: enabledModels,
+                fallbackID: defaultEnabledExplanationModel(preferences)
+            )
+            updateModelFooter()
+        }
+
+        inputView.string = text
+        refreshSendButtonState()
+        pendingTransformCompletion = transformCompletion
+        pendingRunPresentation = run ? presentation : .standard
+        // Submit automatically only when the caller requested execution.
+        if run {
+            submit(nil)
+        } else {
+            // Prefill-only actions retain no pending transform callback.
+            pendingTransformCompletion = nil
+            pendingRunPresentation = .standard
+            window?.makeFirstResponder(inputView)
+        }
+    }
+
+    // launcherChoiceChanged(sender): Persist direct-app picker changes when the
+    // Settings toggle allows it.
+    @objc func launcherChoiceChanged(_ sender: Any?) {
+        // A manual target selection clears an earlier explicit request override.
+        if let popup = sender as? NSPopUpButton, popup === effortBox {
+            pendingExplicitTranslationTargetID = nil
+        }
+        saveLauncherChoicesIfNeeded()
+    }
+
+    // collectLauncherPreferences(): Collect the app-only launcher state from
+    // the current controls.
+    func collectLauncherPreferences() -> LauncherPreferences {
+        var launcherPreferences = loadLauncherPreferences()
+        let preferences = loadAppPreferences()
+        let mode = selectedLauncherMode()
+        let secondary = selectedSecondaryID(for: mode)
+
+        launcherPreferences.mode = mode
+        launcherPreferences.explanationModel = selectedModelIDForRun(preferences: preferences)
+        // Remember the level selector's current choice when the control exists.
+        if let levelBox {
+            launcherPreferences.languageLevel = selectedPreferenceID(
+                from: levelBox, options: languageLevelOptions, fallbackID: ""
+            )
+        }
+
+        // Store the active secondary choice in the matching launcher preference.
+        switch mode {
+        // Proofreading has no secondary choice to remember.
+        case "proofread":
+            break
+        // Remember the launcher's rewrite style separately from other modes.
+        case "rewrite":
+            launcherPreferences.rewriteStyle = secondary
+        // Remember the primary translation selector choice.
+        case "translate":
+            launcherPreferences.translationTarget = secondary
+        // Remember the launcher's summary depth.
+        case "summarize":
+            launcherPreferences.summaryStyle = secondary
+        // Remember the launcher's dictionary depth.
+        case "dictionary":
+            launcherPreferences.dictionaryStyle = secondary
+        // Remember explanation effort for the fallback mode.
+        default:
+            launcherPreferences.explanationEffort = secondary
+        }
+
+        return launcherPreferences
+    }
+
+    // saveLauncherChoicesIfNeeded(): Save launcher state separately from the
+    // app-wide defaults.
+    func saveLauncherChoicesIfNeeded() {
+        // Persist launcher choices only when the user enabled remembering them.
+        guard loadAppPreferences().rememberLauncherChoices else {
+            return
+        }
+
+        saveLauncherPreferences(collectLauncherPreferences())
+    }
+
+    // submit(sender): Submit the current input from the primary button or
+    // Cmd/Ctrl+Return.
+    @objc func submit(_ sender: Any?) {
+        // Wait for file import to finish before submitting the input.
+        guard !inputView.isImportingFiles else { return }
+        // Do not submit overlapping launcher or selected-text Service requests.
+        guard !isGenerating, appDelegate?.serviceTransformInFlight != true else {
+            return
+        }
+        // Resolve the existing inline edit before starting a replacement result.
+        guard inlineResultSession?.confirmEndingTextEdit() ?? true else { return }
+
+        let question = inputView.string.trimmingCharacters(in: .whitespacesAndNewlines)
+        // An empty submission clears pending callbacks instead of starting generation.
+        guard !question.isEmpty else {
+            pendingTransformCompletion = nil
+            pendingRunPresentation = .standard
+            return
+        }
+
+        let mode = selectedLauncherMode()
+        // Show the final model-specific status before starting work. Defer consent, Keychain access, and
+        // request setup until the next run-loop pass so AppKit can draw the busy state.
+        let preferences = loadAppPreferences()
+        let secondary = selectedSecondaryID(for: mode)
+        let model = selectedModelIDForRun(preferences: preferences)
+        let languageLevel = selectedLanguageLevel(for: mode, preferences: preferences)
+
+        pendingDictionaryHeadword = nil
+        pendingRunMode = mode
+        pendingRunLanguageLevel = languageLevel
+        let run = LauncherRun(
+            transformCompletion: pendingTransformCompletion,
+            presentation: pendingRunPresentation,
+            explicitTranslationTargetID: pendingExplicitTranslationTargetID
+        )
+        run.conversation = ResultConversation(originalRequest: question, modelID: model)
+        pendingTransformCompletion = nil
+        pendingRunPresentation = .standard
+        pendingExplicitTranslationTargetID = nil
+        activeRun = run
+        lastEscapePress = 0
+        let modelName = preferenceDisplayValue(for: model, options: enabledExplanationModelOptions(preferences))
+        lastRunTextModel = modelName
+        setGenerating(true, status: progressStatus(for: mode, secondary: secondary, model: model))
+
+        DispatchQueue.main.async { [weak self] in
+            // Ignore delayed startup work after the request has stopped or been replaced.
+            guard let self, self.activeRun === run, self.isGenerating else {
+                return
+            }
+            // Restore the idle state if the user declines to send the text.
+            guard confirmRemoteTextSharingIfNeeded(input: question, model: model) else {
+                self.failLauncherRun(
+                    run,
+                    error: LauncherCancellationError(),
+                    title: nil,
+                    tempDir: nil
+                )
+                return
+            }
+
+            // Show progress only if this run still owns the launcher.
+            guard self.activeRun === run else { return }
+            self.appDelegate?.showClipboardHUDIfNeeded(
+                for: run,
+                modelName: modelName,
+                status: self.progressStatus(for: mode, secondary: secondary, model: model)
+            )
+
+            let reader = self.selectedReaderIDForRun(preferences: preferences)
+            // Auto-narrate only for the modes enabled in Settings → Reading.
+            let wantsAudio = reader != "none" && preferences.autoNarrateModes.contains(mode)
+            let voice = wantsAudio ? reader : defaultTTSVoice
+            let ttsModel = ttsModel(forVoice: voice, requestedModel: self.ttsModelForRun)
+            self.saveLauncherChoicesIfNeeded()
+
+            // Prepare request-owned temporary output before starting the selected generation path.
+            do {
+                let tempDir = try createLangminTemporaryDirectory(prefix: mode)
+                self.activeTempDir = tempDir
+
+                // Explain uses its structured explanation generation path.
+                if mode == "explain" {
+                    self.generateExplanation(
+                        question: question,
+                        effort: secondary,
+                        model: model,
+                        wantsAudio: wantsAudio,
+                        ttsModel: ttsModel,
+                        voice: voice,
+                        tempDir: tempDir,
+                        run: run,
+                        languageLevel: languageLevel
+                    )
+                } else {
+                    // Other modes use the corresponding text-transform prompt.
+                    self.generateTextTransform(
+                        input: question,
+                        mode: mode,
+                        secondary: secondary,
+                        model: model,
+                        wantsAudio: wantsAudio,
+                        ttsModel: ttsModel,
+                        voice: voice,
+                        tempDir: tempDir,
+                        run: run,
+                        languageLevel: languageLevel
+                    )
+                }
+            } catch {
+                // Report failures during request preparation through the run's normal completion route.
+                self.failLauncherRun(
+                    run,
+                    error: error,
+                    title: "Could not start \(self.modeName(for: mode).lowercased())",
+                    tempDir: nil
+                )
+            }
+        }
+    }
+
+    // modeName(mode): Human name for the selected launcher mode.
+    func modeName(for mode: String) -> String {
+        preferenceDisplayValue(
+            for: mode,
+            options: launcherModeOptions,
+            fallbackID: "explain"
+        )
+    }
+
+    // progressStatus(mode, secondary, [model = nil]): Pick the status text used
+    // while the selected mode runs.
+    func progressStatus(for mode: String, secondary: String, model: String? = nil) -> String {
+        let baseStatus: String
+
+        // Describe progress using the active mode and its secondary style.
+        switch mode {
+        // Proofreading uses its dedicated progress label.
+        case "proofread":
+            baseStatus = progressStatusText(for: .proofread)
+        // Rewrite progress can distinguish shortening and expansion.
+        case "rewrite":
+            // Choose the rewrite progress wording from the selected style.
+            switch secondary {
+            // Rephrasing uses the general rewrite status.
+            case "rephrase":
+                baseStatus = progressStatusText(for: .rewrite)
+            // Shortening gets a concise-rewrite status.
+            case "concise":
+                baseStatus = progressStatusText(for: .rewriteConcise)
+            // Expansion gets an elaboration status.
+            case "elaborate":
+                baseStatus = progressStatusText(for: .rewriteElaborate)
+            // Other rewrite styles use the general rewrite status.
+            default:
+                baseStatus = progressStatusText(for: .rewrite)
+            }
+        // Translation uses the translation progress label.
+        case "translate":
+            baseStatus = progressStatusText(for: .translate)
+        // Summary generation uses the summary progress label.
+        case "summarize":
+            baseStatus = progressStatusText(for: .summarize)
+        // Dictionary lookup uses its lookup progress label.
+        case "dictionary":
+            baseStatus = progressStatusText(for: .dictionary)
+        // Fallback requests use explanation progress wording.
+        default:
+            baseStatus = progressStatusText(for: .explanation)
+        }
+
+        return progressStatusWithModel(baseStatus, model: model)
+    }
+
+    // progressStatusWithModel(status, model): Add the model label to a progress
+    // message when a display name is available.
+    func progressStatusWithModel(_ status: String, model: String?) -> String {
+        // Keep the base status when no usable model display name is available.
+        guard let modelName = modelDisplayName(for: model), !modelName.isEmpty else {
+            return status
+        }
+
+        let stem = status.trimmingCharacters(in: CharacterSet(charactersIn: ".… "))
+        // Do not append a model to an empty status stem.
+        guard !stem.isEmpty else {
+            return status
+        }
+
+        return String(format: localized("status_with_model", "%@ with %@…"), stem, modelName)
+    }
+
+    // modelDisplayName(model): Resolve a saved model ID to its current display
+    // name when present.
+    func modelDisplayName(for model: String?) -> String? {
+        // A missing model identifier has no display name to resolve.
+        guard let model else {
+            return nil
+        }
+
+        return preferenceDisplayValue(
+            for: model,
+            options: enabledExplanationModelOptions(),
+            fallbackID: defaultExplanationModel
+        )
+    }
+
+    // resultTitle(mode, secondary, output): Title text-transform result windows
+    // without exposing internal mode IDs.
+    func resultTitle(for mode: String, secondary: String, output: String) -> String {
+        // Derive a compact result title with a mode-specific fallback.
+        switch mode {
+        // Empty proofreading titles fall back to Proofread.
+        case "proofread":
+            return compactContentTitle(from: output, fallback: "Proofread")
+        // Empty rewrite titles fall back to Rewrite.
+        case "rewrite":
+            return compactContentTitle(from: output, fallback: "Rewrite")
+        // Empty translation titles fall back to Translation.
+        case "translate":
+            return compactContentTitle(from: output, fallback: "Translation")
+        // Empty summary titles fall back to Summary.
+        case "summarize":
+            return compactContentTitle(from: output, fallback: "Summary")
+        // Empty explanation titles fall back to Explanation.
+        case "explain":
+            return compactContentTitle(from: output, fallback: "Explanation")
+        // Empty dictionary titles fall back to Dictionary.
+        case "dictionary":
+            return compactContentTitle(from: output, fallback: "Dictionary")
+        // Unknown result modes fall back to the app name.
+        default:
+            return appName
+        }
+    }
+
+    // featureTitle(mode): Display a stable feature name in the app/window
+    // title.
+    func featureTitle(for mode: String) -> String {
+        // Use localized mode names in result presentation.
+        switch mode {
+        // Label proofreading results consistently with their action.
+        case "proofread":
+            return localized("proofread", "Proofread")
+        // Label rewrite results with the localized Rewrite name.
+        case "rewrite":
+            return localized("rewrite", "Rewrite")
+        // Label translations with the localized Translate name.
+        case "translate":
+            return localized("translate", "Translate")
+        // Label summaries with the localized Summarize name.
+        case "summarize":
+            return localized("summarize", "Summarize")
+        // Label dictionary results with the localized Dictionary name.
+        case "dictionary":
+            return localized("dictionary", "Dictionary")
+        // Use Explain as the fallback result-mode label.
+        default:
+            return localized("explain", "Explain")
+        }
+    }
+
+    // textTransformPrompt(input, mode, secondary, [languageLevel = "off"],
+    // [explicitTranslationTargetID = nil]): Build the right prompt for
+    // non-explanation launcher modes.
+    func textTransformPrompt(
+        input: String,
+        mode: String,
+        secondary: String,
+        languageLevel: String = "off",
+        explicitTranslationTargetID: String? = nil
+    ) -> ExplanationPrompt {
+        // Build each transform's prompt from only the settings relevant to that task.
+        switch mode {
+        // Proofreading uses the strict source-editing contract.
+        case "proofread":
+            return textRevisionPrompt(input: input, style: "proofread")
+        // Rewriting includes the selected style and supported language level.
+        case "rewrite":
+            return textRevisionPrompt(input: input, style: secondary, languageLevel: languageLevel)
+        // Translation resolves its primary and optional additional target languages.
+        case "translate":
+            let preferences = loadAppPreferences()
+            var extraTargetNames: [String] = []
+            let hasExplicitTarget = explicitTranslationTargetID == secondary
+            if !hasExplicitTarget && secondary == preferences.translationTargets.first {
+                // Use the full target list when its primary target is selected. A different per-run
+                // target overrides the list; extra languages do not apply to Translate.
+                extraTargetNames = preferences.translationTargets
+                    .filter { $0 != secondary }
+                    .compactMap { preferredOutputLanguage($0) }
+            }
+            return translationPrompt(
+                input: input,
+                targetLanguage: secondary,
+                extraTargets: extraTargetNames,
+                languageLevel: languageLevel
+            )
+        // Summarization applies its answer language and nonduplicate extra languages.
+        case "summarize":
+            let preferences = loadAppPreferences()
+            return summaryPrompt(
+                input: input,
+                style: secondary,
+                outputLanguage: preferences.summarizeAnswerLanguage,
+                // Skip an extra language that would duplicate the main summary.
+                extraLanguages: extraLanguageNames(
+                    preferences.extraLanguages.filter { $0 != preferences.summarizeAnswerLanguage }
+                ),
+                languageLevel: languageLevel
+            )
+        // Dictionary lookup includes entry depth, extra languages, and language level.
+        case "dictionary":
+            let preferences = loadAppPreferences()
+            return dictionaryPrompt(
+                input: input,
+                targetLanguage: "",
+                style: secondary,
+                extraLanguages: extraLanguageNames(preferences.extraLanguages),
+                languageLevel: languageLevel
+            )
+        // Unexpected transform modes fall back to a standard summary prompt.
+        default:
+            return summaryPrompt(input: input, style: "standard", outputLanguage: defaultOutputLanguage)
+        }
+    }
+
+    // failLauncherRun(run, error, title, tempDir): Clear activeRun on the main
+    // thread before cancelling. Late callbacks then cannot complete the same
+    // run twice.
+    func failLauncherRun(
+        _ run: LauncherRun,
+        error: Error,
+        title: String?,
+        tempDir: URL?
+    ) {
+        // An obsolete failure may clean up its files but cannot change the current run.
+        guard activeRun === run else {
+            // Remove temporary files left by the obsolete request.
+            if let tempDir { try? FileManager.default.removeItem(at: tempDir) }
+            return
+        }
+
+        activeRun = nil
+        activeTextTask = nil
+        activeDataTask = nil
+        activeDataTasks = []
+        // Release request-owned temporary files after clearing active task state.
+        if let tempDir { try? FileManager.default.removeItem(at: tempDir) }
+        activeTempDir = nil
+        setGenerating(false, status: "")
+
+        let completion = run.transformCompletion
+        run.transformCompletion = nil
+        // A transform caller receives the failure through its completion callback.
+        if let completion {
+            completion(run, .failure(error))
+        } else if let title {
+            // Interactive failures with a title are shown in their appropriate presentation.
+            if case .clipboardHUD = run.presentation {
+                // Report background clipboard failures in the HUD without activating the app.
+                appDelegate?.completeClipboardHUD(
+                    for: run,
+                    message: error.localizedDescription,
+                    style: .failure,
+                    dismissAfter: 6
+                )
+            } else {
+                // Ordinary launcher failures use an alert after dismissing any stale HUD.
+                appDelegate?.dismissClipboardHUD(for: run)
+                presentError(error is TranslationSkipped ? TranslationSkipped.title : title,
+                             details: error.localizedDescription)
+            }
+        } else {
+            // Silent cancellations dismiss the HUD without opening an error alert.
+            appDelegate?.dismissClipboardHUD(for: run)
+        }
+        appDelegate?.terminateIfIdle()
+    }
+
+    // completeTransformRun(run, text, tempDir): Deliver transformed text only
+    // for the active request and clean up obsolete request files.
+    func completeTransformRun(_ run: LauncherRun, text: String, tempDir: URL) {
+        // Discard temporary output from a transform that no longer owns the launcher.
+        guard activeRun === run else {
+            try? FileManager.default.removeItem(at: tempDir)
+            return
+        }
+
+        activeTextTask = nil
+        activeDataTask = nil
+        activeDataTasks = []
+        try? FileManager.default.removeItem(at: tempDir)
+        activeTempDir = nil
+        run.acceptsCancellation = false
+        appDelegate?.disableClipboardHUDCancellation(for: run)
+        let completion = run.transformCompletion
+        run.transformCompletion = nil
+        completion?(run, .success(text))
+
+        // Keep the run busy during a clipboard conflict alert so its nested event loop cannot start
+        // another request.
+        guard activeRun === run else { return }
+        activeRun = nil
+        setGenerating(false, status: "")
+        // Clear input after successful submission only when the setting requests it.
+        if loadAppPreferences().launcherClearsInputAfterSubmit {
+            inputView.clearUndoably()
+        }
+        appDelegate?.terminateIfIdle()
+    }
+
+    // prepareLinkedSourceIfNeeded(input, mode, model, run, tempDir, [loadPage =
+    // loadWebPage], continuation): Read a pasted URL before building the
+    // prompt. Share the model request's cancellation handle and run identity.
+    func prepareLinkedSourceIfNeeded(input: String, mode: String, model: String, run: LauncherRun,
+                                     tempDir: URL, loadPage: @escaping (URL) async throws -> WebPageSource = loadWebPage,
+                                     continuation: @escaping () -> Void) -> Bool {
+        // Fetch page content only for a new Explain or Summarize URL input.
+        guard ["explain", "summarize"].contains(mode), run.sourcePage == nil,
+              let url = webPageInputURL(detectLanguagePrefix(in: input).input) else { return false }
+        // Keep the destination approved in submit; endpoint changes during the fetch must not reroute
+        // the request.
+        let approvedDestination = remoteTextDestination(for: model)
+        updateGenerationProgress(run, status: localized("reading_webpage", "Reading page…"))
+        let operation = Task { @MainActor [weak self] in
+            // Fetch and bound page content before sending any extracted text to the model.
+            do {
+                let page = try await loadPage(url).limited(to: textProvider(for: model).provider == .apple ? 5_000 : 24_000)
+                try Task.checkCancellation()
+                // Ignore a fetched page if its owning launcher run has already ended.
+                guard let self, self.activeRun === run else { return }
+                // Scan the page body and metadata before sending them. Use literal text so JSON escaping
+                // cannot hide secret patterns.
+                let sourceText = ([input, page.url.absoluteString, page.title, page.text] + page.images.map(\.description)).joined(separator: "\n")
+                // Confirm sharing of the extracted page text before sending it to a remote model.
+                guard confirmRemoteSecretWarningIfNeeded(input: sourceText,
+                                                         provider: approvedDestination?.displayName) else {
+                    throw LauncherCancellationError()
+                }
+                // Stop preparation if the user canceled while the sharing dialog was open.
+                guard self.activeRun === run else { return }
+                // Require fresh consent if the provider endpoint changed while the page loaded.
+                guard remoteTextDestination(for: model)?.consentID == approvedDestination?.consentID else {
+                    throw HelperFailure(message: "The model endpoint changed while the page was loading. Run the request again to use the new endpoint.")
+                }
+                run.sourcePage = page
+                self.activeTextTask = nil
+                continuation()
+            } catch {
+                // Report page-loading or preparation failures through this run's normal route.
+                // A stale page-loading failure must not affect a newer request.
+                guard let self, self.activeRun === run else { return }
+                self.failLauncherRun(run, error: error, title: error is LauncherCancellationError ? nil : "Could not read page", tempDir: tempDir)
+            }
+        }
+        activeTextTask = TextRequestHandle(resume: {}, cancel: { operation.cancel() })
+        return true
+    }
+
+    // linkedPagePrompt(prompt, run, detailed): Add linked-page context and
+    // optional image instructions to a copy of the task prompt.
+    func linkedPagePrompt(_ prompt: ExplanationPrompt, run: LauncherRun, detailed: Bool) -> ExplanationPrompt {
+        // Ordinary text requests need no page-specific prompt context.
+        guard let page = run.sourcePage else { return prompt }
+        var result = prompt
+        let includeImages = detailed && !run.returnsTransformedText
+        result.instructions += "\n" + page.promptInstructions(includeImages: includeImages)
+        // Append page context to the compact Apple instructions as well as the main prompt.
+        if let instructions = result.appleInstructions {
+            result.appleInstructions = instructions + "\n" + page.promptInstructions(includeImages: includeImages)
+        }
+        result.input = page.promptInput(original: prompt.input, includeImages: includeImages)
+        return result
+    }
+
+    // linkedPageResult(text, run, detailed, tempDir): Save selected images
+    // before publishing the result so all views share complete local assets.
+    // Keep UI and run-state access on MainActor across the background download.
+    @MainActor
+    func linkedPageResult(_ text: String, run: LauncherRun, detailed: Bool, tempDir: URL) async throws -> String {
+        try Task.checkCancellation()
+        // Results without a fetched page need no page-link or image processing.
+        guard let page = run.sourcePage else { return text }
+        // Load referenced page images only for detailed, viewable results.
+        if detailed && !run.returnsTransformedText && !sourceImageReferences(in: text).isEmpty {
+            updateGenerationProgress(run, status: localized("loading_page_images", "Loading page images…"))
+        }
+        let (output, assets) = try await materializeSourceImages(markdown: text, page: page, directory: tempDir,
+                                                               includeImages: detailed && !run.returnsTransformedText)
+        try Task.checkCancellation()
+        // Do not attach downloaded images after the request has been canceled.
+        guard activeRun === run else { throw LauncherCancellationError() }
+        run.sourceImages = assets.isEmpty ? nil : assets
+        return output
+    }
+
+    // generateTextTransform(input, mode, secondary, model, wantsAudio,
+    // ttsModel, voice, tempDir, run, [languageLevel = "off"]): Run a
+    // non-explanation text transform and open the generated result.
+    func generateTextTransform(
+        input: String,
+        mode: String,
+        secondary: String,
+        model: String,
+        wantsAudio: Bool,
+        ttsModel: String,
+        voice: String,
+        tempDir: URL,
+        run: LauncherRun,
+        languageLevel: String = "off"
+    ) {
+        // Pause generation while an input URL is being replaced with its extracted page text.
+        if prepareLinkedSourceIfNeeded(input: input, mode: mode, model: model, run: run, tempDir: tempDir, continuation: { [weak self] in
+            self?.generateTextTransform(input: input, mode: mode, secondary: secondary, model: model,
+                wantsAudio: wantsAudio, ttsModel: ttsModel, voice: voice, tempDir: tempDir, run: run, languageLevel: languageLevel)
+        }) { return }
+        updateGenerationProgress(run, status: progressStatus(for: mode, secondary: secondary, model: model))
+        // Build and start the transform request with any prepared page context.
+        do {
+            let prompt = linkedPagePrompt(textTransformPrompt(
+                input: input,
+                mode: mode,
+                secondary: secondary,
+                languageLevel: languageLevel,
+                explicitTranslationTargetID: run.explicitTranslationTargetID
+            ), run: run, detailed: secondary == "detailed")
+            let task = try startTextRequest(
+                model: model,
+                prompt: prompt,
+                emptyMessage: "The selected text model returned an empty result."
+            ) { [weak self] result in
+                DispatchQueue.main.async {
+                    // Delete output from a text request whose launcher run has been superseded.
+                    guard let self, self.activeRun === run else {
+                        try? FileManager.default.removeItem(at: tempDir)
+                        return
+                    }
+
+                    self.activeTextTask = nil
+                    let processing = Task { @MainActor in
+                        // Clean and validate the response before preparing display assets.
+                        do {
+                            let raw = try cleanedTextTransformOutput(try result.get(), prompt: prompt)
+                            // Reject an empty model response before processing its page references.
+                            guard !raw.isEmpty else { throw HelperFailure(message: "The selected text model returned an empty result.") }
+                            let transformed = try await self.linkedPageResult(raw, run: run, detailed: secondary == "detailed", tempDir: tempDir)
+                            // Page processing must still leave a nonempty transformed result.
+                            guard !transformed.isEmpty else {
+                                throw HelperFailure(message: "The selected text model returned an empty result.")
+                            }
+
+                            // Clipboard commands and replacing Services consume the
+                            // generated text directly instead of opening a window.
+                            if run.transformCompletion != nil {
+                                self.completeTransformRun(run, text: transformed, tempDir: tempDir)
+                                return
+                            }
+
+                            let displayTitle = mode == "dictionary"
+                                ? input.trimmingCharacters(in: .whitespacesAndNewlines)
+                                : self.resultTitle(for: mode, secondary: secondary, output: transformed)
+                            let textPath = tempDir.appendingPathComponent("result.txt")
+                            try "\(transformed)\n".write(to: textPath, atomically: true, encoding: .utf8)
+                            let diffPaths = try self.writeDiffFilesIfNeeded(
+                                input: input,
+                                transformed: transformed,
+                                mode: mode,
+                                tempDir: tempDir
+                            )
+
+                            let windowTitle = appWindowTitle(mode: self.featureTitle(for: mode), title: displayTitle)
+                            self.pendingDictionaryHeadword = mode == "dictionary" ? input : nil
+                            // Generate requested narration before presenting the completed text result.
+                            if wantsAudio {
+                                self.generateSpeechThenOpen(
+                                    text: transformed,
+                                    model: ttsModel,
+                                    voice: voice,
+                                    textPath: textPath.path,
+                                    title: windowTitle,
+                                    tempDir: tempDir,
+                                    run: run,
+                                    diffOriginalPath: diffPaths.original,
+                                    diffRevisedPath: diffPaths.revised
+                                )
+                            } else {
+                                // Present text immediately when pre-open narration was not requested.
+                                self.finishGeneratedExplanation(
+                                    textPath: textPath.path,
+                                    audioPath: "",
+                                    title: windowTitle,
+                                    cleanupDir: tempDir.path,
+                                    run: run,
+                                    diffOriginalPath: diffPaths.original,
+                                    diffRevisedPath: diffPaths.revised
+                                )
+                            }
+                        } catch {
+                            // Report transformation or result-processing failures through the active run.
+                            self.failLauncherRun(
+                                run,
+                                error: error,
+                                title: "Could not create the result",
+                                tempDir: tempDir
+                            )
+                        }
+                    }
+                    self.activeTextTask = TextRequestHandle(resume: {}, cancel: { processing.cancel() })
+                }
+            }
+
+            // Cancel a request created after its launcher run lost ownership.
+            guard activeRun === run else {
+                task.cancel()
+                try? FileManager.default.removeItem(at: tempDir)
+                return
+            }
+            activeTextTask = task
+            task.resume()
+        } catch {
+            // Report request setup failures before any result can be delivered.
+            failLauncherRun(
+                run,
+                error: error,
+                title: "Could not create the result",
+                tempDir: tempDir
+            )
+        }
+    }
+
+    // writeDiffFilesIfNeeded(input, transformed, mode, tempDir): Store
+    // before/after text only for modes where a diff helps the user.
+    func writeDiffFilesIfNeeded(
+        input: String,
+        transformed: String,
+        mode: String,
+        tempDir: URL
+    ) throws -> (original: String?, revised: String?) {
+        // Create comparison files only for enabled, supported text-diff modes.
+        guard
+            loadAppPreferences().resultDiffEnabled,
+            (mode == "proofread" || mode == "rewrite"),
+            input != transformed
+        // Other results need no original/revised comparison assets.
+        else {
+            return (nil, nil)
+        }
+
+        let originalURL = tempDir.appendingPathComponent("original.txt")
+        let revisedURL = tempDir.appendingPathComponent("revised.txt")
+        try input.write(to: originalURL, atomically: true, encoding: .utf8)
+        try transformed.write(to: revisedURL, atomically: true, encoding: .utf8)
+        return (originalURL.path, revisedURL.path)
+    }
+
+    // generateExplanation(question, effort, model, wantsAudio, ttsModel, voice,
+    // tempDir, run, [languageLevel = "off"]): Run native text generation,
+    // optionally add speech, then open the viewer.
+    func generateExplanation(
+        question: String,
+        effort: String,
+        model: String,
+        wantsAudio: Bool,
+        ttsModel: String,
+        voice: String,
+        tempDir: URL,
+        run: LauncherRun,
+        languageLevel: String = "off"
+    ) {
+        // Load linked page content before constructing the explanation request.
+        if prepareLinkedSourceIfNeeded(input: question, mode: "explain", model: model, run: run, tempDir: tempDir, continuation: { [weak self] in
+            self?.generateExplanation(question: question, effort: effort, model: model,
+                wantsAudio: wantsAudio, ttsModel: ttsModel, voice: voice, tempDir: tempDir, run: run, languageLevel: languageLevel)
+        }) { return }
+        updateGenerationProgress(run, status: progressStatus(for: "explain", secondary: effort, model: model))
+        // Build the explanation request using the current language and depth settings.
+        do {
+            let preferences = loadAppPreferences()
+            let outputLanguage = preferences.explainAnswerLanguage
+            let research = run.sourcePage == nil && preferences.webResearchEnabled && modelSupportsWebResearch(model)
+            // Skip an extra language that would duplicate the main explanation.
+            let extraLanguages = extraLanguageNames(
+                preferences.extraLanguages.filter { $0 != outputLanguage }
+            )
+            let detailed = ["detailed", "hardcore"].contains(effort)
+            let task = try startTextRequest(
+                model: model,
+                prompt: linkedPagePrompt(explanationPrompt(question: question, effort: effort,
+                    outputLanguage: outputLanguage, research: research, extraLanguages: extraLanguages,
+                    languageLevel: languageLevel), run: run, detailed: detailed),
+                emptyMessage: "The selected text model returned an empty explanation.",
+                research: research
+            ) { [weak self] result in
+                DispatchQueue.main.async {
+                    // Ignore a completed explanation belonging to an obsolete run.
+                    guard let self, self.activeRun === run else {
+                        try? FileManager.default.removeItem(at: tempDir)
+                        return
+                    }
+
+                    self.activeTextTask = nil
+                    let processing = Task { @MainActor in
+                        // Decode the response before preparing the explanation's linked assets.
+                        do {
+                            let response = try result.get()
+                            let parsed = parseExplanationResponse(response)
+                            // A structured response must contain usable explanation text.
+                            guard !parsed.explanation.isEmpty else {
+                                throw HelperFailure(message: "The selected text model returned an empty explanation.")
+                            }
+
+                            let explanation = try await self.linkedPageResult(parsed.explanation, run: run, detailed: detailed, tempDir: tempDir)
+                            let displayTitle = parsed.topicTitle.isEmpty ? (run.sourcePage?.title ?? question) : parsed.topicTitle
+                            // Clipboard Explain uses the same completion path as the other HUD modes.
+                            // Deliver readable text, not the provider's JSON envelope or an automatic window.
+                            if run.transformCompletion != nil {
+                                self.completeTransformRun(run, text: "\(displayTitle)\n\n\(explanation)", tempDir: tempDir)
+                                return
+                            }
+                            let windowTitle = appWindowTitle(mode: self.featureTitle(for: "explain"), title: displayTitle)
+                            let textPath = tempDir.appendingPathComponent("explanation.txt")
+                            try "\(displayTitle)\n\n\(explanation)\n".write(
+                                to: textPath,
+                                atomically: true,
+                                encoding: .utf8
+                            )
+
+                            // Prepare narration first when this explanation was configured for pre-open audio.
+                            if wantsAudio {
+                                self.generateSpeechThenOpen(
+                                    text: explanation,
+                                    model: ttsModel,
+                                    voice: voice,
+                                    textPath: textPath.path,
+                                    title: windowTitle,
+                                    tempDir: tempDir,
+                                    run: run
+                                )
+                            } else {
+                                // Open the text result directly when narration is not requested.
+                                self.finishGeneratedExplanation(
+                                    textPath: textPath.path,
+                                    audioPath: "",
+                                    title: windowTitle,
+                                    cleanupDir: tempDir.path,
+                                    run: run
+                                )
+                            }
+                        } catch {
+                            // Handle explanation decoding and preparation errors as request failures.
+                            self.failLauncherRun(
+                                run,
+                                error: error,
+                                title: "Could not generate explanation",
+                                tempDir: tempDir
+                            )
+                        }
+                    }
+                    self.activeTextTask = TextRequestHandle(resume: {}, cancel: { processing.cancel() })
+                }
+            }
+
+            // A late-created explanation request must not outlive its launcher run.
+            guard activeRun === run else {
+                task.cancel()
+                try? FileManager.default.removeItem(at: tempDir)
+                return
+            }
+            activeTextTask = task
+            task.resume()
+        } catch {
+            // Report explanation request setup errors through the same failure path.
+            failLauncherRun(
+                run,
+                error: error,
+                title: "Could not generate explanation",
+                tempDir: tempDir
+            )
+        }
+    }
+
+    // finishGeneratedExplanation(textPath, audioPath, title, cleanupDir, run,
+    // [diffOriginalPath = nil], [diffRevisedPath = nil], [audioTimings = nil],
+    // [narrationVoice = nil], [narrationModel = nil], [dictionaryHeadword =
+    // nil]): Open the completed result on the main thread and restore the
+    // launcher.
+    func finishGeneratedExplanation(
+        textPath: String,
+        audioPath: String,
+        title: String,
+        cleanupDir: String,
+        run: LauncherRun,
+        diffOriginalPath: String? = nil,
+        diffRevisedPath: String? = nil,
+        audioTimings: [NarrationChunkTiming]? = nil,
+        narrationVoice: String? = nil,
+        narrationModel: String? = nil,
+        dictionaryHeadword: String? = nil
+    ) {
+        DispatchQueue.main.async {
+            // Remove completed result files when their request has already been replaced.
+            guard self.activeRun === run else {
+                try? FileManager.default.removeItem(atPath: cleanupDir)
+                return
+            }
+
+            self.appDelegate?.updateClipboardHUD(for: run, status: localized("opening_hud", "Opening…"))
+            self.activeRun = nil
+            self.activeTextTask = nil
+            self.activeDataTask = nil
+            self.activeDataTasks = []
+            self.activeTempDir = nil
+            self.setGenerating(false, status: "")
+            // Apply clear-after-submit only after the result has completed successfully.
+            if loadAppPreferences().launcherClearsInputAfterSubmit {
+                self.inputView.clearUndoably()
+            }
+            // Presenting a finished result requires the app's session owner.
+            guard let appDelegate = self.appDelegate else {
+                return
+            }
+            let session = appDelegate.resultSession(
+                textPath: textPath,
+                audioPath: audioPath,
+                title: title,
+                cleanupDir: cleanupDir,
+                diffOriginalPath: diffOriginalPath,
+                diffRevisedPath: diffRevisedPath,
+                audioTimings: audioTimings,
+                textModel: self.lastRunTextModel.isEmpty ? nil : self.lastRunTextModel,
+                narrationVoice: narrationVoice,
+                narrationModel: narrationModel,
+                dictionaryHeadword: dictionaryHeadword ?? self.pendingDictionaryHeadword,
+                mode: self.pendingRunMode,
+                languageLevel: self.pendingRunLanguageLevel
+            )
+            session.config.sourceImages = run.sourceImages
+            session.config.conversation = run.conversation
+            // Show launcher results beside the input; open other results in a separate window.
+            if self.shouldShowInlineResult(for: run) {
+                self.showInlineResult(session)
+            } else {
+                // Use a detached result window when inline presentation is not selected.
+                appDelegate.presentResultSession(session)
+            }
+            appDelegate.dismissClipboardHUD(for: run)
+            // Manual generation remains available regardless of the automatic-image preference.
+            let illustrationProvider = run.automaticIllustrationProvider(forDictionaryHeadword: session.config.dictionaryHeadword)
+            // Start an illustration only when this run's automation checks selected a provider.
+            if illustrationProvider != .off {
+                session.generateIllustration(using: illustrationProvider)
+            }
+        }
+    }
+
+    // generateSpeechThenOpen(text, model, voice, textPath, title, tempDir, run,
+    // [diffOriginalPath = nil], [diffRevisedPath = nil]): Generate speech
+    // asynchronously so nested URLSession callbacks cannot deadlock.
+    func generateSpeechThenOpen(
+        text: String,
+        model: String,
+        voice: String,
+        textPath: String,
+        title: String,
+        tempDir: URL,
+        run: LauncherRun,
+        diffOriginalPath: String? = nil,
+        diffRevisedPath: String? = nil
+    ) {
+        // Do not start narration for a result that no longer owns the launcher.
+        guard activeRun === run else {
+            try? FileManager.default.removeItem(at: tempDir)
+            return
+        }
+        let provider = narrationProvider(for: voice)
+        appDelegate?.suspendClipboardHUD(for: run)
+        let narrationAllowed = confirmRemoteNarrationSharingIfNeeded(provider: provider)
+        // Recheck request ownership after the sharing confirmation can yield control.
+        guard activeRun === run else {
+            try? FileManager.default.removeItem(at: tempDir)
+            return
+        }
+        // Present the text result without narration when sharing was declined.
+        guard narrationAllowed else {
+            finishGeneratedExplanation(
+                textPath: textPath,
+                audioPath: "",
+                title: title,
+                cleanupDir: tempDir.path,
+                run: run,
+                diffOriginalPath: diffOriginalPath,
+                diffRevisedPath: diffRevisedPath
+            )
+            return
+        }
+        updateGenerationProgress(run, status: progressStatusText(for: .narration))
+        appDelegate?.resumeClipboardHUD(for: run, status: progressStatusText(for: .narration))
+        let apiKey: String
+        // Read credentials only for the chosen speech provider.
+        switch provider {
+        // Apple speech synthesis needs no API credential.
+        case .apple:
+            apiKey = ""
+        // Grok narration uses the xAI credential.
+        case .grok:
+            apiKey = loadGrokAPIKey()
+        // OpenAI narration uses the OpenAI credential.
+        case .openAI:
+            apiKey = loadOpenAIAPIKey()
+        }
+        // Keep the successful text result when a remote voice lacks its required key.
+        guard provider == .apple || !apiKey.isEmpty else {
+            finishGeneratedExplanation(
+                textPath: textPath,
+                audioPath: "",
+                title: title,
+                cleanupDir: tempDir.path,
+                run: run,
+                diffOriginalPath: diffOriginalPath,
+                diffRevisedPath: diffRevisedPath
+            )
+            DispatchQueue.main.async {
+                self.presentError(
+                    "Could not generate audio",
+                    details: provider == .grok
+                        ? "Add an xAI API key in Settings → Models to use this Grok voice, or choose an Apple voice or None under Reading."
+                        : "Add an OpenAI API key in Settings → Models to use this OpenAI voice, or choose an Apple voice or None under Reading."
+                )
+            }
+            return
+        }
+
+        // Highlight mode narrates per sentence so the result window can
+        // highlight and click-to-seek by sentence from the first playback.
+        if loadAppPreferences().narrationHighlightMode {
+            generateChunkedSpeechThenOpen(
+                text: text,
+                model: model,
+                voice: voice,
+                provider: provider,
+                apiKey: apiKey,
+                textPath: textPath,
+                title: title,
+                tempDir: tempDir,
+                run: run,
+                diffOriginalPath: diffOriginalPath,
+                diffRevisedPath: diffRevisedPath
+            )
+            return
+        }
+
+        let audioURL = tempDir.appendingPathComponent(provider == .apple ? "explanation.caf" : "explanation.mp3")
+        let speechText = speechReadyText(from: text)
+        // Create the narration request with a completion path that preserves successful text.
+        do {
+            let handleResult: (Result<Void, Error>) -> Void = { [weak self] result in
+                DispatchQueue.main.async {
+                    // Delete audio output from a request canceled during synthesis.
+                    guard let self, self.activeRun === run else {
+                        try? FileManager.default.removeItem(at: tempDir)
+                        return
+                    }
+
+                    self.activeDataTask = nil
+                    var audioPath = ""
+                    var audioError: String?
+                    // Distinguish usable audio from missing output and provider failures.
+                    switch result {
+                    // Attach the generated audio only when its output file exists.
+                    case .success where FileManager.default.fileExists(atPath: audioURL.path):
+                        audioPath = audioURL.path
+                        refreshVoiceCatalogAfterUse(provider: provider)
+                    // A success callback with no audio file becomes an audio error.
+                    case .success:
+                        audioError = "The speech service returned no audio."
+                    // Keep the provider's failure message for the narration warning.
+                    case .failure(let error):
+                        audioError = error.localizedDescription
+                    }
+
+                    self.finishGeneratedExplanation(
+                        textPath: textPath,
+                        audioPath: audioPath,
+                        title: title,
+                        cleanupDir: tempDir.path,
+                        run: run,
+                        diffOriginalPath: diffOriginalPath,
+                        diffRevisedPath: diffRevisedPath,
+                        narrationVoice: audioPath.isEmpty ? nil : voice,
+                        narrationModel: audioPath.isEmpty ? nil : narrationModelLabel(provider: provider, model: model)
+                    )
+
+                    // Show audio failure separately so the successful text result remains available.
+                    if let audioError {
+                        DispatchQueue.main.async {
+                            // Do not show a delayed audio warning after the user canceled the run.
+                            guard !run.cancelled else { return }
+                            self.presentError("Could not generate audio", details: audioError)
+                        }
+                    }
+                }
+            }
+
+            let task: NarrationRequestTask
+            // Start speech through the selected provider's request implementation.
+            switch provider {
+            // Apple speech uses the chosen local voice identifier.
+            case .apple:
+                task = try startAppleSpeechRequest(
+                    text: speechText,
+                    voiceIdentifier: appleVoiceIdentifier(from: voice),
+                    outputURL: audioURL,
+                    completion: handleResult
+                )
+            // Grok speech uses its provider-specific voice identifier.
+            case .grok:
+                task = try startGrokSpeechRequest(
+                    apiKey: apiKey,
+                    text: speechText,
+                    voiceID: grokVoiceID(from: voice),
+                    outputURL: audioURL,
+                    completion: handleResult
+                )
+            // OpenAI speech uses its model and voice choices.
+            case .openAI:
+                task = try startSpeechRequest(
+                    apiKey: apiKey,
+                    text: speechText,
+                    model: model,
+                    voice: voice,
+                    outputURL: audioURL,
+                    completion: handleResult
+                )
+            }
+
+            DispatchQueue.main.async {
+                // Cancel a newly created speech request if its run became obsolete.
+                guard self.activeRun === run else {
+                    task.cancel()
+                    try? FileManager.default.removeItem(at: tempDir)
+                    return
+                }
+
+                self.updateGenerationProgress(run, status: progressStatusText(for: .narration))
+                self.activeDataTask = task
+                task.resume()
+            }
+        } catch {
+            // Present the successful text even when narration cannot be started.
+            finishGeneratedExplanation(
+                textPath: textPath,
+                audioPath: "",
+                title: title,
+                cleanupDir: tempDir.path,
+                run: run,
+                diffOriginalPath: diffOriginalPath,
+                diffRevisedPath: diffRevisedPath
+            )
+            DispatchQueue.main.async {
+                // Suppress an audio setup warning after cancellation.
+                guard !run.cancelled else {
+                    return
+                }
+
+                self.presentError("Could not generate audio", details: error.localizedDescription)
+            }
+        }
+    }
+
+    // generateChunkedSpeechThenOpen(text, model, voice, provider, apiKey,
+    // textPath, title, tempDir, run, diffOriginalPath, diffRevisedPath): Use
+    // the shared sentence-narration pipeline and pass its timings to the result
+    // window.
+    func generateChunkedSpeechThenOpen(
+        text: String,
+        model: String,
+        voice: String,
+        provider: NarrationProvider,
+        apiKey: String,
+        textPath: String,
+        title: String,
+        tempDir: URL,
+        run: LauncherRun,
+        diffOriginalPath: String?,
+        diffRevisedPath: String?
+    ) {
+        let chunks = narrationSpeechChunks(from: speechReadyText(from: text))
+        // Present text without chunked narration when there are no speakable chunks.
+        guard !chunks.isEmpty else {
+            finishGeneratedExplanation(
+                textPath: textPath,
+                audioPath: "",
+                title: title,
+                cleanupDir: tempDir.path,
+                run: run,
+                diffOriginalPath: diffOriginalPath,
+                diffRevisedPath: diffRevisedPath
+            )
+            return
+        }
+
+        DispatchQueue.main.async {
+            // Ignore delayed chunk-generation progress from an obsolete run.
+            guard self.activeRun === run else {
+                return
+            }
+
+            self.updateGenerationProgress(run, status: progressStatusText(for: .narration))
+        }
+
+        Task.detached(priority: .userInitiated) { [weak self] in
+            // Generate timed narration chunks before presenting their combined audio.
+            do {
+                let result = try await synthesizeChunkedNarration(
+                    chunks: chunks,
+                    voice: voice,
+                    apiKey: apiKey,
+                    provider: provider,
+                    model: model,
+                    tempDir: tempDir,
+                    registerTask: { task in
+                        DispatchQueue.main.async {
+                            // Cancel individual chunk tasks when the launcher no longer owns their run.
+                            guard let self, self.activeRun === run else {
+                                task.cancel()
+                                return
+                            }
+                            self.activeDataTasks.append(task)
+                        }
+                    }
+                )
+                refreshVoiceCatalogAfterUse(provider: provider)
+                self?.finishGeneratedExplanation(
+                    textPath: textPath,
+                    audioPath: result.audioURL.path,
+                    title: title,
+                    cleanupDir: tempDir.path,
+                    run: run,
+                    diffOriginalPath: diffOriginalPath,
+                    diffRevisedPath: diffRevisedPath,
+                    audioTimings: result.timings,
+                    narrationVoice: voice,
+                    narrationModel: narrationModelLabel(provider: provider, model: model)
+                )
+            } catch {
+                // Keep the generated text available when chunk synthesis or merging fails.
+                self?.finishGeneratedExplanation(
+                    textPath: textPath,
+                    audioPath: "",
+                    title: title,
+                    cleanupDir: tempDir.path,
+                    run: run,
+                    diffOriginalPath: diffOriginalPath,
+                    diffRevisedPath: diffRevisedPath
+                )
+                DispatchQueue.main.async {
+                    // Show a delayed narration warning only for a still-valid, uncanceled run.
+                    guard let self, !run.cancelled else {
+                        return
+                    }
+
+                    self.presentError("Could not generate audio", details: error.localizedDescription)
+                }
+            }
+        }
+    }
+
+    // handleLibraryEscapeKey(): Escape leaves Library search, cancels folder
+    // editing, or returns to All. Return false when the window can close.
+    func handleLibraryEscapeKey() -> Bool {
+        // Escape from Library search moves focus into the results when no rename is active.
+        if editingLibraryRow == nil, librarySearchHasFocus() {
+            // Clear focus when the search has no result row to receive it.
+            if !focusLibraryRow(at: 0) {
+                libraryHostWindow?.makeFirstResponder(nil)
+            }
+            return true
+        }
+
+        // Cancel the folder editor before Escape can clear the folder selection.
+        if libraryFolderEditor != nil {
+            cancelLibraryFolderEditing()
+            focusLibrarySearch()
+            return true
+        }
+
+        // Return a filtered Library to All; leave search-specific Escape handling to the search field.
+        if editingLibraryRow == nil,
+           librarySearchField?.stringValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != false,
+           selectedLibraryFolder != nil {
+            selectedLibraryFolder = nil
+            refreshLibrary()
+            return true
+        }
+        return false
+    }
+
+    // handleEscapeKey(): Cancel active generation on Escape and leave idle
+    // Escape handling to the caller.
+    func handleEscapeKey() -> Bool {
+        // Leave Escape unhandled when the launcher has no active work to cancel.
+        guard isGenerating || activeTextTask != nil || activeDataTask != nil || !activeDataTasks.isEmpty else {
+            return false
+        }
+
+        let now = Date().timeIntervalSinceReferenceDate
+
+        // A second quick Escape confirms canceling the current request.
+        if now - lastEscapePress <= 0.8 {
+            lastEscapePress = 0
+            cancelGeneration()
+            return true
+        }
+
+        lastEscapePress = now
+        updateFooterStatus(busy: true, text: "Press Esc again to cancel")
+        return true
+    }
+
+    // cancelGeneration([expectedRun = nil]): Cancel the request, remove
+    // temporary files, and restore the form. Keep the input even when
+    // clear-after-submit is enabled.
+    func cancelGeneration(expectedRun: LauncherRun? = nil) {
+        // Reset pending launch state even when no active run remains.
+        guard let run = activeRun else {
+            pendingTransformCompletion = nil
+            pendingRunPresentation = .standard
+            setGenerating(false, status: "")
+            return
+        }
+        // A cancellation callback may cancel only the run it originally captured.
+        guard expectedRun == nil || run === expectedRun else { return }
+        // Do not cancel a run while it is in a completion phase that has disabled cancellation.
+        guard run.acceptsCancellation else { return }
+        // Invalidate the run before cancellation can invoke a callback. Late callbacks may only clean
+        // up.
+        run.cancelled = true
+        activeRun = nil
+        pendingTransformCompletion = nil
+        pendingRunPresentation = .standard
+
+        // Cancel the active text-generation request before releasing its task handle.
+        if let task = activeTextTask {
+            task.cancel()
+            activeTextTask = nil
+        }
+
+        // Cancel the active data request along with text generation.
+        if let task = activeDataTask {
+            task.cancel()
+            activeDataTask = nil
+        }
+
+        activeDataTasks.forEach { $0.cancel() }
+        activeDataTasks = []
+
+        // Remove temporary files owned by the canceled launcher run.
+        if let activeTempDir {
+            try? FileManager.default.removeItem(at: activeTempDir)
+            self.activeTempDir = nil
+        }
+
+        setGenerating(false, status: "")
+        let error = LauncherCancellationError()
+        let completion = run.transformCompletion
+        run.transformCompletion = nil
+        // Return cancellation through a transform caller's completion handler.
+        if let completion {
+            completion(run, .failure(error))
+        } else {
+            // Interactive clipboard requests receive a brief canceled HUD state.
+            appDelegate?.completeClipboardHUD(
+                for: run,
+                message: localized("cancelled", "Cancelled"),
+                style: .cancelled,
+                dismissAfter: 0.8
+            )
+        }
+        appDelegate?.terminateIfIdle()
+    }
+
+    // updateGenerationProgress(run, status): Keep hidden-run feedback and the
+    // launcher's own busy state synchronized.
+    func updateGenerationProgress(_ run: LauncherRun, status: String) {
+        // Progress updates from obsolete runs cannot replace the current footer status.
+        guard activeRun === run else { return }
+        updateFooterStatus(busy: true, text: status)
+        appDelegate?.updateClipboardHUD(for: run, status: status)
+    }
+
+    // setGenerating(generating, status): Enable or disable controls while a
+    // generation is running.
+    func setGenerating(_ generating: Bool, status: String) {
+        isGenerating = generating
+        // Close action selection when generation starts and its choices become fixed.
+        if generating {
+            closePalette()
+        }
+        updateFooterStatus(busy: generating || !status.isEmpty, text: status)
+        inputView.isEditable = !generating
+        inputView.isSelectable = true
+        modeChips.forEach { $0.isEnabled = !generating }
+        effortBox.isEnabled = !generating
+        levelBox.isEnabled = !generating
+        modelBox.isEnabled = !generating
+    }
+
+    // updateFooterStatus(busy, text): Show progress in place of the footer
+    // hints and turn the send button into Stop.
+    func updateFooterStatus(busy: Bool, text: String) {
+        // Status updates wait until the launcher footer exists.
+        guard footerRow != nil else { return }
+        let showStatus = busy || !text.isEmpty
+        modelFooterButton.isHidden = showStatus
+        searchHintButton.isHidden = showStatus
+        runHintLabel.isHidden = showStatus
+        statusLabel.isHidden = !showStatus
+        statusLabel.stringValue = text
+        refreshResultPaneState()
+        // Show and animate progress while work is active.
+        if busy {
+            statusSpinner.isHidden = false
+            statusSpinner.startAnimation(nil)
+        } else {
+            // Stop the spinner when the footer is displaying an idle status.
+            statusSpinner.stopAnimation(nil)
+            statusSpinner.isHidden = true
+        }
+        // Only an active request shows Stop; completion feedback keeps the send arrow.
+        sendButton.isBusy = busy
+        refreshSendButtonState()
+    }
+
+    // refreshSendButtonState(): Enable Send for nonempty input, or Stop during
+    // a request. Programmatic text changes refresh this directly; typing uses
+    // the text-change observer.
+    func refreshSendButtonState() {
+        // Submit-button state can be updated only after the button is built.
+        guard sendButton != nil else { return }
+        sendButton.isEnabled = isGenerating
+            || !inputView.string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    // inputTextDidChange(notification): Refresh submission availability when
+    // the launcher input changes.
+    @objc func inputTextDidChange(_ notification: Notification) {
+        refreshSendButtonState()
+    }
+
+    // sendButtonClicked(sender): The input field's send circle: run when idle,
+    // stop while working.
+    @objc func sendButtonClicked(_ sender: Any?) {
+        // The active submit control becomes Cancel during generation.
+        if isGenerating {
+            cancelGeneration()
+        } else {
+            // When idle, the same control starts a new request.
+            submit(nil)
+        }
+    }
+
+    // nonEmpty(value, fallback): Empty fields fall back to the built-in
+    // defaults.
+    func nonEmpty(_ value: String, fallback: String) -> String {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? fallback : trimmed
+    }
+
+    // presentError(title, details): Show a native alert while keeping the
+    // launcher open for another try.
+    func presentError(_ title: String, details: String) {
+        let alert = NSAlert()
+        alert.messageText = title
+        alert.informativeText = details
+        alert.alertStyle = .warning
+        // Offer Open Settings when the error directs the user there.
+        let offersSettings = details.contains("Settings")
+        // Offer a Settings shortcut for errors that identify a configuration remedy.
+        if offersSettings {
+            alert.addButton(withTitle: localized("open_settings", "Open Settings"))
+            alert.addButton(withTitle: localized("ok", "OK"))
+        }
+        let response = alert.runModal()
+        // Open Settings only when the user selected that alert action.
+        if offersSettings, response == .alertFirstButtonReturn {
+            appDelegate?.showPreferences(nil)
+        }
+        appDelegate?.terminateIfIdle()
+    }
+
+    // windowDidBecomeKey(notification): Make the inline result active while the
+    // launcher has focus, so File menu commands target it.
+    func windowDidBecomeKey(_ notification: Notification) {
+        refreshResultPaneState()
+        inlineResultSession?.updateCopyButtonMode()
+    }
+
+    // windowWillUseStandardFrame(window, newFrame): Fill the available screen
+    // on zoom; AppKit keeps the previous frame for restoration.
+    func windowWillUseStandardFrame(_ window: NSWindow, defaultFrame newFrame: NSRect) -> NSRect {
+        window.screen?.visibleFrame ?? newFrame
+    }
+
+    // windowDidResize(notification): Recenter the window buttons after AppKit
+    // lays them out, and reflow mode chips for the new width.
+    func windowDidResize(_ notification: Notification) {
+        launcherWindowDidResize()
+    }
+
+    // windowDidEndLiveResize(notification): Finish embedded Library layout
+    // updates after the main window is resized.
+    func windowDidEndLiveResize(_ notification: Notification) {
+        // Refresh embedded Library layout along with the launcher window.
+        if isLibraryEmbedded { libraryWindowDidResize() }
+    }
+
+    // windowWillClose(notification): Cancel the request and discard its
+    // temporary result when the launcher closes.
+    func windowWillClose(_ notification: Notification) {
+        hideEmbeddedLibrary()
+        // Cancel remaining request work when closing its launcher window.
+        if isGenerating || activeTextTask != nil || activeDataTask != nil || !activeDataTasks.isEmpty {
+            cancelGeneration()
+        }
+        discardInlineResult()
+
+        appDelegate?.updateMenuForActiveWindow()
+    }
+}
+
+// Returning Services must finish before the source app replaces its selection. This box passes an
+// asynchronous result through a bounded nested run loop without retaining the borrowed pasteboard or
+// error pointer.
+private final class ServiceTextResultBox {
+    private let condition = NSCondition()
+    private var stored: Result<String, Error>?
+
+    // finish(result): Store the first service result and wake any thread
+    // waiting for completion.
+    func finish(_ result: Result<String, Error>) {
+        condition.lock()
+        // Store only the first completion so later callbacks cannot replace the result.
+        if stored == nil { stored = result }
+        condition.broadcast()
+        condition.unlock()
+    }
+
+    // snapshot(): Read the current service result while holding its
+    // synchronization lock.
+    func snapshot() -> Result<String, Error>? {
+        condition.lock()
+        // Release the completion lock after reading its stored result.
+        defer { condition.unlock() }
+        return stored
+    }
+
+    // wait(deadline): Wait for service completion until the deadline, handling
+    // condition wakeups without a result.
+    func wait(until deadline: Date) -> Result<String, Error>? {
+        condition.lock()
+        // Release the condition lock on every return from the bounded wait.
+        defer { condition.unlock() }
+        // Wait until a result arrives or the deadline expires, tolerating condition wakeups.
+        while stored == nil, condition.wait(until: deadline) {}
+        return stored
+    }
+}
