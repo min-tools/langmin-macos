@@ -23940,3 +23940,213 @@ private final class ServiceTextResultBox {
         return stored
     }
 }
+
+// globalHotKeyEventHandler(nextHandler, event, userData): Decode a Carbon
+// hotkey event and forward its registered ID to the app delegate.
+private func globalHotKeyEventHandler(
+    _ nextHandler: EventHandlerCallRef?,
+    _ event: EventRef?,
+    _ userData: UnsafeMutableRawPointer?
+) -> OSStatus {
+    // Carbon callbacks need both the keyboard event and the app delegate context.
+    guard let event, let userData else { return OSStatus(eventNotHandledErr) }
+    var hotKeyID = EventHotKeyID()
+    let status = GetEventParameter(
+        event,
+        EventParamName(kEventParamDirectObject),
+        EventParamType(typeEventHotKeyID),
+        nil,
+        MemoryLayout<EventHotKeyID>.size,
+        nil,
+        &hotKeyID
+    )
+    // Forward only a successfully decoded hotkey identifier.
+    guard status == noErr else { return status }
+    let delegate = Unmanaged<AppDelegate>.fromOpaque(userData).takeUnretainedValue()
+    delegate.handleGlobalHotKey(id: hotKeyID.id)
+    return noErr
+}
+
+// makeLangminStatusBarIcon(): Draw a non-template icon so its white badge and
+// black details keep their colors in either menu-bar appearance.
+func makeLangminStatusBarIcon() -> NSImage {
+    let size = NSSize(width: 21, height: 19)
+    let image = NSImage(size: size, flipped: false) { rect in
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current?.shouldAntialias = true
+
+        let badgeRect = rect.insetBy(dx: 0.75, dy: 0.75)
+        let badge = NSBezierPath(roundedRect: badgeRect, xRadius: 6.2, yRadius: 6.2)
+        NSColor.white.setFill()
+        badge.fill()
+        NSColor.black.withAlphaComponent(0.18).setStroke()
+        badge.lineWidth = 0.65
+        badge.stroke()
+
+        // Draw the L with equal-width strokes instead of relying on a font glyph.
+        let letterThickness: CGFloat = 2.75
+        let letterOrigin = NSPoint(x: 6.15, y: 3.78)
+        let letterHeight: CGFloat = 11.44
+        let letterWidth: CGFloat = 6.75
+        let letter = NSBezierPath()
+        letter.appendRect(NSRect(
+            x: letterOrigin.x,
+            y: letterOrigin.y,
+            width: letterThickness,
+            height: letterHeight
+        ))
+        letter.appendRect(NSRect(
+            x: letterOrigin.x,
+            y: letterOrigin.y,
+            width: letterWidth,
+            height: letterThickness
+        ))
+        NSColor.black.setFill()
+        letter.fill()
+
+        // drawSparkle(center, radiusX, radiusY, inner): Draw one four-point
+        // sparkle as part of the generated app symbol.
+        func drawSparkle(center: NSPoint, radiusX: CGFloat, radiusY: CGFloat, inner: CGFloat) {
+            let path = NSBezierPath()
+            path.move(to: NSPoint(x: center.x, y: center.y + radiusY))
+            path.line(to: NSPoint(x: center.x + inner, y: center.y + inner))
+            path.line(to: NSPoint(x: center.x + radiusX, y: center.y))
+            path.line(to: NSPoint(x: center.x + inner, y: center.y - inner))
+            path.line(to: NSPoint(x: center.x, y: center.y - radiusY))
+            path.line(to: NSPoint(x: center.x - inner, y: center.y - inner))
+            path.line(to: NSPoint(x: center.x - radiusX, y: center.y))
+            path.line(to: NSPoint(x: center.x - inner, y: center.y + inner))
+            path.close()
+            NSColor.black.setFill()
+            path.fill()
+        }
+
+        drawSparkle(center: NSPoint(x: 12.55, y: 13.0), radiusX: 2.55, radiusY: 3.35, inner: 0.84)
+        drawSparkle(center: NSPoint(x: 16.15, y: 10.0), radiusX: 1.4445, radiusY: 1.8725, inner: 0.5393)
+
+        NSGraphicsContext.restoreGraphicsState()
+        return true
+    }
+    image.isTemplate = false
+    image.accessibilityDescription = appName
+
+    // Scale the 21×19 drawing to fit the menu bar.
+    let scale: CGFloat = 0.93
+    let scaledSize = NSSize(width: size.width * scale, height: size.height * scale)
+    let scaled = NSImage(size: scaledSize, flipped: false) { rect in
+        image.draw(in: rect)
+        return true
+    }
+    scaled.isTemplate = false
+    scaled.accessibilityDescription = appName
+    return scaled
+}
+
+// Application delegate receives open-file events and owns all windows.
+
+@MainActor
+private final class MinToolsAboutPanelController: NSWindowController {
+    static let shared = MinToolsAboutPanelController()
+
+    private let iconView = NSImageView()
+    private let nameLabel = NSTextField(labelWithString: "")
+    private let versionLabel = NSTextField(labelWithString: "")
+    private let copyrightLabel = NSTextField(labelWithString: "")
+    private let profileButton = NSButton()
+
+    private init() {
+        let size = NSSize(width: 280, height: 174)
+        let panel = NSPanel(
+            contentRect: NSRect(origin: .zero, size: size),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        super.init(window: panel)
+
+        panel.titleVisibility = .hidden
+        panel.titlebarAppearsTransparent = true
+        panel.isMovableByWindowBackground = true
+        panel.isReleasedWhenClosed = false
+        panel.contentMinSize = size
+        panel.contentMaxSize = size
+        panel.standardWindowButton(.miniaturizeButton)?.isEnabled = false
+        panel.standardWindowButton(.zoomButton)?.isEnabled = false
+
+        iconView.imageScaling = .scaleProportionallyUpOrDown
+        nameLabel.font = .systemFont(ofSize: 15, weight: .semibold)
+        versionLabel.font = .systemFont(ofSize: 11, weight: .medium)
+        copyrightLabel.font = .systemFont(ofSize: 11, weight: .medium)
+        for label in [nameLabel, versionLabel, copyrightLabel] {
+            label.alignment = .center
+            label.textColor = .labelColor
+        }
+
+        profileButton.isBordered = false
+        profileButton.attributedTitle = NSAttributedString(
+            string: "GitHub.com/iliaross",
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 11),
+                .foregroundColor: NSColor.linkColor,
+                .underlineStyle: NSUnderlineStyle.single.rawValue
+            ]
+        )
+        profileButton.target = self
+        profileButton.action = #selector(openProfile(_:))
+
+        let stack = NSStackView(views: [
+            iconView,
+            nameLabel,
+            versionLabel,
+            copyrightLabel,
+            profileButton
+        ])
+        stack.orientation = .vertical
+        stack.alignment = .centerX
+        stack.spacing = 4
+        stack.setCustomSpacing(8, after: iconView)
+        stack.setCustomSpacing(7, after: nameLabel)
+        stack.setCustomSpacing(8, after: versionLabel)
+        stack.setCustomSpacing(0, after: copyrightLabel)
+        stack.translatesAutoresizingMaskIntoConstraints = false
+
+        let content = NSView(frame: NSRect(origin: .zero, size: size))
+        content.addSubview(stack)
+        panel.contentView = content
+        NSLayoutConstraint.activate([
+            iconView.widthAnchor.constraint(equalToConstant: 54),
+            iconView.heightAnchor.constraint(equalToConstant: 54),
+            stack.centerXAnchor.constraint(equalTo: content.centerXAnchor),
+            stack.topAnchor.constraint(equalTo: content.topAnchor, constant: 10)
+        ])
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    // show(applicationName): Refresh bundle details and present the About panel.
+    func show(applicationName: String) {
+        let bundle = Bundle.main
+        let version = bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
+        let build = bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""
+        let copyright = bundle.object(forInfoDictionaryKey: "NSHumanReadableCopyright") as? String
+            ?? "© 2026 Ilia Ross"
+
+        iconView.image = NSApp.applicationIconImage
+        nameLabel.stringValue = applicationName
+        versionLabel.stringValue = "Version \(version) (\(build))"
+        copyrightLabel.stringValue = copyright
+
+        NSApp.activate(ignoringOtherApps: true)
+        window?.center()
+        showWindow(nil)
+        window?.makeKeyAndOrderFront(nil)
+    }
+
+    // openProfile(sender): Open the author's public GitHub profile.
+    @objc private func openProfile(_ sender: Any?) {
+        guard let url = URL(string: "https://github.com/iliaross") else { return }
+        NSWorkspace.shared.open(url)
+    }
+}
