@@ -24150,3 +24150,1516 @@ private final class MinToolsAboutPanelController: NSWindowController {
         NSWorkspace.shared.open(url)
     }
 }
+
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    var sessions: [ViewerSession] = []
+    weak var activeSession: ViewerSession?
+    var keyMonitor: Any?
+    let preferencesController = PreferencesController()
+    let launcherController = LauncherController()
+    let clipboardHUDController = ClipboardProgressHUDController()
+    let setupWizard = SetupWizardController()
+    var appMenuItem: NSMenuItem!
+    var appMenu: NSMenu!
+    var libraryItem: NSMenuItem!
+    var saveTextItem: NSMenuItem!
+    var saveAudioItem: NSMenuItem!
+    var printItem: NSMenuItem!
+    var closeItem: NSMenuItem!
+    var statusItem: NSStatusItem?
+    var cancelClipboardActionItem: NSMenuItem?
+    var hotKeyRefs: [EventHotKeyRef] = []
+    var hotKeyEventHandlerRef: EventHandlerRef?
+    var hotKeyActions: [UInt32: String] = [:]
+    var pendingPublicURLs: [URL] = []
+    var suppressInitialLauncherReveal = false
+    var serviceTransformInFlight = false
+
+    // init(): Register URL handling as soon as the delegate exists, so
+    // cold-launch langmin:// events cannot race applicationDidFinishLaunching.
+    override init() {
+        super.init()
+        clipboardHUDController.onBecameInactive = { [weak self] in
+            self?.terminateIfIdle()
+        }
+        installURLEventHandler()
+    }
+
+    // applicationDidFinishLaunching(notification): Finish app setup once AppKit
+    // has launched the process.
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        migrateCommandOpenClipboardShortcut()
+        migrateLibraryShortcutToGlobalDefault()
+        removeAbandonedLangminTemporaryItems()
+        ProStore.shared.start()
+
+        // Prefer the bundled named image for the application's icon.
+        if let icon = NSImage(named: NSImage.Name(appIconName)) {
+            NSApplication.shared.applicationIconImage = icon
+        } else {
+            // Use the bundle resource fallback when the named icon cannot be resolved.
+            NSApplication.shared.applicationIconImage = NSImage(
+                systemSymbolName: "book.closed.fill",
+                accessibilityDescription: appName
+            )
+        }
+
+        launcherController.appDelegate = self
+        startLibrarySync()
+        launcherController.prepareForLaunch()
+        let queuedURLs = pendingPublicURLs
+        pendingPublicURLs = []
+        queuedURLs.forEach { openPublicURL($0) }
+        NSApp.servicesProvider = self
+        NSUpdateDynamicServices()
+        let registration = configureSystemIntegration()
+        // Report shortcut registration problems after app startup completes.
+        if registration.infrastructureUnavailable || !registration.rejectedActions.isEmpty {
+            DispatchQueue.main.async { [weak self] in
+                self?.presentGlobalShortcutRegistrationWarning(registration)
+            }
+        }
+        installKeyboardControls()
+        updateMenuForActiveWindow()
+
+        // Fetch voice catalogs only when a picker opens. Launching the app alone should not read API
+        // keys or contact providers.
+
+        // Allow pending URL and Service events to arrive before showing the launcher for an ordinary app
+        // open.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) { [weak self] in
+            // Skip delayed launcher presentation if its app delegate has been released.
+            guard let self else {
+                return
+            }
+
+            // Show the initial launcher only when no URL, Service, result, or active request has claimed startup.
+            if
+                !self.suppressInitialLauncherReveal,
+                self.sessions.isEmpty,
+                !(self.launcherController.window?.isVisible ?? false),
+                !self.launcherController.isGenerating
+            {
+                self.launcherController.show()
+            }
+            self.presentSetupWizardIfNeeded()
+        }
+    }
+
+    // presentSetupWizardIfNeeded(): Show setup once on first launch. It remains
+    // available from Setup Assistant in the app menu.
+    private func presentSetupWizardIfNeeded() {
+        // Expired-trial previews open directly to the post-trial launcher.
+        guard !LangminEdition.isExpiredTrialPreview else { return }
+        // Automatically present setup only until the wizard is marked complete.
+        guard !setupWizard.isCompleted else { return }
+        setupWizard.present()
+    }
+
+    // showSetupAssistant(sender): Reopen the setup assistant from the app menu.
+    @objc func showSetupAssistant(_ sender: Any?) {
+        setupWizard.present()
+    }
+
+    // installURLEventHandler(): Custom URL scheme launches arrive through the
+    // standard Apple Event path.
+    func installURLEventHandler() {
+        NSAppleEventManager.shared().setEventHandler(
+            self,
+            andSelector: #selector(handleURLEvent(_:withReplyEvent:)),
+            forEventClass: AEEventClass(kInternetEventClass),
+            andEventID: AEEventID(kAEGetURL)
+        )
+    }
+
+    // handleURLEvent(event, replyEvent): Decode one public URL event from
+    // Launch Services.
+    @objc func handleURLEvent(_ event: NSAppleEventDescriptor, withReplyEvent replyEvent: NSAppleEventDescriptor) {
+        // Extract a valid URL from the incoming Apple event before routing it.
+        guard
+            let rawURL = event.paramDescriptor(forKeyword: keyDirectObject)?.stringValue,
+            let url = URL(string: rawURL)
+        // Ignore malformed URL events without changing app state.
+        else {
+            return
+        }
+
+        openPublicURL(url)
+    }
+
+    @discardableResult
+    // configureSystemIntegration(): Register enabled system integrations and
+    // omit shortcuts rejected by the operating system.
+    func configureSystemIntegration() -> GlobalHotKeyRegistrationOutcome {
+        let preferences = loadAppPreferences()
+        let registration = registerGlobalHotKeys(preferences.globalShortcuts)
+        var availableShortcuts = preferences.globalShortcuts
+        registration.rejectedActions.forEach { availableShortcuts.removeValue(forKey: $0) }
+        configureLibraryMenuShortcut(availableShortcuts["library"])
+        configureStatusItem(enabled: preferences.menuBarEnabled, shortcuts: availableShortcuts)
+        return registration
+    }
+
+    // presentGlobalShortcutRegistrationWarning(registration): Report rejected
+    // shortcuts and remove their menu hints so unavailable actions do not look
+    // configured.
+    func presentGlobalShortcutRegistrationWarning(_ registration: GlobalHotKeyRegistrationOutcome) {
+        let names = registration.rejectedActions.map { action -> String in
+            // Name global actions consistently in shortcut and menu UI.
+            switch action {
+            // The Library action opens saved results.
+            case "library": return localized("library", "Library")
+            // Compose identifies prefilling the launcher from the clipboard.
+            case "compose": return localized("compose_with_clipboard", "Compose with Clipboard")
+            // Proofread identifies transforming clipboard text for pasting.
+            case "proofread": return localized("proofread_clipboard", "Proofread Clipboard")
+            // Rewrite identifies rewriting the clipboard contents.
+            case "rewrite": return localized("rewrite_clipboard", "Rewrite Clipboard")
+            // Explain identifies explaining the clipboard text.
+            case "explain": return localized("explain_clipboard", "Explain Clipboard")
+            // Summarize identifies summarizing the clipboard text.
+            case "summarize": return localized("summarize_clipboard", "Summarize Clipboard")
+            // Translate identifies translating the clipboard text.
+            case "translate": return localized("translate_clipboard", "Translate Clipboard")
+            // Dictionary uses the familiar lookup action label.
+            case "dictionary": return localized("dictionary_lookup", "Dictionary Lookup")
+            // Unknown action identifiers use a readable capitalized fallback.
+            default: return action.capitalized
+            }
+        }
+        NSApp.activate(ignoringOtherApps: true)
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = "Some global shortcuts are unavailable"
+        alert.informativeText = registration.infrastructureUnavailable
+            ? "Langmin could not install its global shortcut handler. Restart Langmin and try again."
+            : "macOS could not register: \(names.joined(separator: ", ")). Choose different combinations in Settings → Shortcuts."
+        alert.addButton(withTitle: localized("ok", "OK"))
+        alert.runModal()
+    }
+
+    // configureLibraryMenuShortcut(shortcut): Mirror the global Library
+    // shortcut in the ordinary File menu.
+    func configureLibraryMenuShortcut(_ shortcut: GlobalShortcut?) {
+        // Update the Library menu shortcut only after its menu item exists.
+        guard let libraryItem else { return }
+        libraryItem.keyEquivalent = shortcut.flatMap {
+            $0.key.count == 1 ? $0.key.lowercased() : nil
+        } ?? ""
+        libraryItem.keyEquivalentModifierMask = shortcut?.eventModifierFlags ?? []
+    }
+
+    // showClipboardHUDIfNeeded(run, modelName, status): Tie the nonactivating
+    // HUD to one LauncherRun so old callbacks and dismissal timers cannot
+    // affect a newer request.
+    func showClipboardHUDIfNeeded(for run: LauncherRun, modelName: String, status: String) {
+        // Only the current launcher run may create clipboard progress UI.
+        guard launcherController.activeRun === run else { return }
+        // Ordinary launcher requests do not use clipboard HUD presentation.
+        guard case let .clipboardHUD(title, detail, preferredScreen) = run.presentation else { return }
+
+        run.hudToken = clipboardHUDController.begin(
+            title: title,
+            modelName: modelName,
+            status: detail ?? status,
+            screen: preferredScreen
+        ) { [weak self, weak run] in
+            // Cancel from the HUD only while its captured controller and run still exist.
+            guard let self, let run else { return }
+            self.launcherController.cancelGeneration(expectedRun: run)
+        }
+        cancelClipboardActionItem?.isHidden = false
+        cancelClipboardActionItem?.isEnabled = true
+    }
+
+    // updateClipboardHUD(run, status): Update progress only for the HUD token
+    // belonging to this request.
+    func updateClipboardHUD(for run: LauncherRun, status: String) {
+        clipboardHUDController.update(token: run.hudToken, status: status)
+    }
+
+    // disableClipboardHUDCancellation(run): Disable both HUD and menu
+    // cancellation after the request stops accepting cancellation.
+    func disableClipboardHUDCancellation(for run: LauncherRun) {
+        // Suspend cancellation only on the HUD belonging to this request.
+        guard clipboardHUDController.isCurrent(token: run.hudToken) else { return }
+        clipboardHUDController.setCancellationAvailable(token: run.hudToken, false)
+        cancelClipboardActionItem?.isEnabled = false
+        cancelClipboardActionItem?.isHidden = true
+    }
+
+    // suspendClipboardHUD(run): Temporarily hide this request's HUD while
+    // another interaction needs attention.
+    func suspendClipboardHUD(for run: LauncherRun) {
+        clipboardHUDController.suspend(token: run.hudToken)
+    }
+
+    // resumeClipboardHUD(run, status): Resume this request's HUD with its
+    // current progress message.
+    func resumeClipboardHUD(for run: LauncherRun, status: String) {
+        clipboardHUDController.resume(token: run.hudToken, status: status)
+    }
+
+    // completeClipboardHUD(run, message, [detail = nil], style, delay, [retry =
+    // nil], [resultText = nil], [open = nil]): Finish the request's HUD with
+    // the supplied result style, details, and available actions.
+    func completeClipboardHUD(
+        for run: LauncherRun,
+        message: String,
+        detail: String? = nil,
+        style: ClipboardHUDCompletionStyle,
+        dismissAfter delay: TimeInterval,
+        retry: (() -> Void)? = nil,
+        resultText: String? = nil,
+        open: ((ClipboardHUDPlayback) -> Void)? = nil
+    ) {
+        // Finish only the currently displayed HUD, leaving newer request UI intact.
+        guard clipboardHUDController.isCurrent(token: run.hudToken) else { return }
+        cancelClipboardActionItem?.isEnabled = false
+        cancelClipboardActionItem?.isHidden = true
+        clipboardHUDController.complete(
+            token: run.hudToken,
+            message: message,
+            detail: detail,
+            style: style,
+            dismissAfter: delay,
+            retry: retry,
+            resultText: resultText,
+            open: open
+        )
+    }
+
+    // dismissClipboardHUD(run): Dismiss the request's HUD and clear menu
+    // cancellation only if it is still the current request.
+    func dismissClipboardHUD(for run: LauncherRun) {
+        let wasCurrent = clipboardHUDController.isCurrent(token: run.hudToken)
+        // Disable the cancel menu item only when dismissing the current HUD.
+        if wasCurrent {
+            cancelClipboardActionItem?.isEnabled = false
+            cancelClipboardActionItem?.isHidden = true
+        }
+        clipboardHUDController.dismiss(token: run.hudToken)
+        run.hudToken = nil
+    }
+
+    // configureStatusItem(enabled, shortcuts): Create or remove the menu-bar
+    // item and populate its available clipboard actions.
+    func configureStatusItem(enabled: Bool, shortcuts: [String: GlobalShortcut]) {
+        // Remove the status item when menu-bar integration is disabled.
+        guard enabled else {
+            // Unregister an existing status item before releasing it.
+            if let statusItem { NSStatusBar.system.removeStatusItem(statusItem) }
+            statusItem = nil
+            cancelClipboardActionItem = nil
+            return
+        }
+
+        // Create the menu-bar status item only once.
+        if statusItem == nil {
+            let item = NSStatusBar.system.statusItem(withLength: 24)
+            item.button?.image = makeLangminStatusBarIcon()
+            item.button?.imagePosition = .imageOnly
+            item.button?.imageScaling = .scaleProportionallyDown
+            item.button?.toolTip = appName
+            statusItem = item
+        }
+
+        let menu = NSMenu()
+        addStatusMenuItem(menu, title: localized("open_langmin", "Open Langmin"), action: #selector(showLauncher(_:)))
+        addStatusMenuItem(menu, title: localized("compose_with_clipboard", "Compose with Clipboard"), action: #selector(composeClipboard(_:)), shortcut: shortcuts["compose"])
+        let cancelItem = NSMenuItem(
+            title: localized("cancel_current_action", "Cancel Current Action"),
+            action: #selector(cancelCurrentClipboardAction(_:)),
+            keyEquivalent: ""
+        )
+        cancelItem.target = self
+        let canCancelCurrentHUD: Bool
+        // Enable HUD cancellation only for a matching active run that still accepts it.
+        if
+            let run = launcherController.activeRun,
+            case .clipboardHUD = run.presentation,
+            run.acceptsCancellation,
+            clipboardHUDController.isCurrent(token: run.hudToken)
+        {
+            canCancelCurrentHUD = true
+        } else {
+            // Otherwise the menu must not offer cancellation for stale or unrelated work.
+            canCancelCurrentHUD = false
+        }
+        cancelItem.isHidden = !canCancelCurrentHUD
+        cancelItem.isEnabled = canCancelCurrentHUD
+        menu.addItem(cancelItem)
+        cancelClipboardActionItem = cancelItem
+        menu.addItem(.separator())
+        addStatusMenuItem(menu, title: localized("proofread_clipboard", "Proofread Clipboard"), action: #selector(proofreadClipboard(_:)), shortcut: shortcuts["proofread"])
+        addStatusMenuItem(menu, title: localized("rewrite_clipboard", "Rewrite Clipboard"), action: #selector(rewriteClipboard(_:)), shortcut: shortcuts["rewrite"])
+        addStatusMenuItem(menu, title: localized("explain_clipboard", "Explain Clipboard"), action: #selector(explainClipboard(_:)), shortcut: shortcuts["explain"])
+        addStatusMenuItem(menu, title: localized("summarize_clipboard", "Summarize Clipboard"), action: #selector(summarizeClipboard(_:)), shortcut: shortcuts["summarize"])
+        addStatusMenuItem(menu, title: localized("translate_clipboard", "Translate Clipboard"), action: #selector(translateClipboard(_:)), shortcut: shortcuts["translate"])
+        addStatusMenuItem(menu, title: localized("look_up_clipboard_in_dictionary", "Look Up Clipboard in Dictionary"), action: #selector(dictionaryClipboard(_:)), shortcut: shortcuts["dictionary"])
+        menu.addItem(.separator())
+        addStatusMenuItem(menu, title: localized("library", "Library"), action: #selector(showLibraryFromMenu(_:)), shortcut: shortcuts["library"])
+        addStatusMenuItem(menu, title: localized("settings", "Settings…"), action: #selector(showPreferences(_:)))
+        // Show the standard ⌘, hint, matching the app menu's Settings item.
+        menu.items.last?.keyEquivalent = ","
+        addStatusMenuItem(menu, title: String(format: localized("pro_menu", "%@ Pro…"), appName), action: #selector(showProPanel(_:)))
+        addStatusMenuItem(menu, title: localized("privacy_policy", "Privacy Policy…"), action: #selector(showPrivacyPolicy(_:)))
+        menu.addItem(.separator())
+        addStatusMenuItem(menu, title: String(format: localized("quit_app", "Quit %@"), appName), action: #selector(quitFromMenu(_:)))
+        statusItem?.menu = menu
+    }
+
+    // addStatusMenuItem(menu, title, action, [shortcut = nil]): Add a menu
+    // action with the printable key equivalent from its configured shortcut.
+    func addStatusMenuItem(_ menu: NSMenu, title: String, action: Selector, shortcut: GlobalShortcut? = nil) {
+        let key = shortcut.flatMap { $0.key.count == 1 ? $0.key.lowercased() : nil } ?? ""
+        let item = NSMenuItem(title: title, action: action, keyEquivalent: key)
+        item.target = self
+        // Use the configured modifier keys when displaying an action's shortcut.
+        if let shortcut { item.keyEquivalentModifierMask = shortcut.eventModifierFlags }
+        menu.addItem(item)
+    }
+
+    // registerGlobalHotKeys(shortcuts): Replace hotkey registrations and report
+    // individual conflicts or event-handler failure.
+    func registerGlobalHotKeys(_ shortcuts: [String: GlobalShortcut]) -> GlobalHotKeyRegistrationOutcome {
+        // Unregister previous hotkeys before applying the new configuration.
+        for reference in hotKeyRefs { UnregisterEventHotKey(reference) }
+        hotKeyRefs = []
+        hotKeyActions = [:]
+
+        // Install the shared Carbon hotkey handler once.
+        if hotKeyEventHandlerRef == nil {
+            var eventType = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
+            let status = InstallEventHandler(
+                GetApplicationEventTarget(),
+                globalHotKeyEventHandler,
+                1,
+                &eventType,
+                Unmanaged.passUnretained(self).toOpaque(),
+                &hotKeyEventHandlerRef
+            )
+            // Report infrastructure failure if the event handler could not be installed.
+            guard status == noErr, hotKeyEventHandlerRef != nil else {
+                hotKeyEventHandlerRef = nil
+                return GlobalHotKeyRegistrationOutcome(
+                    rejectedActions: globalShortcutActions.filter { shortcuts[$0] != nil },
+                    infrastructureUnavailable: true
+                )
+            }
+        }
+
+        var failures: [String] = []
+        // Register configured shortcuts with stable action identifiers.
+        for (offset, action) in globalShortcutActions.enumerated() {
+            // Skip actions whose shortcut was explicitly cleared.
+            guard let shortcut = shortcuts[action] else { continue }
+            let id = UInt32(offset + 1)
+            var reference: EventHotKeyRef?
+            let hotKeyID = EventHotKeyID(signature: OSType(0x4C4D494E), id: id) // LMIN
+            // Remember only hotkeys that Carbon successfully registered.
+            if RegisterEventHotKey(
+                shortcut.keyCode,
+                shortcut.carbonModifiers,
+                hotKeyID,
+                GetApplicationEventTarget(),
+                OptionBits(kEventHotKeyExclusive),
+                &reference
+            ) == noErr, let reference {
+                hotKeyRefs.append(reference)
+                hotKeyActions[id] = action
+            } else {
+                // Collect rejected shortcut actions for a useful settings error.
+                failures.append(action)
+            }
+        }
+        return GlobalHotKeyRegistrationOutcome(
+            rejectedActions: failures,
+            infrastructureUnavailable: false
+        )
+    }
+
+    // handleGlobalHotKey(id): Dispatch a registered shortcut on the main queue,
+    // selecting modes when the launcher is active.
+    func handleGlobalHotKey(id: UInt32) {
+        // Ignore hotkey events whose action mapping is no longer registered.
+        guard let action = hotKeyActions[id] else { return }
+        DispatchQueue.main.async { [weak self] in
+            // Ignore a queued hotkey action after its app delegate has been released.
+            guard let self else { return }
+            // While composing, mode shortcuts select a chip instead of running a clipboard action.
+            if
+                launcherModeOptions.contains(where: { $0.id == action }),
+                let window = self.launcherController.window,
+                window.isKeyWindow || self.launcherController.palettePanel?.isKeyWindow == true
+            {
+                // Do not change the launcher's selected mode during generation.
+                guard !self.launcherController.isGenerating else { return }
+                self.launcherController.closePalette()
+                self.launcherController.selectMode(action)
+                // Move keyboard focus to the selected mode chip when it is visible.
+                if let chip = self.launcherController.modeChips.first(where: { $0.modeID == action }) {
+                    window.makeFirstResponder(chip)
+                }
+                return
+            }
+            // The Library shortcut opens saved results directly.
+            if action == "library" {
+                self.showLibraryFromMenu(nil)
+            } else {
+                // Other global actions operate on explicitly requested clipboard input.
+                self.performClipboardAction(action)
+            }
+        }
+    }
+
+    // snapshotPasteboardItems(pasteboard): Clipboard actions read only the
+    // general clipboard. Services receive selected text on a separate
+    // pasteboard.
+    func snapshotPasteboardItems(_ pasteboard: NSPasteboard) -> [NSPasteboardItem] {
+        (pasteboard.pasteboardItems ?? []).compactMap { source in
+            let copy = NSPasteboardItem()
+            var copiedType = false
+            // Copy every available pasteboard representation for potential restoration.
+            for type in source.types {
+                // Skip representations that cannot be read or copied.
+                guard let data = source.data(forType: type), copy.setData(data, forType: type) else {
+                    continue
+                }
+                copiedType = true
+            }
+            return copiedType ? copy : nil
+        }
+    }
+
+    @discardableResult
+    // restorePasteboardItems(items, pasteboard): Restore captured clipboard
+    // items only when there is content available to restore.
+    func restorePasteboardItems(_ items: [NSPasteboardItem], to pasteboard: NSPasteboard) -> Bool {
+        // Do not clear the clipboard when there is no snapshot to restore.
+        guard !items.isEmpty else { return false }
+        pasteboard.clearContents()
+        return pasteboard.writeObjects(items)
+    }
+
+    // performClipboardAction(action, [preferredScreen = nil]): Read the
+    // clipboard on explicit invocation, then route the requested mode to its
+    // completion flow.
+    func performClipboardAction(_ action: String, preferredScreen: NSScreen? = nil) {
+        let pasteboard = NSPasteboard.general
+        // A clipboard action requires nonempty plain text supplied by the pasteboard.
+        guard
+            let text = pasteboard.string(forType: .string),
+            !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        // Explain missing clipboard text before attempting generation.
+        else {
+            NSApp.activate(ignoringOtherApps: true)
+            let alert = NSAlert()
+            alert.messageText = localized("no_clipboard_text_title", "No clipboard text")
+            alert.informativeText = localized("no_clipboard_text_body", "Copy some text, then try the Langmin action again.")
+            alert.runModal()
+            return
+        }
+        let sourceClipboardChangeCount = pasteboard.changeCount
+
+        let opensLauncher = action == "compose"
+        let mode: String
+        // Compose uses the user's configured launcher mode for prefilling.
+        if action == "compose" {
+            let preferences = loadAppPreferences()
+            mode = preferences.rememberLauncherChoices ? loadLauncherPreferences().mode : "explain"
+        } else {
+            // Other clipboard actions select their named mode directly.
+            mode = action
+        }
+
+        // Clipboard commands complete through the HUD; Compose opens the main input window.
+        let consumesTransform = !opensLauncher
+        let wordCount = text.split(whereSeparator: { $0.isWhitespace }).count
+        let wordCountText = wordCount == 1
+            ? localized("hud_one_word", "1 word")
+            : String(format: localized("hud_word_count", "%d words"), wordCount)
+        let presentation: LauncherRunPresentation = opensLauncher
+            ? .standard
+            : .clipboardHUD(
+                title: clipboardHUDVerb(for: mode),
+                detail: wordCountText,
+                preferredScreen: preferredScreen
+            )
+        launcherController.handleAutomation(
+            text: text,
+            mode: mode,
+            run: !opensLauncher,
+            presentation: presentation,
+            transformCompletion: consumesTransform ? { [weak self] run, result in
+                // Ignore a late completion after the app delegate has been released.
+                guard let self else { return }
+                // Route a completed clipboard action according to success or failure.
+                switch result {
+                // Only an uncanceled successful transform may present or copy its result.
+                case .success(let transformed):
+                    // A canceled transform must not update the clipboard or present a new result.
+                    guard !run.cancelled else { return }
+                    // Reading modes leave the clipboard intact and wait for Open or Dismiss.
+                    // Capture metadata now so a later launcher request cannot change this result.
+                    if ["explain", "summarize", "translate", "dictionary"].contains(mode) {
+                        let model = self.launcherController.lastRunTextModel
+                        let languageLevel = self.launcherController.pendingRunLanguageLevel
+                        self.completeClipboardHUD(
+                            for: run,
+                            message: self.launcherController.featureTitle(for: mode),
+                            detail: model,
+                            style: .success,
+                            dismissAfter: 0,
+                            resultText: transformed,
+                            open: { [weak self] narration in
+                                self?.openDetachedResultWindow(
+                                    text: transformed, mode: mode, narration: narration,
+                                    textModel: model, languageLevel: languageLevel,
+                                    dictionaryHeadword: mode == "dictionary" ? text : nil,
+                                    conversation: run.conversation
+                                )
+                            }
+                        )
+                        return
+                    }
+                    // Ask before overwriting text copied while generation was running.
+                    if pasteboard.changeCount != sourceClipboardChangeCount {
+                        self.suspendClipboardHUD(for: run)
+                        NSApp.activate(ignoringOtherApps: true)
+                        let alert = NSAlert()
+                        alert.messageText = localized("clipboard_changed_title", "The clipboard changed")
+                        alert.informativeText = localized("clipboard_changed_body", "You copied something else while Langmin was working. Replace it with the transformed text?")
+                        alert.addButton(withTitle: localized("copy_result", "Copy Result"))
+                        alert.addButton(withTitle: localized("keep_current_clipboard", "Keep Current Clipboard"))
+                        // Keep the newer clipboard unchanged when the user declines replacement.
+                        guard alert.runModal() == .alertFirstButtonReturn else {
+                            self.resumeClipboardHUD(for: run, status: localized("clipboard_unchanged", "Clipboard unchanged"))
+                            self.completeClipboardHUD(
+                                for: run,
+                                message: localized("clipboard_unchanged", "Clipboard unchanged"),
+                                style: .neutral,
+                                dismissAfter: 1.0
+                            )
+                            return
+                        }
+                        self.resumeClipboardHUD(for: run, status: localized("copying", "Copying…"))
+                    } else {
+                        // An unchanged clipboard can proceed directly to the copying status.
+                        self.updateClipboardHUD(for: run, status: localized("copying", "Copying…"))
+                    }
+                    // Recheck cancellation after the overwrite dialog may have yielded control.
+                    guard !run.cancelled else { return }
+                    let clipboardSnapshot = self.snapshotPasteboardItems(pasteboard)
+                    pasteboard.clearContents()
+                    // Try restoring the clipboard snapshot if macOS rejects the transformed text.
+                    guard pasteboard.setString(transformed, forType: .string) else {
+                        let restored = self.restorePasteboardItems(clipboardSnapshot, to: pasteboard)
+                        self.dismissClipboardHUD(for: run)
+                        NSApp.activate(ignoringOtherApps: true)
+                        self.launcherController.presentError(
+                            localized("could_not_update_clipboard", "Could not update the clipboard"),
+                            details: restored
+                                ? localized("clipboard_write_failed_restored", "macOS did not accept the transformed text. The previous clipboard contents were restored.")
+                                : localized("clipboard_write_failed_unrestored", "macOS did not accept the transformed text, and the previous clipboard contents could not be restored.")
+                        )
+                        return
+                    }
+                    // Proofread and Rewrite are ready to paste, so only their confirmation is transient.
+                    self.completeClipboardHUD(
+                        for: run,
+                        message: localized("copied", "Copied"),
+                        detail: localized("cmd_v_to_paste", "⌘V to paste"),
+                        style: .success,
+                        dismissAfter: 1.6
+                    )
+                // Present cancellation and actionable errors through their appropriate completion UI.
+                case .failure(let error):
+                    // Cancellation is a brief status, not a retryable provider failure.
+                    if error is LauncherCancellationError {
+                        self.completeClipboardHUD(
+                            for: run,
+                            message: localized("cancelled", "Cancelled"),
+                            style: .cancelled,
+                            dismissAfter: 0.8
+                        )
+                        return
+                    }
+                    // A skipped translation leaves the clipboard intact and has nothing to retry.
+                    if error is TranslationSkipped {
+                        self.completeClipboardHUD(
+                            for: run,
+                            message: error.localizedDescription,
+                            style: .failure,
+                            dismissAfter: 6
+                        )
+                        return
+                    }
+                    // Offer Open Settings for configuration errors. Keep other failures in the HUD with
+                    // Retry, without activating the app or stacking alerts.
+                    let details = error.localizedDescription
+                    // Configuration failures can open Settings through an alert.
+                    if details.contains("Settings") {
+                        self.dismissClipboardHUD(for: run)
+                        NSApp.activate(ignoringOtherApps: true)
+                        self.launcherController.presentError(self.clipboardHUDTitle(for: action), details: details)
+                    } else {
+                        // Other failures remain in the HUD with the captured retry action.
+                        self.completeClipboardHUD(
+                            for: run,
+                            message: details,
+                            style: .failure,
+                            dismissAfter: 6,
+                            retry: { [weak self] in
+                                self?.performClipboardAction(action, preferredScreen: preferredScreen)
+                            }
+                        )
+                    }
+                }
+            } : nil
+        )
+    }
+
+    // clipboardHUDTitle(action): Choose the localized HUD action title for a
+    // clipboard request.
+    func clipboardHUDTitle(for action: String) -> String {
+        // Use action-specific titles for clipboard result and error UI.
+        switch action {
+        // Name the proofreading clipboard action.
+        case "proofread": return localized("proofread_clipboard", "Proofread Clipboard")
+        // Name the rewriting clipboard action.
+        case "rewrite": return localized("rewrite_clipboard", "Rewrite Clipboard")
+        // Name the translation clipboard action.
+        case "translate": return localized("translate_clipboard", "Translate Clipboard")
+        // Name the summarization clipboard action.
+        case "summarize": return localized("summarize_clipboard", "Summarize Clipboard")
+        // Use Dictionary Lookup for dictionary clipboard work.
+        case "dictionary": return localized("dictionary_lookup", "Dictionary Lookup")
+        // Use Explain Clipboard for the fallback action.
+        default: return localized("explain_clipboard", "Explain Clipboard")
+        }
+    }
+
+    // openDetachedResultWindow(text, mode, narration, [textModel = nil],
+    // [languageLevel = "off"], [dictionaryHeadword = nil], [conversation =
+    // nil]): Move the text and any HUD narration into a window that owns their
+    // temporary files.
+    func openDetachedResultWindow(text: String, mode: String, narration: ClipboardHUDPlayback,
+                                  textModel: String? = nil, languageLevel: String = "off",
+                                  dictionaryHeadword: String? = nil, conversation: ResultConversation? = nil) {
+        var createdDirectory: URL?
+        // Create session-owned result files before presenting the HUD content in a window.
+        do {
+            let tempDir = try createLangminTemporaryDirectory(prefix: mode)
+            createdDirectory = tempDir
+            let textPath = tempDir.appendingPathComponent("result.txt")
+            try "\(text)\n".write(to: textPath, atomically: true, encoding: .utf8)
+            let model = textModel ?? launcherController.lastRunTextModel
+            // Use the same content-based title as launcher results and Library saves.
+            let displayTitle = launcherController.resultTitle(for: mode, secondary: "", output: text)
+            let session = resultSession(
+                textPath: textPath.path,
+                audioPath: "",
+                title: appWindowTitle(mode: launcherController.featureTitle(for: mode), title: displayTitle),
+                cleanupDir: tempDir.path,
+                textModel: model.isEmpty ? nil : model,
+                dictionaryHeadword: dictionaryHeadword,
+                mode: mode,
+                languageLevel: languageLevel
+            )
+            session.config.conversation = conversation
+            presentResultSession(session)
+            session.adoptHUDNarration(narration)
+        } catch {
+            // Discard partially prepared detached-result assets if opening fails.
+            // Remove a temporary directory allocated by this failed handoff.
+            if let createdDirectory { try? FileManager.default.removeItem(at: createdDirectory) }
+            narration.clear()
+            NSApp.activate(ignoringOtherApps: true)
+            launcherController.presentError(
+                localized("could_not_open_result", "Could not open the result"),
+                details: error.localizedDescription
+            )
+        }
+    }
+
+    // clipboardHUDVerb(mode): The HUD's bold mode label, shown beside the model
+    // name.
+    func clipboardHUDVerb(for mode: String) -> String {
+        // Describe the current clipboard task with a short active verb.
+        switch mode {
+        // Use the proofreading progress verb.
+        case "proofread": return localized("hud_proofreading", "Proofreading")
+        // Use the rewriting progress verb.
+        case "rewrite": return localized("hud_rewriting", "Rewriting")
+        // Use the translation progress verb.
+        case "translate": return localized("hud_translating", "Translating")
+        // Use the summarization progress verb.
+        case "summarize": return localized("hud_summarizing", "Summarizing")
+        // Use the dictionary lookup progress phrase.
+        case "dictionary": return localized("hud_looking_up", "Looking up")
+        // Use explaining as the fallback progress verb.
+        default: return localized("hud_explaining", "Explaining")
+        }
+    }
+
+    // statusItemScreen(): Use the menu-bar item's screen as the preferred
+    // location for its HUD.
+    func statusItemScreen() -> NSScreen? {
+        statusItem?.button?.window?.screen
+    }
+
+    // cancelCurrentClipboardAction(sender): Cancel only an active clipboard
+    // request that still accepts cancellation.
+    @objc func cancelCurrentClipboardAction(_ sender: Any?) {
+        // The cancel menu action applies only to an active, cancellable clipboard run.
+        guard
+            let run = launcherController.activeRun,
+            case .clipboardHUD = run.presentation,
+            run.acceptsCancellation
+        // Ignore a cancel action after that eligible run has ended.
+        else { return }
+        launcherController.cancelGeneration(expectedRun: run)
+    }
+
+    // composeClipboard(sender): Open clipboard text in the launcher through the
+    // Compose action.
+    @objc func composeClipboard(_ sender: Any?) { performClipboardAction("compose", preferredScreen: statusItemScreen()) }
+    // proofreadClipboard(sender): Proofread explicitly copied text using the
+    // clipboard request flow.
+    @objc func proofreadClipboard(_ sender: Any?) { performClipboardAction("proofread", preferredScreen: statusItemScreen()) }
+    // rewriteClipboard(sender): Rewrite explicitly copied text using the
+    // clipboard request flow.
+    @objc func rewriteClipboard(_ sender: Any?) { performClipboardAction("rewrite", preferredScreen: statusItemScreen()) }
+    // explainClipboard(sender): Explain explicitly copied text and present its
+    // result through the HUD flow.
+    @objc func explainClipboard(_ sender: Any?) { performClipboardAction("explain", preferredScreen: statusItemScreen()) }
+    // summarizeClipboard(sender): Summarize explicitly copied text and present
+    // its result through the HUD flow.
+    @objc func summarizeClipboard(_ sender: Any?) { performClipboardAction("summarize", preferredScreen: statusItemScreen()) }
+    // translateClipboard(sender): Translate explicitly copied text using the
+    // selected translation options and HUD flow.
+    @objc func translateClipboard(_ sender: Any?) { performClipboardAction("translate", preferredScreen: statusItemScreen()) }
+    // dictionaryClipboard(sender): Look up explicitly copied text and present
+    // its dictionary result through the HUD flow.
+    @objc func dictionaryClipboard(_ sender: Any?) { performClipboardAction("dictionary", preferredScreen: statusItemScreen()) }
+
+    // showLibraryFromMenu(sender): Open the Library from the app's menu action.
+    @objc func showLibraryFromMenu(_ sender: Any?) {
+        launcherController.showLibrary(nil)
+    }
+
+    // quitFromMenu(sender): Request normal application termination from the
+    // menu.
+    @objc func quitFromMenu(_ sender: Any?) { NSApp.terminate(nil) }
+
+    // setServiceError(errorPointer, message): Return a service failure message
+    // through macOS's service error pointer.
+    func setServiceError(
+        _ errorPointer: AutoreleasingUnsafeMutablePointer<NSString?>,
+        _ message: String
+    ) {
+        errorPointer.pointee = message as NSString
+        // Present Service failures after returning; source apps may only log the error pointer.
+        guard message != "The request was cancelled." else { return }
+        DispatchQueue.main.async { [weak self] in
+            NSApp.activate(ignoringOtherApps: true)
+            let alert = NSAlert()
+            alert.alertStyle = .warning
+            alert.messageText = "Langmin Service could not finish"
+            alert.informativeText = message
+            alert.runModal()
+            self?.terminateIfIdle()
+        }
+    }
+
+    // scheduleIdleTerminationAfterService(): After returning the Service
+    // pasteboard, quit if no window or status item needs the app. Recheck after
+    // the selector returns.
+    func scheduleIdleTerminationAfterService() {
+        DispatchQueue.main.async { [weak self] in
+            self?.terminateIfIdle()
+        }
+    }
+
+    // terminateIfIdle(): Terminate a service-launched instance only after
+    // active work and visible interactions have ended.
+    func terminateIfIdle() {
+        // Keep the process alive while work, visible windows, or menu-bar integration still need it.
+        guard
+            !serviceTransformInFlight,
+            !launcherController.isGenerating,
+            !clipboardHUDController.isActive,
+            NSApp.modalWindow == nil,
+            sessions.isEmpty,
+            !(launcherController.window?.isVisible ?? false),
+            !(launcherController.libraryWindow?.isVisible ?? false),
+            !(preferencesController.window?.isVisible ?? false),
+            !loadAppPreferences().menuBarEnabled
+        // Return without terminating while any active interaction remains.
+        else { return }
+        NSApp.terminate(nil)
+    }
+
+    // runReturningTextService(pasteboard, mode, errorPointer): Proofread and
+    // Rewrite return replacement text on the Service's private pasteboard. Keep
+    // AppKit responsive with a bounded nested run loop while generation
+    // completes.
+    func runReturningTextService(
+        _ pasteboard: NSPasteboard,
+        mode: String,
+        error errorPointer: AutoreleasingUnsafeMutablePointer<NSString?>
+    ) {
+        // The Services plist allows 180 seconds. Keep 30 seconds of margin for
+        // pasteboard delivery and process teardown, and count consent/setup too.
+        let deadline = DispatchTime.now() + .seconds(150)
+        // Selected-text Services must coordinate with AppKit on the main thread.
+        guard Thread.isMainThread else {
+            setServiceError(errorPointer, "Langmin Services must run on the main thread.")
+            return
+        }
+        // Require selected text on the Service's private pasteboard.
+        guard
+            let text = pasteboard.string(forType: .string),
+            !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        // Report missing selection to the source app through the Service error pointer.
+        else {
+            setServiceError(errorPointer, "The source app did not provide selected text.")
+            return
+        }
+        // Reject overlapping Service or launcher generation.
+        guard !serviceTransformInFlight, !launcherController.isGenerating else {
+            setServiceError(errorPointer, "Langmin is already working. Try again after the current request finishes.")
+            return
+        }
+
+        suppressInitialLauncherReveal = true
+        serviceTransformInFlight = true
+        // Release the Service's busy state and schedule idle cleanup after every exit path.
+        defer {
+            serviceTransformInFlight = false
+            scheduleIdleTerminationAfterService()
+        }
+
+        let preferences = loadAppPreferences()
+        let model = defaultEnabledExplanationModel(preferences)
+        // Treat declined or timed-out remote sharing as a failed Service request.
+        guard confirmRemoteTextSharingIfNeeded(input: text, model: model, deadline: deadline) else {
+            let timedOut = DispatchTime.now().uptimeNanoseconds >= deadline.uptimeNanoseconds
+            setServiceError(errorPointer, timedOut ? "The request timed out. Please try again." : "The request was cancelled.")
+            return
+        }
+        // Do not start generation after its Service deadline has elapsed.
+        guard DispatchTime.now().uptimeNanoseconds < deadline.uptimeNanoseconds else {
+            setServiceError(errorPointer, "The request timed out. Please try again.")
+            return
+        }
+
+        let prompt: ExplanationPrompt
+        // Choose the source-transform prompt supported by this returning-text Service.
+        switch mode {
+        // Proofread preserves the strict correction-only contract.
+        case "proofread":
+            prompt = textRevisionPrompt(input: text, style: "proofread")
+        // The rewrite Service uses the saved rewrite style and language level.
+        default:
+            let style = preferences.rewriteStyle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                ? defaultRewriteStyle
+                : preferences.rewriteStyle
+            prompt = textRevisionPrompt(
+                input: text,
+                style: style,
+                languageLevel: preferences.languageLevel
+            )
+        }
+
+        let box = ServiceTextResultBox()
+        let waitingRunLoop = CFRunLoopGetCurrent()
+        let request: TextRequestHandle
+        // Start one text request whose completion wakes the bounded Service wait.
+        do {
+            request = try startTextRequest(
+                model: model,
+                prompt: prompt,
+                emptyMessage: "The selected text model returned an empty result."
+            ) { result in
+                box.finish(result)
+                CFRunLoopWakeUp(waitingRunLoop)
+            }
+        } catch {
+            // Return request setup errors to the app that invoked the Service.
+            setServiceError(errorPointer, error.localizedDescription)
+            return
+        }
+
+        request.resume()
+        // Keep AppKit responsive while waiting within the Service's fixed deadline.
+        while box.snapshot() == nil,
+              DispatchTime.now().uptimeNanoseconds < deadline.uptimeNanoseconds {
+            autoreleasepool {
+                _ = RunLoop.current.run(
+                    mode: .default,
+                    before: Date().addingTimeInterval(0.05)
+                )
+            }
+        }
+
+        // Cancel generation if no result arrived before the deadline.
+        guard let result = box.snapshot() else {
+            request.cancel()
+            setServiceError(errorPointer, "The request timed out. Please try again.")
+            return
+        }
+
+        do {
+            // Services replace the user's selection, so retain its own quotes, labels and code fences.
+            let transformed = try cleanedTextTransformOutput(result.get(), prompt: prompt)
+            // Never replace the source selection with an empty model result.
+            guard !transformed.isEmpty else {
+                throw HelperFailure(message: "The selected text model returned an empty result.")
+            }
+            pasteboard.clearContents()
+            // Report a failed write so the source app does not replace the selection with an empty
+            // pasteboard.
+            guard pasteboard.setString(transformed, forType: .string) else {
+                throw HelperFailure(
+                    message: "The result could not be written back. Your selection was left unchanged."
+                )
+            }
+        } catch {
+            // Return generation or pasteboard-write failures through the Service error channel.
+            setServiceError(errorPointer, error.localizedDescription)
+        }
+    }
+
+    // runReceivingService(pasteboard, mode, errorPointer): Hand off selected
+    // text before returning from a receive-only Service. Translate and Compose
+    // open the launcher; other modes run directly.
+    func runReceivingService(
+        _ pasteboard: NSPasteboard,
+        mode: String,
+        error errorPointer: AutoreleasingUnsafeMutablePointer<NSString?>
+    ) {
+        // A prefill Service requires text supplied by its source app.
+        guard
+            let text = pasteboard.string(forType: .string),
+            !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        // Report absent selected text instead of opening an empty request.
+        else {
+            setServiceError(errorPointer, "The source app did not provide selected text.")
+            return
+        }
+        // Do not prefill over active launcher or Service work.
+        guard !serviceTransformInFlight, !launcherController.isGenerating else {
+            setServiceError(errorPointer, "Langmin is already working. Try again after the current request finishes.")
+            return
+        }
+        suppressInitialLauncherReveal = true
+        launcherController.handleAutomation(
+            text: text,
+            mode: mode == "compose" ? (loadAppPreferences().rememberLauncherChoices ? loadLauncherPreferences().mode : "explain") : mode,
+            run: mode != "translate" && mode != "compose"
+        )
+    }
+
+    // proofreadService(pasteboard, userData, error): Return proofread text
+    // through the Services pasteboard for replacement in the source app.
+    @objc func proofreadService(_ pasteboard: NSPasteboard, userData: String, error: AutoreleasingUnsafeMutablePointer<NSString?>) { runReturningTextService(pasteboard, mode: "proofread", error: error) }
+    // rewriteService(pasteboard, userData, error): Return rewritten text
+    // through the Services pasteboard for replacement in the source app.
+    @objc func rewriteService(_ pasteboard: NSPasteboard, userData: String, error: AutoreleasingUnsafeMutablePointer<NSString?>) { runReturningTextService(pasteboard, mode: "rewrite", error: error) }
+    // explainService(pasteboard, userData, error): Receive selected text for an
+    // Explain service result without replacing the source selection.
+    @objc func explainService(_ pasteboard: NSPasteboard, userData: String, error: AutoreleasingUnsafeMutablePointer<NSString?>) { runReceivingService(pasteboard, mode: "explain", error: error) }
+    // summarizeService(pasteboard, userData, error): Receive selected text for
+    // a Summarize service result without replacing the source selection.
+    @objc func summarizeService(_ pasteboard: NSPasteboard, userData: String, error: AutoreleasingUnsafeMutablePointer<NSString?>) { runReceivingService(pasteboard, mode: "summarize", error: error) }
+    // translateService(pasteboard, userData, error): Receive selected text into
+    // the translation launcher for the user to submit.
+    @objc func translateService(_ pasteboard: NSPasteboard, userData: String, error: AutoreleasingUnsafeMutablePointer<NSString?>) { runReceivingService(pasteboard, mode: "translate", error: error) }
+    // dictionaryService(pasteboard, userData, error): Receive selected text for
+    // a dictionary service result without replacing the source selection.
+    @objc func dictionaryService(_ pasteboard: NSPasteboard, userData: String, error: AutoreleasingUnsafeMutablePointer<NSString?>) { runReceivingService(pasteboard, mode: "dictionary", error: error) }
+    // composeService(pasteboard, userData, error): Receive selected text into
+    // the Compose launcher without starting generation.
+    @objc func composeService(_ pasteboard: NSPasteboard, userData: String, error: AutoreleasingUnsafeMutablePointer<NSString?>) { runReceivingService(pasteboard, mode: "compose", error: error) }
+
+    // installKeyboardControls(): Install Space and Arrow key audio shortcuts
+    // for the active window.
+    func installKeyboardControls() {
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            self?.handleKeyDown(event) ?? event
+        }
+    }
+
+    // handleKeyDown(event): Route unmodified playback keys to the active audio
+    // session.
+    func handleKeyDown(_ event: NSEvent) -> NSEvent? {
+        // An open model picker owns navigation keys ahead of narration shortcuts.
+        if activeSession?.followUpModelPanel != nil { return event }
+        // Follow-up text owns Space and arrows while editing, including when
+        // the original result has audio ready to play.
+        if let editor = (event.window ?? NSApp.keyWindow)?.firstResponder as? NSTextView, editor.isEditable {
+            return event
+        }
+        let flags = event.modifierFlags
+            .intersection(.deviceIndependentFlagsMask)
+            .subtracting([.numericPad, .capsLock, .function])
+
+        // Playback shortcuts require unmodified keys and an active session with audio.
+        guard flags.isEmpty, let session = activeSession, session.audioAvailable else {
+            return event
+        }
+
+        // Map playback keys only after the focused-input checks have passed.
+        switch event.keyCode {
+        // Space toggles narration playback.
+        case 49:
+            session.togglePlayback(nil)
+            return nil
+        // Left Arrow seeks five seconds backward.
+        case 123:
+            session.seekAudio(by: -5)
+            return nil
+        // Right Arrow seeks five seconds forward.
+        case 124:
+            session.seekAudio(by: 5)
+            return nil
+        // Leave all other keys to the current responder.
+        default:
+            return event
+        }
+    }
+
+    // application(application, urls): Custom-scheme URLs may also arrive
+    // through this modern AppKit callback.
+    func application(_ application: NSApplication, open urls: [URL]) {
+        urls.filter { $0.scheme == openRequestScheme }.forEach { openPublicURL($0) }
+    }
+
+    // openPublicURL(url): Decode the public Shortcuts/script URL surface: run,
+    // compose, and library.
+    func openPublicURL(_ url: URL) {
+        // Handle only this edition's registered automation URL scheme.
+        guard url.scheme?.lowercased() == openRequestScheme else { return }
+        // A routing URL must include an action host.
+        guard let host = url.host?.lowercased() else { return }
+        // Queue valid URLs until the launcher has its app delegate.
+        guard launcherController.appDelegate != nil else {
+            pendingPublicURLs.append(url)
+            return
+        }
+        // The Library URL opens saved results without requesting text generation.
+        if host == "library" {
+            showLibraryFromMenu(nil)
+            return
+        }
+        // Text URLs must name a supported route and parse into query components.
+        guard host == "run" || host == "compose",
+              let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        // Ignore unknown or malformed automation routes.
+        else { return }
+        let values = (components.queryItems ?? []).reduce(into: [String: String]()) { result, item in
+            result[item.name.lowercased()] = item.value ?? ""
+        }
+        // Text automation requires a nonempty text parameter.
+        guard let text = values["text"], !text.isEmpty else { return }
+        let requestedMode = values["mode"]?.lowercased() ?? "explain"
+        let mode = requestedMode == "lookup" ? "dictionary" : requestedMode
+        // Reject unsupported mode identifiers instead of silently selecting a different action.
+        // Ignore automation URLs requesting an unknown mode.
+        guard launcherModeOptions.contains(where: { $0.id == mode }) else { return }
+        let run = host == "run"
+        if run {
+            // External apps and webpages can open this scheme. Confirm before running a request that may
+            // spend API credits.
+            let preview = text.count > 200 ? String(text.prefix(200)) + "…" : text
+            let alert = NSAlert()
+            alert.messageText = String(format: localized("url_run_confirm_title", "Run “%@” from a link?"), launcherController.featureTitle(for: mode))
+            alert.informativeText = String(
+                format: localized("url_run_confirm_body", "Another app asked Langmin to process this text:\n\n“%@”\n\nRunning sends it to your configured model."),
+                preview
+            )
+            alert.alertStyle = .warning
+            alert.addButton(withTitle: localized("run", "Run"))
+            alert.addButton(withTitle: localized("cancel", "Cancel"))
+            NSApp.activate(ignoringOtherApps: true)
+            // Run externally supplied text only after the user accepts the confirmation.
+            guard alert.runModal() == .alertFirstButtonReturn else { return }
+        }
+        launcherController.handleAutomation(
+            text: text,
+            mode: mode,
+            run: run,
+            language: values["language"],
+            level: values["level"],
+            model: values["model"]
+        )
+    }
+
+    // showGeneratedExplanation(textPath, audioPath, title, cleanupDir,
+    // [diffOriginalPath = nil], [diffRevisedPath = nil], [audioTimings = nil],
+    // [textModel = nil], [narrationVoice = nil], [narrationModel = nil],
+    // [dictionaryHeadword = nil], [mode = ""], [languageLevel = "off"]): Open a
+    // generated answer from the launcher.
+    func showGeneratedExplanation(
+        textPath: String,
+        audioPath: String,
+        title: String,
+        cleanupDir: String,
+        diffOriginalPath: String? = nil,
+        diffRevisedPath: String? = nil,
+        audioTimings: [NarrationChunkTiming]? = nil,
+        textModel: String? = nil,
+        narrationVoice: String? = nil,
+        narrationModel: String? = nil,
+        dictionaryHeadword: String? = nil,
+        mode: String = "",
+        languageLevel: String = "off"
+    ) {
+        presentResultSession(resultSession(
+            textPath: textPath,
+            audioPath: audioPath,
+            title: title,
+            cleanupDir: cleanupDir,
+            diffOriginalPath: diffOriginalPath,
+            diffRevisedPath: diffRevisedPath,
+            audioTimings: audioTimings,
+            textModel: textModel,
+            narrationVoice: narrationVoice,
+            narrationModel: narrationModel,
+            dictionaryHeadword: dictionaryHeadword,
+            mode: mode,
+            languageLevel: languageLevel
+        ))
+    }
+
+    // resultSession(textPath, audioPath, title, cleanupDir, [diffOriginalPath =
+    // nil], [diffRevisedPath = nil], [audioTimings = nil], [textModel = nil],
+    // [narrationVoice = nil], [narrationModel = nil], [dictionaryHeadword =
+    // nil], [mode = ""], [languageLevel = "off"]): Build a result session for
+    // inline display or a separate window.
+    func resultSession(
+        textPath: String,
+        audioPath: String,
+        title: String,
+        cleanupDir: String,
+        diffOriginalPath: String? = nil,
+        diffRevisedPath: String? = nil,
+        audioTimings: [NarrationChunkTiming]? = nil,
+        textModel: String? = nil,
+        narrationVoice: String? = nil,
+        narrationModel: String? = nil,
+        dictionaryHeadword: String? = nil,
+        mode: String = "",
+        languageLevel: String = "off"
+    ) -> ViewerSession {
+        let preferences = loadAppPreferences()
+        // Allow a font-size environment override only in development builds.
+        #if DEBUG
+        let environmentFontSize = ProcessInfo.processInfo.environment["LANGMIN_FONT_SIZE"].flatMap(Double.init)
+        // Release builds use the saved or built-in result font size.
+        #else
+        let environmentFontSize: Double? = nil
+        #endif
+        let fontSize = normalizedFontSize(environmentFontSize ?? preferences.explanationFontSize)
+
+        let config = ViewerConfig(
+            textPath: textPath,
+            fontSize: CGFloat(fontSize),
+            audioPath: audioPath,
+            title: cleanTitle(title),
+            cleanupDir: cleanupDir,
+            diffOriginalPath: diffOriginalPath,
+            diffRevisedPath: diffRevisedPath,
+            audioTimings: audioTimings,
+            textModel: textModel,
+            narrationVoice: narrationVoice,
+            narrationModel: narrationModel,
+            dictionaryHeadword: dictionaryHeadword,
+            mode: mode,
+            languageLevel: languageLevel
+        )
+
+        return ViewerSession(config: config, appDelegate: self)
+    }
+
+    // presentResultSession(session): Show a session's window and make it the
+    // active result: a fresh session, or one the launcher rendered inline
+    // first.
+    func presentResultSession(_ session: ViewerSession) {
+        sessions.append(session)
+        session.show(cascadeIndex: sessions.count % 7)
+        setActiveSession(session)
+    }
+
+    // openSavedEntry(entry): Load a saved entry without generating it again,
+    // and mark its Library bookmark as saved.
+    func openSavedEntry(_ entry: LibraryEntry) {
+        // Bring an existing result window forward instead of opening a duplicate.
+        if let existing = sessions.first(where: { $0.savedLibraryID == entry.id }),
+           let window = existing.window {
+            // Restore a minimized result window before bringing it forward.
+            if window.isMiniaturized {
+                window.deminiaturize(nil)
+            }
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            setActiveSession(existing)
+            return
+        }
+        // Detach an existing inline session rather than duplicate it while an illustration may still be
+        // updating its assets.
+        if let inline = launcherController.inlineResultSession, inline.savedLibraryID == entry.id {
+            launcherController.detachInlineResult(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+        // Explain when a saved entry can no longer produce a usable viewer configuration.
+        guard let config = LibraryStore.viewerConfig(for: entry) else {
+            let alert = NSAlert()
+            alert.messageText = "Could not open this item"
+            alert.informativeText = "Its saved files may have been moved or removed."
+            alert.alertStyle = .warning
+            alert.runModal()
+            return
+        }
+        let session = ViewerSession(config: config, appDelegate: self)
+        session.savedLibraryID = entry.id
+        session.autoPlaysOnOpen = false
+        // Load saved pronunciation clips so reopening does not synthesize them again.
+        session.pronounceCache = LibraryStore.loadPronunciations(id: entry.id)
+        sessions.append(session)
+        session.show(cascadeIndex: sessions.count % 7)
+        setActiveSession(session)
+    }
+
+    // libraryEntryWasRenamed(id, title): Update a result session whose saved
+    // Library entry was renamed.
+    func libraryEntryWasRenamed(id: String, title: String) {
+        sessions.first(where: { $0.savedLibraryID == id })?
+            .applyRenamedLibraryTitle(title)
+    }
+
+    // setActiveSession(session): Record the active window and refresh menu item
+    // state.
+    func setActiveSession(_ session: ViewerSession?) {
+        activeSession = session
+        updateMenuForActiveWindow()
+    }
+
+    // removeSession(session): Remove a closed window and terminate when the
+    // last one is gone.
+    func removeSession(_ session: ViewerSession) {
+        sessions.removeAll { $0 === session }
+
+        // Choose another session only when the removed one was the active result.
+        if activeSession === session {
+            activeSession = sessions.last
+        }
+
+        updateMenuForActiveWindow()
+
+        terminateIfIdle()
+    }
+
+    // updateMenuForActiveWindow(): Keep the stable app menu label and sync File
+    // commands to the key window.
+    func updateMenuForActiveWindow() {
+        appMenuItem?.title = appName
+        appMenu?.title = appName
+        saveTextItem?.isEnabled = activeSession != nil && activeSession?.textEditor == nil
+        saveAudioItem?.isEnabled = (activeSession?.canSaveAudio ?? false) && activeSession?.textEditor == nil
+        printItem?.isEnabled = activeSession != nil && activeSession?.resultPrintOperation == nil && activeSession?.textEditor == nil
+        closeItem?.isEnabled = activeSession != nil ||
+            (launcherController.window?.isVisible ?? false) ||
+            (launcherController.libraryWindow?.isVisible ?? false) ||
+            (preferencesController.window?.isVisible ?? false)
+    }
+
+    // saveText(sender): Save text from the active result.
+    @objc func saveText(_ sender: Any?) {
+        activeSession?.saveText()
+    }
+
+    // printResult(sender): Route Print to the active result session.
+    @objc func printResult(_ sender: Any?) {
+        activeSession?.printResult(sender)
+    }
+
+    // showPreferences(sender): Open the preferences editor for future model and
+    // voice choices.
+    @objc func showPreferences(_ sender: Any?) {
+        preferencesController.show()
+    }
+
+    // showProPanel(sender): The Pro panel from the app and status menus: a
+    // paywall for free users, a status page once Pro is active.
+    @objc func showProPanel(_ sender: Any?) {
+        _ = ProPaywallController.presentModal(feature: nil)
+    }
+
+    // showLauncher(sender): Open the direct app launcher for a fresh question.
+    @objc func showLauncher(_ sender: Any?) {
+        launcherController.show()
+    }
+
+    // showAbout(sender): Show the About panel with bundle metadata and author link.
+    @objc func showAbout(_ sender: Any?) {
+        Task { @MainActor in
+            MinToolsAboutPanelController.shared.show(applicationName: appName)
+        }
+    }
+
+    // showPrivacyPolicy(sender): Keep the policy inside Langmin rather than
+    // opening the Markdown file in another app.
+    @objc func showPrivacyPolicy(_ sender: Any?) {
+        PrivacyPolicyController.shared.show()
+    }
+
+    // showHelp(sender): Show basic usage and Services setup in the app's Help
+    // dialog.
+    @objc func showHelp(_ sender: Any?) {
+        let alert = NSAlert()
+        alert.messageText = String(format: localized("app_help", "%@ Help"), appName)
+        alert.informativeText = """
+        Enter text in the launcher, choose a mode, and press ⌘Return. \
+        Ask follow-up questions below a result; Return sends them.
+
+        For clipboard text, use the menu-bar actions or your shortcuts in \
+        Settings → Shortcuts. For selected text, choose a Langmin action \
+        from the source app's Services menu.
+
+        Assign Service shortcuts in System Settings → Keyboard → \
+        Keyboard Shortcuts → Services. If Services are missing after \
+        installation, log out and back in.
+
+        Click the bookmark button to save a result and its conversation to the Library.
+        """
+        alert.addButton(withTitle: localized("ok", "OK"))
+        alert.addButton(withTitle: localized("open_settings", "Open Settings"))
+        NSApp.activate(ignoringOtherApps: true)
+        // Open Settings when selected from the shortcut-registration warning.
+        if alert.runModal() == .alertSecondButtonReturn {
+            showPreferences(nil)
+        }
+    }
+
+    // saveAudio(sender): Save audio from the active result.
+    @objc func saveAudio(_ sender: Any?) {
+        activeSession?.saveAudio()
+    }
+
+    // closeWindow(sender): Close the currently active app window.
+    @objc func closeWindow(_ sender: Any?) {
+        // Close the key Settings window through its own controller.
+        if let preferencesWindow = preferencesController.window, NSApp.keyWindow === preferencesWindow {
+            preferencesWindow.close()
+            updateMenuForActiveWindow()
+            return
+        }
+
+        // Route closure of the key launcher through its normal close handling.
+        if let launcherWindow = launcherController.window, NSApp.keyWindow === launcherWindow {
+            launcherWindow.performClose(sender)
+            updateMenuForActiveWindow()
+            return
+        }
+
+        // Close the detached Library when it owns the key window.
+        if let libraryWindow = launcherController.libraryWindow, NSApp.keyWindow === libraryWindow {
+            libraryWindow.close()
+            updateMenuForActiveWindow()
+            return
+        }
+
+        // Close the actual key result window before falling back to the remembered active session.
+        if let keyWindow = NSApp.keyWindow,
+           let keySession = sessions.first(where: { session in session.window === keyWindow }) {
+            keySession.window.performClose(sender)
+            return
+        }
+
+        activeSession?.window?.performClose(sender)
+    }
+
+    // cycleThroughWindows(sender): Move keyboard focus through result windows
+    // and the launcher.
+    @objc func cycleThroughWindows(_ sender: Any?) {
+        var windows: [NSWindow] = sessions.compactMap { session in
+            session.window.isVisible && !session.window.isMiniaturized ? session.window : nil
+        }
+
+        // Include a visible, unminimized launcher in window cycling.
+        if
+            let launcherWindow = launcherController.window,
+            launcherWindow.isVisible,
+            !launcherWindow.isMiniaturized
+        {
+            windows.append(launcherWindow)
+        }
+
+        // Include Settings when it is visible and not minimized.
+        if
+            let preferencesWindow = preferencesController.window,
+            preferencesWindow.isVisible,
+            !preferencesWindow.isMiniaturized
+        {
+            windows.append(preferencesWindow)
+        }
+
+        // Do nothing when there are no eligible windows to cycle through.
+        guard !windows.isEmpty else {
+            return
+        }
+
+        let currentIndex = windows.firstIndex { window in
+            window === NSApp.keyWindow
+        } ?? -1
+        let nextIndex = (currentIndex + 1) % windows.count
+        let nextWindow = windows[nextIndex]
+
+        nextWindow.makeKeyAndOrderFront(nil)
+
+        // Keep playback and result menus attached to the newly focused result session.
+        if let nextSession = sessions.first(where: { session in session.window === nextWindow }) {
+            setActiveSession(nextSession)
+        } else {
+            // Clear result-specific menu ownership when cycling to a non-result window.
+            setActiveSession(nil)
+        }
+
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    // applicationShouldTerminateAfterLastWindowClosed(sender): Let AppKit know
+    // this app can quit after the last viewer window closes.
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        return !loadAppPreferences().menuBarEnabled &&
+            sessions.isEmpty &&
+            !serviceTransformInFlight &&
+            !launcherController.isGenerating &&
+            !clipboardHUDController.isActive &&
+            !(launcherController.window?.isVisible ?? false) &&
+            !(preferencesController.window?.isVisible ?? false)
+    }
+
+    // applicationShouldHandleReopen(sender, flag): Reopening the app from
+    // Finder or Dock shows the launcher.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        // Show the launcher when the app is reopened without any visible windows.
+        if !flag {
+            showLauncher(nil)
+        }
+
+        return true
+    }
+}
+
+// Create the AppKit application and make it a regular foreground app.
+let app = NSApplication.shared
+app.setActivationPolicy(.regular)
+
+// The delegate must be strongly referenced for the life of the app.
+let delegate = AppDelegate()
+app.delegate = delegate
