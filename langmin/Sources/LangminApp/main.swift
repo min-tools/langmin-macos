@@ -25663,3 +25663,29 @@ app.setActivationPolicy(.regular)
 // The delegate must be strongly referenced for the life of the app.
 let delegate = AppDelegate()
 app.delegate = delegate
+
+// Build a minimal menu bar for app, file, edit, and window commands.
+let mainMenu = NSMenu(title: "")
+
+delegate.appMenuItem = NSMenuItem()
+delegate.appMenuItem.title = appName
+mainMenu.addItem(delegate.appMenuItem)
+
+delegate.appMenu = NSMenu(title: appName)
+delegate.appMenuItem.submenu = delegate.appMenu
+
+// About shows native app metadata from the bundle.
+let aboutItem = NSMenuItem(
+    title: String(format: localized("about_app", "About %@"), appName),
+    action: #selector(AppDelegate.showAbout(_:)),
+    keyEquivalent: ""
+)
+aboutItem.target = delegate
+delegate.appMenu.addItem(aboutItem)
+let setupAssistantItem = NSMenuItem(
+    title: localized("setup_assistant", "Setup Assistant…"),
+    action: #selector(AppDelegate.showSetupAssistant(_:)),
+    keyEquivalent: ""
+)
+setupAssistantItem.target = delegate
+delegate.appMenu.addItem(setupAssistantItem)
