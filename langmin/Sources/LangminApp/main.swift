@@ -25689,3 +25689,28 @@ let setupAssistantItem = NSMenuItem(
 )
 setupAssistantItem.target = delegate
 delegate.appMenu.addItem(setupAssistantItem)
+let proItem = NSMenuItem(
+    title: String(format: localized("pro_menu", "%@ Pro…"), appName),
+    action: #selector(AppDelegate.showProPanel(_:)),
+    keyEquivalent: ""
+)
+proItem.target = delegate
+delegate.appMenu.addItem(proItem)
+let privacyItem = NSMenuItem(
+    title: localized("privacy_policy", "Privacy Policy…"),
+    action: #selector(AppDelegate.showPrivacyPolicy(_:)),
+    keyEquivalent: ""
+)
+privacyItem.target = delegate
+delegate.appMenu.addItem(privacyItem)
+delegate.appMenu.addItem(NSMenuItem.separator())
+
+// Settings apply to future requests.
+let preferencesItem = NSMenuItem(
+    title: localized("settings", "Settings…"),
+    action: #selector(AppDelegate.showPreferences(_:)),
+    keyEquivalent: ","
+)
+preferencesItem.target = delegate
+delegate.appMenu.addItem(preferencesItem)
+delegate.appMenu.addItem(NSMenuItem.separator())
