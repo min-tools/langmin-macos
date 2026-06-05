@@ -25714,3 +25714,44 @@ let preferencesItem = NSMenuItem(
 preferencesItem.target = delegate
 delegate.appMenu.addItem(preferencesItem)
 delegate.appMenu.addItem(NSMenuItem.separator())
+
+// Add the standard Services submenu for selected-text actions.
+let servicesItem = NSMenuItem(title: localized("services", "Services"), action: nil, keyEquivalent: "")
+let servicesMenu = NSMenu(title: localized("services", "Services"))
+servicesItem.submenu = servicesMenu
+delegate.appMenu.addItem(servicesItem)
+app.servicesMenu = servicesMenu
+delegate.appMenu.addItem(NSMenuItem.separator())
+
+// Add standard app-menu commands.
+delegate.appMenu.addItem(
+    NSMenuItem(
+        title: String(format: localized("hide_app", "Hide %@"), appName),
+        action: #selector(NSApplication.hide(_:)),
+        keyEquivalent: "h"
+    )
+)
+let hideOthersItem = NSMenuItem(
+    title: localized("hide_others", "Hide Others"),
+    action: #selector(NSApplication.hideOtherApplications(_:)),
+    keyEquivalent: "h"
+)
+hideOthersItem.keyEquivalentModifierMask = [.command, .option]
+delegate.appMenu.addItem(hideOthersItem)
+delegate.appMenu.addItem(
+    NSMenuItem(
+        title: localized("show_all", "Show All"),
+        action: #selector(NSApplication.unhideAllApplications(_:)),
+        keyEquivalent: ""
+    )
+)
+delegate.appMenu.addItem(NSMenuItem.separator())
+
+// Keep the Quit command named after the app.
+delegate.appMenu.addItem(
+    NSMenuItem(
+        title: String(format: localized("quit_app", "Quit %@"), appName),
+        action: #selector(NSApplication.terminate(_:)),
+        keyEquivalent: "q"
+    )
+)
