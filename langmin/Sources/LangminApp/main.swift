@@ -25755,3 +25755,12 @@ delegate.appMenu.addItem(
         keyEquivalent: "q"
     )
 )
+
+let fileMenuItem = NSMenuItem()
+fileMenuItem.title = localized("file", "File")
+mainMenu.addItem(fileMenuItem)
+
+// Add supported result and Library commands to File.
+let fileMenu = NSMenu(title: localized("file", "File"))
+fileMenu.autoenablesItems = false
+fileMenuItem.submenu = fileMenu
