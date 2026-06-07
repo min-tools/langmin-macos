@@ -25764,3 +25764,80 @@ mainMenu.addItem(fileMenuItem)
 let fileMenu = NSMenu(title: localized("file", "File"))
 fileMenu.autoenablesItems = false
 fileMenuItem.submenu = fileMenu
+
+// New Explanation opens the direct app launcher without changing Settings.
+let newExplanationItem = NSMenuItem(
+    title: localized("new_explanation", "New Explanation"),
+    action: #selector(AppDelegate.showLauncher(_:)),
+    keyEquivalent: "n"
+)
+newExplanationItem.target = delegate
+fileMenu.addItem(newExplanationItem)
+
+// Library is also available from the File menu; its configured global shortcut
+// is attached after preferences load.
+delegate.libraryItem = NSMenuItem(
+    title: localized("library", "Library"),
+    action: #selector(AppDelegate.showLibraryFromMenu(_:)),
+    keyEquivalent: ""
+)
+delegate.libraryItem.target = delegate
+fileMenu.addItem(delegate.libraryItem)
+fileMenu.addItem(NSMenuItem.separator())
+
+// Save Text is available for any active result.
+delegate.saveTextItem = NSMenuItem(
+    title: localized("save_text", "Save Text…"),
+    action: #selector(AppDelegate.saveText(_:)),
+    keyEquivalent: "s"
+)
+delegate.saveTextItem.target = delegate
+delegate.saveTextItem.isEnabled = false
+fileMenu.addItem(delegate.saveTextItem)
+
+// Enable Save Audio when the active result has an audio file.
+delegate.saveAudioItem = NSMenuItem(
+    title: localized("save_audio", "Save Audio…"),
+    action: #selector(AppDelegate.saveAudio(_:)),
+    keyEquivalent: "s"
+)
+delegate.saveAudioItem.keyEquivalentModifierMask = [.command, .shift]
+delegate.saveAudioItem.target = delegate
+delegate.saveAudioItem.isEnabled = false
+fileMenu.addItem(delegate.saveAudioItem)
+
+delegate.printItem = NSMenuItem(
+    title: localized("print", "Print…"),
+    action: #selector(AppDelegate.printResult(_:)),
+    keyEquivalent: "p"
+)
+delegate.printItem.target = delegate
+delegate.printItem.isEnabled = false
+fileMenu.addItem(delegate.printItem)
+
+fileMenu.addItem(NSMenuItem.separator())
+
+delegate.closeItem = NSMenuItem(
+    title: localized("close", "Close"),
+    action: #selector(AppDelegate.closeWindow(_:)),
+    keyEquivalent: "w"
+)
+delegate.closeItem.target = delegate
+delegate.closeItem.isEnabled = false
+fileMenu.addItem(delegate.closeItem)
+
+let editMenuItem = NSMenuItem()
+editMenuItem.title = localized("edit", "Edit")
+mainMenu.addItem(editMenuItem)
+
+// Edit keeps standard text commands working in text fields and text views.
+let editMenu = NSMenu(title: localized("edit", "Edit"))
+editMenuItem.submenu = editMenu
+
+editMenu.addItem(
+    NSMenuItem(
+        title: localized("undo", "Undo"),
+        action: Selector(("undo:")),
+        keyEquivalent: "z"
+    )
+)
