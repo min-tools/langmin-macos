@@ -25841,3 +25841,45 @@ editMenu.addItem(
         keyEquivalent: "z"
     )
 )
+let redoItem = NSMenuItem(
+    title: localized("redo", "Redo"),
+    action: Selector(("redo:")),
+    keyEquivalent: "z"
+)
+redoItem.keyEquivalentModifierMask = [.command, .shift]
+editMenu.addItem(redoItem)
+editMenu.addItem(NSMenuItem.separator())
+editMenu.addItem(
+    NSMenuItem(
+        title: localized("cut", "Cut"),
+        action: #selector(NSText.cut(_:)),
+        keyEquivalent: "x"
+    )
+)
+editMenu.addItem(
+    NSMenuItem(
+        title: localized("copy", "Copy"),
+        action: #selector(NSText.copy(_:)),
+        keyEquivalent: "c"
+    )
+)
+editMenu.addItem(
+    NSMenuItem(
+        title: localized("paste", "Paste"),
+        action: #selector(NSText.paste(_:)),
+        keyEquivalent: "v"
+    )
+)
+editMenu.addItem(
+    NSMenuItem(
+        title: localized("delete", "Delete"),
+        action: #selector(NSText.delete(_:)),
+        keyEquivalent: ""
+    )
+)
+editMenu.addItem(NSMenuItem.separator())
+
+// Route Find to the first responder. Results use an inline Find bar; Library windows focus their search
+// field.
+let findMenuItem = NSMenuItem(title: localized("find_menu", "Find"), action: nil, keyEquivalent: "")
+let findMenu = NSMenu(title: localized("find_menu", "Find"))
