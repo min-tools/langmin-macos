@@ -25883,3 +25883,39 @@ editMenu.addItem(NSMenuItem.separator())
 // field.
 let findMenuItem = NSMenuItem(title: localized("find_menu", "Find"), action: nil, keyEquivalent: "")
 let findMenu = NSMenu(title: localized("find_menu", "Find"))
+
+let showFindItem = NSMenuItem(
+    title: localized("find_item", "Find…"),
+    action: #selector(NSTextView.performFindPanelAction(_:)),
+    keyEquivalent: "f"
+)
+showFindItem.tag = Int(NSFindPanelAction.showFindPanel.rawValue)
+findMenu.addItem(showFindItem)
+
+let findNextItem = NSMenuItem(
+    title: "Find Next",
+    action: #selector(NSTextView.performFindPanelAction(_:)),
+    keyEquivalent: "g"
+)
+findNextItem.tag = Int(NSFindPanelAction.next.rawValue)
+findMenu.addItem(findNextItem)
+
+let findPreviousItem = NSMenuItem(
+    title: "Find Previous",
+    action: #selector(NSTextView.performFindPanelAction(_:)),
+    keyEquivalent: "g"
+)
+findPreviousItem.keyEquivalentModifierMask = [.command, .shift]
+findPreviousItem.tag = Int(NSFindPanelAction.previous.rawValue)
+findMenu.addItem(findPreviousItem)
+
+findMenuItem.submenu = findMenu
+editMenu.addItem(findMenuItem)
+editMenu.addItem(NSMenuItem.separator())
+editMenu.addItem(
+    NSMenuItem(
+        title: "Select All",
+        action: #selector(NSText.selectAll(_:)),
+        keyEquivalent: "a"
+    )
+)
