@@ -25919,3 +25919,41 @@ editMenu.addItem(
         keyEquivalent: "a"
     )
 )
+
+let windowMenuItem = NSMenuItem()
+windowMenuItem.title = localized("window", "Window")
+mainMenu.addItem(windowMenuItem)
+
+// A real Window menu enables the standard macOS Cmd+` window cycle action.
+let windowMenu = NSMenu(title: localized("window", "Window"))
+windowMenuItem.submenu = windowMenu
+app.windowsMenu = windowMenu
+
+windowMenu.addItem(
+    NSMenuItem(
+        title: localized("minimize", "Minimize"),
+        action: #selector(NSWindow.performMiniaturize(_:)),
+        keyEquivalent: "m"
+    )
+)
+windowMenu.addItem(
+    NSMenuItem(
+        title: localized("cycle_through_windows", "Cycle Through Windows"),
+        action: #selector(AppDelegate.cycleThroughWindows(_:)),
+        keyEquivalent: "`"
+    )
+)
+windowMenu.item(withTitle: localized("cycle_through_windows", "Cycle Through Windows"))?.target = delegate
+windowMenu.addItem(NSMenuItem.separator())
+windowMenu.addItem(
+    NSMenuItem(
+        title: localized("bring_all_to_front", "Bring All to Front"),
+        action: #selector(NSApplication.arrangeInFront(_:)),
+        keyEquivalent: ""
+    )
+)
+
+// Register Help so ⌘? opens usage and Services instructions.
+let helpMenuItem = NSMenuItem()
+helpMenuItem.title = localized("help", "Help")
+mainMenu.addItem(helpMenuItem)
