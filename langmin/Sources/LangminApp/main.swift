@@ -25957,3 +25957,19 @@ windowMenu.addItem(
 let helpMenuItem = NSMenuItem()
 helpMenuItem.title = localized("help", "Help")
 mainMenu.addItem(helpMenuItem)
+
+let helpMenu = NSMenu(title: localized("help", "Help"))
+helpMenuItem.submenu = helpMenu
+app.helpMenu = helpMenu
+
+let helpItem = NSMenuItem(
+    title: String(format: localized("app_help", "%@ Help"), appName),
+    action: #selector(AppDelegate.showHelp(_:)),
+    keyEquivalent: "?"
+)
+helpItem.target = delegate
+helpMenu.addItem(helpItem)
+
+// Hand control to AppKit; subsequent opens become more windows in this app.
+app.mainMenu = mainMenu
+app.run()
