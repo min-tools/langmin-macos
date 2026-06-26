@@ -1,0 +1,983 @@
+/* Langmin — da localization. Comments give English text or name a related group. */
+
+/* About %@ */
+"about_app" = "Om %@";
+
+/* All */
+"all_chip" = "Alle";
+
+/* All models */
+"all_models" = "Alle modeller";
+
+/* Answer language */
+"answer_language" = "Svarsprog";
+
+/* %@ Help */
+"app_help" = "%@-hjælp";
+
+/* Back */
+"back" = "Tilbage";
+
+/* Bring All to Front */
+"bring_all_to_front" = "Anbring alle forrest";
+
+/* Delete %d items from %@? */
+"bulk_delete_confirm_many" = "Slet %d emner fra “%@”?";
+
+/* Delete 1 item from %@? */
+"bulk_delete_confirm_one" = "Slet 1 emne fra “%@”?";
+
+/* Only the items matching the current search are deleted. */
+"bulk_delete_search_note" = "Kun emner, der matcher den aktuelle søgning, slettes.";
+
+/* Use Undo to restore an item before it disappears. */
+"bulk_delete_undo_note" = "Brug Fortryd til at gendanne et emne, før det forsvinder.";
+
+/* Cancel */
+"cancel" = "Annuller";
+
+/* Cancel Current Action */
+"cancel_current_action" = "Annuller aktuel handling";
+
+/* Cancel this request (Esc) */
+"cancel_this_request_esc" = "Annuller denne forespørgsel (Esc)";
+
+/* Cancelled */
+"cancelled" = "Annulleret";
+
+/* Cancelling… */
+"cancelling" = "Annullerer…";
+
+/* Cancelling */
+"cancelling_a11y" = "Annullerer";
+
+/* Clear after submit */
+"clear_after_submit" = "Ryd efter afsendelse";
+
+/* You copied something else while Langmin was working. Replace it with the transformed text? */
+"clipboard_changed_body" = "Du kopierede noget andet, mens Langmin arbejdede. Erstat det med den omdannede tekst?";
+
+/* The clipboard changed */
+"clipboard_changed_title" = "Udklipsholderen er ændret";
+
+/* Clipboard unchanged */
+"clipboard_unchanged" = "Udklipsholder uændret";
+
+/* macOS did not accept the transformed text. The previous clipboard contents were restored. */
+"clipboard_write_failed_restored" = "macOS accepterede ikke den omdannede tekst. Det tidligere indhold i udklipsholderen blev gendannet.";
+
+/* macOS did not accept the transformed text, and the previous clipboard contents could not be restored. */
+"clipboard_write_failed_unrestored" = "macOS accepterede ikke den omdannede tekst, og det tidligere indhold i udklipsholderen kunne ikke gendannes.";
+
+/* Close */
+"close" = "Luk";
+
+/* ⌘V to paste */
+"cmd_v_to_paste" = "⌘V for at indsætte";
+
+/* Compose with Clipboard */
+"compose_with_clipboard" = "Skriv med udklipsholder";
+
+/* Copied */
+"copied" = "Kopieret";
+
+/* Copy */
+"copy" = "Kopiér";
+
+/* Copy this paragraph */
+"copy_paragraph" = "Kopiér dette afsnit";
+
+/* Copy Result */
+"copy_result" = "Kopiér resultat";
+
+/* Copying… */
+"copying" = "Kopierer…";
+
+/* Could not delete one saved item */
+"could_not_delete_one_saved_item" = "Kunne ikke slette et gemt emne";
+
+/* Could not delete some saved items */
+"could_not_delete_some_saved_items" = "Kunne ikke slette nogle gemte emner";
+
+/* Could not delete this saved item */
+"could_not_delete_this_saved_item" = "Kunne ikke slette dette gemte emne";
+
+/* Could not export this saved item */
+"could_not_export_this_saved_item" = "Kunne ikke eksportere dette gemte emne";
+
+/* Could not open the result */
+"could_not_open_result" = "Kunne ikke åbne resultatet";
+
+/* Could not rename this saved item */
+"could_not_rename_this_saved_item" = "Kunne ikke omdøbe dette gemte emne";
+
+/* Could not restore this saved item */
+"could_not_restore_this_saved_item" = "Kunne ikke gendanne dette gemte emne";
+
+/* Could not save audio */
+"could_not_save_audio" = "Kunne ikke gemme lyd";
+
+/* Could not update the clipboard */
+"could_not_update_clipboard" = "Kunne ikke opdatere udklipsholderen";
+
+/* Could not update the login item */
+"could_not_update_the_login_item" = "Kunne ikke opdatere logind-emnet";
+
+/* Cut */
+"cut" = "Klip";
+
+/* Cycle Through Windows */
+"cycle_through_windows" = "Skift mellem vinduer";
+
+/* Delete */
+"delete" = "Slet";
+
+/* Delete All %d… */
+"delete_all_n" = "Slet alle %d…";
+
+/* Delete Folder */
+"delete_folder_menu" = "Slet mappe";
+
+/* All entries stay in the Library */
+"delete_folder_subtitle" = "Alle poster bliver i Biblioteket";
+
+/* Delete %d Shown… */
+"delete_n_shown" = "Slet %d viste…";
+
+/* Deleted “%@” */
+"deleted_item" = "“%@” slettet";
+
+/* Dictionary */
+"dictionary" = "Ordbog";
+
+/* Dictionary Lookup */
+"dictionary_lookup" = "Ordbogsopslag";
+
+/* Dismiss */
+"dismiss" = "Luk";
+
+/* Drop or paste documents, images, or audio */
+"drop_hint" = "Træk eller indsæt dokumenter, billeder eller lyd";
+
+/* Edit */
+"edit" = "Rediger";
+
+/* Deeper essay */
+"effort_detailed" = "Dybere essay";
+
+/* Short and clear */
+"effort_simple" = "Kort og klart";
+
+/* Balanced depth */
+"effort_standard" = "Afbalanceret dybde";
+
+/* Elaborating… */
+"elaborating" = "Uddyber…";
+
+/* Explain */
+"explain" = "Forklaring";
+
+/* Explain Clipboard */
+"explain_clipboard" = "Forklar udklipsholder";
+
+/* Explaining… */
+"explaining" = "Forklarer…";
+
+/* Export Audio… */
+"export_audio_menu" = "Eksporter lyd…";
+
+/* Export Audio */
+"export_audio_panel" = "Eksporter lyd";
+
+/* Export Text… */
+"export_text_menu" = "Eksporter tekst…";
+
+/* Export Text */
+"export_text_panel" = "Eksporter tekst";
+
+/* Extra languages */
+"extra_languages" = "Ekstra sprog";
+
+/* File */
+"file" = "Arkiv";
+
+/* File In */
+"file_in_submenu" = "Arkivér i";
+
+/* Filter folders */
+"filter_folders" = "Filtrer mapper";
+
+/* Find… */
+"find_item" = "Søg…";
+
+/* Find */
+"find_menu" = "Søg";
+
+/* ↵ create · esc cancel */
+"folder_create_hint" = "↵ opret · esc annuller";
+
+/* Nothing in this folder yet */
+"folder_empty_title" = "Denne mappe er stadig tom";
+
+/* Drag results onto a folder chip, or right-click one and file it here. */
+"folder_empty_subtitle" = "Træk resultater til en mappebrik, eller højreklik på et og arkivér det her.";
+
+/* already exists */
+"folder_exists_hint" = "findes allerede";
+
+/* already exists · ↵ opens it */
+"folder_exists_opens_hint" = "findes allerede · ↵ åbner den";
+
+/* Folder name */
+"folder_name_placeholder" = "Mappenavn";
+
+/* ↵ rename · esc cancel */
+"folder_rename_hint" = "↵ omdøb · esc annuller";
+
+/* Help */
+"help" = "Hjælp";
+
+/* Hide %@ */
+"hide_app" = "Skjul %@";
+
+/* Hide Others */
+"hide_others" = "Skjul andre";
+
+/* Explaining */
+"hud_explaining" = "Forklarer";
+
+/* Looking up */
+"hud_looking_up" = "Slår op";
+
+/* 1 word */
+"hud_one_word" = "1 ord";
+
+/* Proofreading */
+"hud_proofreading" = "Læser korrektur";
+
+/* Rewriting */
+"hud_rewriting" = "Omskriver";
+
+/* Summarizing */
+"hud_summarizing" = "Opsummerer";
+
+/* Translating */
+"hud_translating" = "Oversætter";
+
+/* %d words */
+"hud_word_count" = "%d ord";
+
+/* Keep Current Clipboard */
+"keep_current_clipboard" = "Behold nuværende udklipsholder";
+
+/* Language level */
+"language_level" = "Sprogniveau";
+
+/* The new language takes effect the next time Langmin opens. */
+"language_restart_notice" = "Det nye sprog træder i kraft, næste gang Langmin åbnes.";
+
+/* Later */
+"later" = "Senere";
+
+/* Library */
+"library" = "Bibliotek";
+
+/* No saved items yet */
+"library_empty_title" = "Ingen gemte emner endnu";
+
+/* Click a result's bookmark button to save it here. */
+"library_empty_subtitle" = "Klik på bogmærkeknappen ved et resultat for at gemme det her.";
+
+/* Look Up Clipboard in Dictionary */
+"look_up_clipboard_in_dictionary" = "Slå udklipsholder op i ordbogen";
+
+/* Looking up… */
+"looking_up" = "Slår op…";
+
+/* Match question */
+"match_question" = "Som spørgsmålet";
+
+/* Minimize */
+"minimize" = "Minimer";
+
+/* More folders */
+"more_folders" = "Flere mapper";
+
+/* More languages */
+"more_languages" = "Flere sprog";
+
+/* %d saved */
+"n_saved" = "%d gemt";
+
+/* New Explanation */
+"new_explanation" = "Ny forklaring";
+
+/* New Folder… */
+"new_folder_menu" = "Ny mappe…";
+
+/* Copy some text, then try the Langmin action again. */
+"no_clipboard_text_body" = "Kopiér noget tekst, og prøv Langmin-handlingen igen.";
+
+/* No clipboard text */
+"no_clipboard_text_title" = "Ingen tekst i udklipsholderen";
+
+/* No Folder */
+"no_folder" = "Ingen mappe";
+
+/* No results */
+"library_search_empty_title" = "Ingen resultater";
+
+/* No %@ match “%@”. */
+"no_search_matches" = "Ingen %@ matcher “%@”.";
+
+/* None */
+"none" = "Ingen";
+
+/* Not Now */
+"not_now" = "Ikke nu";
+
+/* OK */
+"ok" = "OK";
+
+/* On this Mac */
+"on_this_mac" = "På denne Mac";
+
+/* Open */
+"open" = "Åbn";
+
+/* Open */
+"open_in_window" = "Åbn";
+
+/* Open Langmin */
+"open_langmin" = "Åbn Langmin";
+
+/* Open Langmin at login */
+"open_langmin_at_login" = "Åbn Langmin ved logind";
+
+/* Open in a result window */
+"open_result_window" = "Åbn i et resultatvindue";
+
+/* Open Settings */
+"open_settings" = "Åbn Indstillinger";
+
+/* Open Setup Assistant */
+"open_setup_assistant" = "Åbn opsætningsassistenten";
+
+/* Opening… */
+"opening_hud" = "Åbner…";
+
+/* Opening… */
+"opening_progress" = "Åbner…";
+
+/* Other */
+"other" = "Andet";
+
+/* ↵ run    ⇥ pin chip    ⌘, options */
+"palette_legend_chip" = "↵ kør    ⇥ fastgør brik    ⌘, indstillinger";
+
+/* Paste */
+"paste" = "Sæt ind";
+
+/* Langmin can't access the pasted file */
+"pasted_file_denied" = "Langmin har ikke adgang til den indsatte fil";
+
+/* Langmin can't access the pasted files */
+"pasted_files_denied" = "Langmin har ikke adgang til de indsatte filer";
+
+/* macOS did not grant access to these files. Drag them into this window instead. */
+"pasted_files_denied_body" = "macOS gav ikke adgang til disse filer. Træk dem ind i dette vindue.";
+
+/* Look up a word… */
+"placeholder_dictionary" = "Slå et ord op…";
+
+/* What would you like explained? */
+"placeholder_explain" = "Hvad vil du have forklaret?";
+
+/* What would you like proofread? */
+"placeholder_proofread" = "Hvad vil du have korrekturlæst?";
+
+/* What would you like rewritten? */
+"placeholder_rewrite" = "Hvad vil du have omskrevet?";
+
+/* What would you like summarized? */
+"placeholder_summarize" = "Hvad vil du have opsummeret?";
+
+/* What would you like translated? */
+"placeholder_translate" = "Hvad vil du have oversat?";
+
+/* Preparing narration… */
+"preparing_narration" = "Forbereder oplæsning…";
+
+/* Privacy Policy… */
+"privacy_policy" = "Privatlivspolitik…";
+
+/* Family Sharing included. */
+"pro_family_caption" = "Familiedeling er inkluderet.";
+
+/* OpenAI, Anthropic, Gemini, Grok, DeepSeek, and custom endpoints */
+"pro_feature_cloud" = "OpenAI, Anthropic, Gemini, Grok, DeepSeek og egne endepunkter";
+
+/* Library folders */
+"pro_feature_folders" = "Mapper i Biblioteket";
+
+/* Web research for current facts and sources */
+"pro_feature_research" = "Websøgning efter aktuelle fakta og kilder";
+
+/* OpenAI and Grok voices */
+"pro_feature_voices" = "OpenAI- og Grok-stemmer";
+
+/* Apple Intelligence, Apple voices, and the Library stay free. */
+"pro_free_note" = "Apple Intelligence, Apple-stemmer og Biblioteket forbliver gratis.";
+
+/* Buy once for %@ */
+"pro_lifetime_button" = "Køb én gang for %@";
+
+/* Contacting the App Store… */
+"pro_loading" = "Kontakter App Store…";
+
+/* Manage Subscription… */
+"pro_manage_subscription" = "Administrer abonnement…";
+
+/* %@ Pro… */
+"pro_menu" = "%@ Pro…";
+
+/* This purchase is still pending. %@ Pro unlocks when the App Store confirms it. */
+"pro_pending_body" = "Dette køb afventer stadig. %@ Pro låses op, når App Store bekræfter det.";
+
+/* Purchase pending */
+"pro_pending_title" = "Køb afventer";
+
+/* Privacy Policy */
+"pro_privacy_policy" = "Privatlivspolitik";
+
+/* The purchase didn't complete: %@ */
+"pro_purchase_failed" = "Købet blev ikke gennemført: %@";
+
+/* Cloud models are part of %@ Pro. */
+"pro_reason_cloud" = "Cloudmodeller er en del af %@ Pro.";
+
+/* Library folders are part of %@ Pro. */
+"pro_reason_folders" = "Mapper i Biblioteket er en del af %@ Pro.";
+
+/* Get more with %@ Pro. */
+"pro_reason_general" = "Få mere med %@ Pro.";
+
+/* OpenAI and Grok voices are part of %@ Pro. */
+"pro_reason_voices" = "OpenAI- og Grok-stemmer er en del af %@ Pro.";
+
+/* Couldn't restore purchases */
+
+/* No %@ Pro purchase was found for this Apple Account. */
+"pro_restore_none_body" = "Der blev ikke fundet noget køb af %@ Pro til denne Apple-konto.";
+
+/* Nothing to restore */
+"pro_restore_none_title" = "Intet at gendanne";
+
+/* Restore Purchases */
+"pro_restore_purchases" = "Gendan køb";
+
+/* Pro */
+"pro_status_active" = "Pro";
+
+/* Pro · ends %@ */
+"pro_status_ends" = "Pro · slutter %@";
+
+/* Pro · shared with your family */
+"pro_status_family" = "Pro · delt med din familie";
+
+/* Free */
+"pro_status_free" = "Gratis";
+
+/* Pro · lifetime */
+"pro_status_lifetime" = "Pro · livstid";
+
+/* Pro · renews %@ */
+"pro_status_renews" = "Pro · fornyes %@";
+
+/* Pro trial · ends %@ */
+"pro_status_trial_ends" = "Pro-prøveperiode · slutter %@";
+
+/* Pro trial · first payment %@ */
+"pro_status_trial_renews" = "Pro-prøveperiode · første betaling %@";
+
+/* Pro trial · until %@ */
+"pro_status_trial_until" = "Pro-prøveperiode · indtil %@";
+
+/* Pro · until %@ */
+"pro_status_until" = "Pro · indtil %@";
+
+/* Pro purchases are unavailable right now. Please try again later. */
+"pro_store_unavailable" = "Pro-køb er ikke tilgængelige lige nu. Prøv igen senere.";
+
+/* Payment goes to your Apple Account. A subscription renews automatically each year unless it is cancelled in your App Store settings at least a day before the period ends. */
+"pro_terms" = "Betalingen trækkes fra din Apple-konto. Abonnementet fornyes automatisk hvert år, medmindre det opsiges i App Store-indstillingerne mindst en dag før periodens udløb.";
+
+/* Terms of Use */
+"pro_terms_of_use" = "Vilkår for brug";
+
+/* Cancel at least a day before the free trial ends to avoid being charged. */
+
+/* %@ Pro */
+"pro_title" = "%@ Pro";
+
+/* Start free trial */
+
+/* Try free for a month */
+
+/* then %@ a year · cancel anytime */
+
+/* The App Store could not verify this purchase. */
+"pro_unverified" = "App Store kunne ikke bekræfte dette køb.";
+
+/* Upgrade… */
+"pro_upgrade_button" = "Opgrader…";
+
+/* Subscribe for %@ a year */
+"pro_yearly_button" = "Abonner for %@ om året";
+
+/* Renews automatically each year · cancel anytime */
+"pro_yearly_caption" = "Fornyes automatisk hvert år · opsig når som helst";
+
+/* You have %@ Pro. */
+"pro_you_have" = "Du har %@ Pro.";
+
+/* Pronounce — click to choose a voice first */
+"pronounce_setup_tooltip" = "Udtal — klik for at vælge en stemme først";
+
+/* Pronunciation voice */
+"pronunciation_voice" = "Udtalestemme";
+
+/* Proofread */
+"proofread" = "Korrektur";
+
+/* Proofread Clipboard */
+"proofread_clipboard" = "Korrekturlæs udklipsholder";
+
+/* Proofreading… */
+"proofreading" = "Læser korrektur…";
+
+/* Quit %@ */
+"quit_app" = "Slut %@";
+
+/* Quit Now */
+"quit_now" = "Slut nu";
+
+/* Redo */
+"redo" = "Gentag";
+
+/* Remember choices */
+"remember_choices" = "Husk valg";
+
+/* Rename */
+"rename" = "Omdøb";
+
+/* Rename Folder */
+"rename_folder_menu" = "Omdøb mappe";
+
+/* Rephrasing… */
+"rephrasing" = "Omformulerer…";
+
+/* Reset Defaults */
+"reset_defaults" = "Nulstil til standard";
+
+/* Press Save to restore defaults, or open Setup Assistant to choose new settings. */
+"reset_wizard_body" = "Klik på Gem for at gendanne standardindstillingerne, eller åbn opsætningsassistenten for at vælge nye indstillinger.";
+
+/* Start over with the Setup Assistant? */
+"reset_wizard_title" = "Start forfra med opsætningsassistenten?";
+
+/* Empty and loading results */
+"results_empty_title" = "Klar, når du er";
+"results_empty_hint" = "Skriv tekst til venstre, og tryk på ⌘↵ for at se resultatet her.";
+"results_loading_title" = "Opretter dit resultat";
+"retry" = "Prøv igen";
+
+/* Rewrite */
+"rewrite" = "Omskrivning";
+
+/* Rewrite Clipboard */
+"rewrite_clipboard" = "Omskriv udklipsholder";
+
+/* App Language */
+"row_app_language" = "Appens sprog";
+
+/* Launcher Window */
+"row_launcher_window" = "Startvindue";
+
+/* Online Research */
+"row_online_research" = "Onlinesøgning";
+
+/* Secret Protection */
+"row_secret_protection" = "Beskyttelse af hemmeligheder";
+
+/* Run */
+"run" = "Kør";
+
+/* look up */
+"run_verb_dictionary" = "slå op";
+
+/* explain */
+"run_verb_explain" = "forklare";
+
+/* proofread */
+"run_verb_proofread" = "korrekturlæse";
+
+/* rewrite */
+"run_verb_rewrite" = "omskrive";
+
+/* summarize */
+"run_verb_summarize" = "opsummere";
+
+/* translate */
+"run_verb_translate" = "oversætte";
+
+/* Save */
+"save" = "Gem";
+
+/* Save Audio… */
+"save_audio" = "Gem lyd…";
+
+/* Save Text… */
+"save_text" = "Gem tekst…";
+
+/* Search actions */
+"search_actions" = "Søg efter handlinger";
+
+/* ⌘K search */
+"search_actions_hint" = "⌘K søg";
+
+/* Search languages */
+"search_languages" = "Søg efter sprog";
+
+/* Search Library */
+"search_library" = "Søg i biblioteket";
+
+/* Search models */
+"search_models" = "Søg efter modeller";
+
+/* titles */
+"search_scope_titles" = "titler";
+
+/* titles or contents */
+"search_scope_titles_contents" = "titler eller indhold";
+
+/* Search voices */
+"search_voices" = "Søg efter stemmer";
+
+/* Services */
+"services" = "Tjenester";
+
+/* Settings… */
+"settings" = "Indstillinger…";
+
+/* Settings */
+"settings_window" = "Indstillinger";
+
+/* Setup Assistant… */
+"setup_assistant" = "Opsætningsassistent…";
+
+/* Show All */
+"show_all" = "Vis alle";
+
+/* Show Langmin in the menu bar */
+"show_langmin_in_the_menu_bar" = "Vis Langmin i menulinjen";
+
+/* %@ with %@… */
+"status_with_model" = "%@ med %@…";
+
+/* Style */
+"style" = "Stil";
+
+/* Summarize */
+"summarize" = "Opsummering";
+
+/* Summarize Clipboard */
+"summarize_clipboard" = "Opsummer udklipsholder";
+
+/* Summarizing… */
+"summarizing" = "Opsummerer…";
+
+/* System Default */
+"system_default" = "Systemstandard";
+
+/* Advanced */
+"tab_advanced" = "Avanceret";
+
+/* General */
+"tab_general" = "Generelt";
+
+/* Models */
+"tab_models" = "Modeller";
+
+/* Reading */
+"tab_reading" = "Oplæsning";
+
+/* Shortcuts */
+"tab_shortcuts" = "Genveje";
+
+/* Window */
+"tab_window" = "Vindue";
+
+/* Tightening… */
+"tightening" = "Forkorter…";
+
+/* Translate */
+"translate" = "Oversættelse";
+
+/* Translate Clipboard */
+"translate_clipboard" = "Oversæt udklipsholder";
+
+/* Translating… */
+"translating" = "Oversætter…";
+
+/* Undo */
+"undo" = "Fortryd";
+
+/* Untitled */
+"untitled" = "Uden navn";
+
+/* Another app asked Langmin to process this text:\n\n“%@”\n\nRunning sends it to your configured model. */
+"url_run_confirm_body" = "En anden app bad Langmin om at behandle denne tekst:\n\n“%@”\n\nVed kørsel sendes den til din valgte model.";
+
+/* Run “%@” from a link? */
+"url_run_confirm_title" = "Kør “%@” fra et link?";
+
+/* Use web research when available */
+"use_web_research" = "Brug websøgning, når den er tilgængelig";
+
+/* Warn before sending secrets */
+"warn_before_secrets" = "Advar, før hemmeligheder sendes";
+
+/* Window */
+"window" = "Vindue";
+
+/* Runs on your Mac. Free, with no account needed. */
+"wizard_apple_available" = "Kører på din Mac. Gratis og uden konto.";
+
+/* Apple Intelligence (on this Mac, private and free) */
+"wizard_apple_row" = "Apple Intelligence (på denne Mac, privat og gratis)";
+
+/* Apple Intelligence (not available on this Mac) */
+"wizard_apple_row_unavailable" = "Apple Intelligence (ikke tilgængelig på denne Mac)";
+
+/* Not available on this Mac (requires Apple Intelligence). Choose a cloud provider below. */
+"wizard_apple_unavailable" = "Ikke tilgængelig på denne Mac (kræver Apple Intelligence). Vælg en cloud-udbyder nedenfor.";
+
+/* Read results aloud or hear Dictionary words and examples. Choose a voice that supports the language.\n\nApple voices run on your Mac for free. OpenAI and Grok voices require Pro and a provider API key. */
+"wizard_audio_body" = "Få resultater læst højt, eller hør ord og eksempler fra Ordbog. Vælg en stemme, der understøtter sproget.\n\nApple-stemmer kører gratis på din Mac. OpenAI- og Grok-stemmer kræver Pro og en API-nøgle fra udbyderen.";
+
+/* Hear your words */
+"wizard_audio_title" = "Hør dine ord";
+
+/* Back */
+"wizard_back" = "Tilbage";
+
+/* macOS may ask for clipboard access when you first use a shortcut. */
+"wizard_clipboard_note" = "macOS kan bede om adgang til udklipsholderen, første gang du bruger en genvej.";
+
+/* Continue */
+"wizard_continue" = "Fortsæt";
+
+/* Also answer in */
+"wizard_extra_languages" = "Svar også på";
+
+/* Finish */
+"wizard_finish" = "Afslut";
+
+/* Keys stay in macOS Keychain. Requests go directly to your provider. Add keys or a local model later in Settings → Models. */
+"wizard_key_note_local" = "Nøgler gemmes i macOS-nøgleringen. Forespørgsler går direkte til udbyderen. Tilføj nøgler eller en lokal model senere i Indstillinger → Modeller.";
+
+/* API key (optional, add any time) */
+"wizard_key_optional" = "API-nøgle (valgfri, tilføj når som helst)";
+
+/* Choose translation languages. Extra languages add versions to Dictionary, Explain, and Summarize results. Change either list in the launcher's mode menus. */
+"wizard_language_body_single_source" = "Vælg oversættelsessprog. Ekstra sprog tilføjer sprogversioner til resultater fra Ordbog, Forklar og Opsummer. Ret listerne i startvinduets tilstandsmenuer.";
+
+/* Your languages */
+"wizard_language_title" = "Dine sprog";
+
+/* Set Up Later */
+"wizard_later" = "Opsæt senere";
+
+/* Cloud providers, web research, Library folders, and cloud voices require %@ Pro. Apple Intelligence is free. Eligible subscriptions include a trial. */
+"wizard_pro_note" = "Your first 30 days include %@ Pro. Apple Intelligence stays free afterward.";
+
+/* Dictionary pronunciation voice */
+"wizard_pronunciation_voice" = "Udtalestemme til ordbogen";
+
+/* Claude models with web research. */
+"wizard_provider_anthropic" = "Claude-modeller med websøgning.";
+
+/* Switch models in the launcher, or open All models to enable more. */
+"wizard_provider_body_multi" = "Skift model i startvinduet, eller aktivér flere under Alle modeller.";
+
+/* DeepSeek chat and reasoning models. */
+"wizard_provider_deepseek" = "DeepSeek-modeller til chat og ræsonnement.";
+
+/* Gemini models with web research. */
+"wizard_provider_gemini" = "Gemini-modeller med websøgning.";
+
+/* Grok text models and optional voices. */
+"wizard_provider_grok" = "Grok-tekstmodeller og valgfrie stemmer.";
+
+/* GPT models with web research. */
+"wizard_provider_openai" = "GPT-modeller med websøgning.";
+
+/* Choose your providers */
+"wizard_provider_title_multi" = "Vælg dine udbydere";
+
+/* Copy text and use a shortcut, or open the launcher and start typing.\n\nChange your choices in the launcher's menus or Settings. */
+"wizard_ready_body_simple" = "Langmin starts a free 30-day trial when you first open it. No subscription starts, and you will not be charged.";
+
+/* You're all set */
+"wizard_ready_title" = "30 days of full access";
+
+/* Use these shortcuts from another app after copying text. Proofread and Rewrite copy the result. The other four modes show it in the HUD. Open opens a result window; Dismiss closes the HUD.\n\nIn Langmin's main window, these shortcuts select a mode. Press ⌘Return to run it. */
+"wizard_shortcuts_body" = "Kopiér tekst i en anden app, og brug disse genveje. Korrektur og Omskrivning kopierer resultatet. De andre fire tilstande viser det i HUD-panelet. Åbn åbner et resultatvindue; Luk lukker HUD-panelet.\n\nI Langmins hovedvindue vælger genvejene en tilstand. Tryk på ⌘Return for at køre den.";
+
+/* Step %d of %d */
+"wizard_step_n_of_m" = "Trin %d af %d";
+
+/* Translate to */
+"wizard_translate_to" = "Oversæt til";
+
+/* Proofread, rewrite, explain, summarize, translate, and look up words. Listen to results and Dictionary examples.\n\nChoose your settings now or change them later. */
+"wizard_welcome_body_short" = "Læs korrektur, omskriv, forklar, opsummer, oversæt og slå ord op. Lyt til resultater og ordbogseksempler.\n\nVælg indstillinger nu, eller ret dem senere.";
+
+/* Welcome to %@ */
+"wizard_welcome_title" = "Velkommen til %@";
+
+/* Langmin Setup */
+"wizard_window" = "Opsætning af Langmin";
+
+/* Open Langmin at login to keep its menu-bar actions and shortcuts available. */
+"wizard_workflow_body" = "Åbn Langmin ved logind, så handlingerne i menulinjen og genvejene er tilgængelige.";
+
+/* Always at hand */
+"wizard_workflow_title" = "Altid lige ved hånden";
+
+/* Your providers */
+"your_providers" = "Dine udbydere";
+
+/* Dictionary illustrations */
+"illustration" = "Illustration";
+"illustration_apple_note" = "Opret og vælg et billede på din Mac";
+"illustration_apple_unavailable" = "Kræver macOS 15.4 eller nyere og Image Playground";
+"illustration_cloud_note" = "Faktureres separat · bruger din OpenAI-API-nøgle";
+"illustration_generated" = "AI-genereret illustration";
+"illustration_generating" = "Opretter illustration…";
+"illustration_failed" = "Illustrationen kunne ikke oprettes";
+"illustration_missing_key" = "Tilføj en OpenAI-API-nøgle i Indstillinger → Modeller.";
+"illustration_save" = "Gem billede…";
+"illustration_remove" = "Fjern illustration";
+
+"reading_webpage" = "Læser siden…";
+
+"loading_page_images" = "Indlæser sidens billeder…";
+
+/* Follow-up */
+"followup_title" = "Opfølgning";
+
+/* Ask a follow-up or request changes… */
+"followup_placeholder" = "Stil et opfølgende spørgsmål eller bed om ændringer…";
+
+/* Send follow-up */
+"followup_send" = "Send opfølgning";
+
+/* Replying… */
+"followup_working" = "Svarer…";
+
+/* You */
+"followup_you" = "Dig";
+
+/* Copy reply */
+"followup_copy" = "Kopiér svar";
+
+/* Delete reply */
+"followup_delete_reply" = "Slet svar";
+
+/* The message could not be deleted: %@ */
+"followup_delete_failed" = "Beskeden kunne ikke slettes: %@";
+
+/* Print… */
+"print" = "Udskriv…";
+
+/* Quick HUD playback */
+"hud_read_paragraph" = "Læs dette afsnit højt";
+"hud_stop_playback" = "Stop oplæsning";
+"hud_playback_failed" = "Kunne ikke afspille denne tekst";
+"hud_voice_api_key" = "Tilføj en API-nøgle til %@ i Indstillinger for at bruge denne stemme.";
+
+"request_failed" = "Anmodningen mislykkedes";
+
+/* Translation skipped */
+"translation_skipped" = "Oversættelse sprunget over";
+
+/* Already in this language. */
+"translation_already_in_language" = "Teksten er allerede på det valgte sprog.";
+
+/* Library window placement */
+"detach_library" = "Åbn biblioteket i et separat vindue";
+"attach_library" = "Flyt biblioteket til hovedvinduet";
+
+/* Result text editing */
+"apply" = "Anvend";
+"discard_changes" = "Kassér ændringer";
+"done" = "OK";
+"edit_link" = "Rediger link";
+"edit_text" = "Rediger tekst";
+"format_text" = "Formatér tekst";
+"remove_link" = "Fjern link";
+"save_text_changes" = "Vil du gemme dine tekstændringer?";
+"text_style" = "Teksttypografi";
+"save_edits_remove_audio" = "Gem ændringer og fjern lyd?";
+"save_edits_remove_audio_detail" = "Hvis du gemmer disse ændringer, fjernes al tilknyttet oplæsning og udtalelyd. Du kan generere ny lyd bagefter.";
+
+/* iCloud Library sync */
+"pro_feature_icloud" = "Synkronisering af bibliotek via iCloud";
+"pro_reason_icloud" = "Synkronisering af bibliotek via iCloud er en del af %@ Pro.";
+
+/* Automatically illustrate new lookups */
+"illustration_automatic" = "Illustrer automatisk nye opslag";
+
+/* Automatic images are off by default. To add an image yourself, use the picture button on a Dictionary result. */
+"illustration_manual_note" = "Automatiske billeder er slået fra som standard. Brug billedknappen i et ordbogsresultat for selv at tilføje et billede.";
+
+/* Image Provider */
+"illustration_provider" = "Billedudbyder";
+
+/* Choose in result */
+"illustration_choose_in_result" = "Vælg i resultatet";
+
+/* Choose a provider before turning on automatic images. You can also add an image from a Dictionary result's picture button. */
+"illustration_choose_provider_note" = "Vælg en udbyder, før du slår automatiske billeder til. Du kan også tilføje et billede med billedknappen i et ordbogsresultat.";
+
+/* Create and choose images on your Mac. Automatic mode opens Image Playground after each Dictionary lookup. */
+"illustration_apple_settings_note" = "Opret og vælg billeder på din Mac. I automatisk tilstand åbnes Image Playground efter hvert ordbogsopslag.";
+
+/* Requires Pro and an OpenAI API key in Settings → Models. Each image is billed separately. Creates one landscape image at medium quality. */
+"illustration_openai_settings_note" = "Kræver Pro og en OpenAI-API-nøgle i Indstillinger → Modeller. Hvert billede faktureres separat. Opretter ét billede i liggende format med middel kvalitet.";
+
+/* Illustrations */
+"tab_illustrations" = "Illustrationer";
+
+/* Empty launcher input */
+"input_start_hint" = "Skriv eller indsæt tekst, eller træk en fil hertil";
+"input_documents" = "Dokumenter";
+"input_images" = "Billeder";
+"input_audio" = "Lyd";
+"input_drop_title" = "Slip for at tilføje tekst";
+
+/* Source-build purchase footer */
+"source_build_title" = "Trial ended";
+"source_build_support" = "Apple Intelligence stays free, while other Pro features require purchase.";
+"source_build_purchase" = "Køb";
+"source_build_dismiss" = "Dismiss";
+"pro_app_trial_one_day" = "Pro trial · 1 day remaining";
+"pro_app_trial_days" = "Pro trial · %d days remaining";
+"wizard_trial_during_title" = "Your first 30 days";
+"wizard_trial_during_langmin" = "Use every Langmin feature without app limits. Provider charges may still apply.";
+"wizard_trial_after_title" = "After the trial";
+"wizard_trial_after_langmin" = "Apple Intelligence, Apple voices, Apple transcription, text editing, and the Library stay free. Other Pro features require a purchase.";
+"wizard_trial_plans_title" = "Keep Pro";
+"wizard_trial_plans_body" = "Choose a yearly plan or lifetime access at any time.";
