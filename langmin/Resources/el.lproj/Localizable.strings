@@ -1,0 +1,983 @@
+/* Langmin — el localization. Comments give English text or name a related group. */
+
+/* About %@ */
+"about_app" = "Πληροφορίες για το %@";
+
+/* All */
+"all_chip" = "Όλα";
+
+/* All models */
+"all_models" = "Όλα τα μοντέλα";
+
+/* Answer language */
+"answer_language" = "Γλώσσα απάντησης";
+
+/* %@ Help */
+"app_help" = "Βοήθεια %@";
+
+/* Back */
+"back" = "Πίσω";
+
+/* Bring All to Front */
+"bring_all_to_front" = "Μεταφορά όλων σε πρώτο πλάνο";
+
+/* Delete %d items from %@? */
+"bulk_delete_confirm_many" = "Διαγραφή %d στοιχείων από «%@»;";
+
+/* Delete 1 item from %@? */
+"bulk_delete_confirm_one" = "Διαγραφή 1 στοιχείου από «%@»;";
+
+/* Only the items matching the current search are deleted. */
+"bulk_delete_search_note" = "Διαγράφονται μόνο τα στοιχεία που ταιριάζουν με την τρέχουσα αναζήτηση.";
+
+/* Use Undo to restore an item before it disappears. */
+"bulk_delete_undo_note" = "Πατήστε Αναίρεση για επαναφορά ενός στοιχείου πριν εξαφανιστεί.";
+
+/* Cancel */
+"cancel" = "Ακύρωση";
+
+/* Cancel Current Action */
+"cancel_current_action" = "Ακύρωση τρέχουσας ενέργειας";
+
+/* Cancel this request (Esc) */
+"cancel_this_request_esc" = "Ακύρωση αυτού του αιτήματος (Esc)";
+
+/* Cancelled */
+"cancelled" = "Ακυρώθηκε";
+
+/* Cancelling… */
+"cancelling" = "Ακύρωση…";
+
+/* Cancelling */
+"cancelling_a11y" = "Ακύρωση σε εξέλιξη";
+
+/* Clear after submit */
+"clear_after_submit" = "Καθαρισμός μετά την υποβολή";
+
+/* You copied something else while Langmin was working. Replace it with the transformed text? */
+"clipboard_changed_body" = "Αντιγράψατε κάτι άλλο όσο το Langmin εργαζόταν. Να αντικατασταθεί με το μετασχηματισμένο κείμενο;";
+
+/* The clipboard changed */
+"clipboard_changed_title" = "Το πρόχειρο άλλαξε";
+
+/* Clipboard unchanged */
+"clipboard_unchanged" = "Το πρόχειρο δεν άλλαξε";
+
+/* macOS did not accept the transformed text. The previous clipboard contents were restored. */
+"clipboard_write_failed_restored" = "Το macOS δεν δέχτηκε το μετασχηματισμένο κείμενο. Το προηγούμενο περιεχόμενο του προχείρου επαναφέρθηκε.";
+
+/* macOS did not accept the transformed text, and the previous clipboard contents could not be restored. */
+"clipboard_write_failed_unrestored" = "Το macOS δεν δέχτηκε το μετασχηματισμένο κείμενο και το προηγούμενο περιεχόμενο του προχείρου δεν ήταν δυνατό να επαναφερθεί.";
+
+/* Close */
+"close" = "Κλείσιμο";
+
+/* ⌘V to paste */
+"cmd_v_to_paste" = "⌘V για επικόλληση";
+
+/* Compose with Clipboard */
+"compose_with_clipboard" = "Σύνταξη από το πρόχειρο";
+
+/* Copied */
+"copied" = "Αντιγράφηκε";
+
+/* Copy */
+"copy" = "Αντιγραφή";
+
+/* Copy this paragraph */
+"copy_paragraph" = "Αντιγραφή αυτής της παραγράφου";
+
+/* Copy Result */
+"copy_result" = "Αντιγραφή αποτελέσματος";
+
+/* Copying… */
+"copying" = "Αντιγραφή…";
+
+/* Could not delete one saved item */
+"could_not_delete_one_saved_item" = "Δεν ήταν δυνατή η διαγραφή ενός αποθηκευμένου στοιχείου";
+
+/* Could not delete some saved items */
+"could_not_delete_some_saved_items" = "Δεν ήταν δυνατή η διαγραφή ορισμένων αποθηκευμένων στοιχείων";
+
+/* Could not delete this saved item */
+"could_not_delete_this_saved_item" = "Δεν ήταν δυνατή η διαγραφή αυτού του αποθηκευμένου στοιχείου";
+
+/* Could not export this saved item */
+"could_not_export_this_saved_item" = "Δεν ήταν δυνατή η εξαγωγή αυτού του αποθηκευμένου στοιχείου";
+
+/* Could not open the result */
+"could_not_open_result" = "Δεν ήταν δυνατό το άνοιγμα του αποτελέσματος";
+
+/* Could not rename this saved item */
+"could_not_rename_this_saved_item" = "Δεν ήταν δυνατή η μετονομασία αυτού του αποθηκευμένου στοιχείου";
+
+/* Could not restore this saved item */
+"could_not_restore_this_saved_item" = "Δεν ήταν δυνατή η επαναφορά αυτού του αποθηκευμένου στοιχείου";
+
+/* Could not save audio */
+"could_not_save_audio" = "Δεν ήταν δυνατή η αποθήκευση του ήχου";
+
+/* Could not update the clipboard */
+"could_not_update_clipboard" = "Δεν ήταν δυνατή η ενημέρωση του προχείρου";
+
+/* Could not update the login item */
+"could_not_update_the_login_item" = "Δεν ήταν δυνατή η ενημέρωση του στοιχείου σύνδεσης";
+
+/* Cut */
+"cut" = "Αποκοπή";
+
+/* Cycle Through Windows */
+"cycle_through_windows" = "Εναλλαγή παραθύρων";
+
+/* Delete */
+"delete" = "Διαγραφή";
+
+/* Delete All %d… */
+"delete_all_n" = "Διαγραφή όλων (%d)…";
+
+/* Delete Folder */
+"delete_folder_menu" = "Διαγραφή φακέλου";
+
+/* All entries stay in the Library */
+"delete_folder_subtitle" = "Όλες οι καταχωρίσεις παραμένουν στη Βιβλιοθήκη";
+
+/* Delete %d Shown… */
+"delete_n_shown" = "Διαγραφή %d εμφανιζόμενων…";
+
+/* Deleted “%@” */
+"deleted_item" = "Το «%@» διαγράφηκε";
+
+/* Dictionary */
+"dictionary" = "Λεξικό";
+
+/* Dictionary Lookup */
+"dictionary_lookup" = "Αναζήτηση στο λεξικό";
+
+/* Dismiss */
+"dismiss" = "Κλείσιμο";
+
+/* Drop or paste documents, images, or audio */
+"drop_hint" = "Σύρετε ή επικολλήστε έγγραφα, εικόνες ή αρχεία ήχου";
+
+/* Edit */
+"edit" = "Επεξεργασία";
+
+/* Deeper essay */
+"effort_detailed" = "Βαθύτερο δοκίμιο";
+
+/* Short and clear */
+"effort_simple" = "Σύντομο και σαφές";
+
+/* Balanced depth */
+"effort_standard" = "Ισορροπημένο βάθος";
+
+/* Elaborating… */
+"elaborating" = "Ανάπτυξη…";
+
+/* Explain */
+"explain" = "Εξήγηση";
+
+/* Explain Clipboard */
+"explain_clipboard" = "Εξήγηση προχείρου";
+
+/* Explaining… */
+"explaining" = "Εξήγηση σε εξέλιξη…";
+
+/* Export Audio… */
+"export_audio_menu" = "Εξαγωγή ήχου…";
+
+/* Export Audio */
+"export_audio_panel" = "Εξαγωγή ήχου";
+
+/* Export Text… */
+"export_text_menu" = "Εξαγωγή κειμένου…";
+
+/* Export Text */
+"export_text_panel" = "Εξαγωγή κειμένου";
+
+/* Extra languages */
+"extra_languages" = "Επιπλέον γλώσσες";
+
+/* File */
+"file" = "Αρχείο";
+
+/* File In */
+"file_in_submenu" = "Αρχειοθέτηση σε";
+
+/* Filter folders */
+"filter_folders" = "Φιλτράρισμα φακέλων";
+
+/* Find… */
+"find_item" = "Εύρεση…";
+
+/* Find */
+"find_menu" = "Εύρεση";
+
+/* ↵ create · esc cancel */
+"folder_create_hint" = "↵ δημιουργία · esc ακύρωση";
+
+/* Nothing in this folder yet */
+"folder_empty_title" = "Αυτός ο φάκελος είναι ακόμη άδειος";
+
+/* Drag results onto a folder chip, or right-click one and file it here. */
+"folder_empty_subtitle" = "Σύρετε αποτελέσματα σε μια ετικέτα φακέλου ή κάντε δεξί κλικ σε ένα και αρχειοθετήστε το εδώ.";
+
+/* already exists */
+"folder_exists_hint" = "υπάρχει ήδη";
+
+/* already exists · ↵ opens it */
+"folder_exists_opens_hint" = "υπάρχει ήδη · ↵ τον ανοίγει";
+
+/* Folder name */
+"folder_name_placeholder" = "Όνομα φακέλου";
+
+/* ↵ rename · esc cancel */
+"folder_rename_hint" = "↵ μετονομασία · esc ακύρωση";
+
+/* Help */
+"help" = "Βοήθεια";
+
+/* Hide %@ */
+"hide_app" = "Απόκρυψη %@";
+
+/* Hide Others */
+"hide_others" = "Απόκρυψη άλλων";
+
+/* Explaining */
+"hud_explaining" = "Εξήγηση";
+
+/* Looking up */
+"hud_looking_up" = "Αναζήτηση";
+
+/* 1 word */
+"hud_one_word" = "1 λέξη";
+
+/* Proofreading */
+"hud_proofreading" = "Διόρθωση";
+
+/* Rewriting */
+"hud_rewriting" = "Ξαναγράψιμο";
+
+/* Summarizing */
+"hud_summarizing" = "Σύνοψη";
+
+/* Translating */
+"hud_translating" = "Μετάφραση";
+
+/* %d words */
+"hud_word_count" = "%d λέξεις";
+
+/* Keep Current Clipboard */
+"keep_current_clipboard" = "Διατήρηση τρέχοντος προχείρου";
+
+/* Language level */
+"language_level" = "Επίπεδο γλώσσας";
+
+/* The new language takes effect the next time Langmin opens. */
+"language_restart_notice" = "Η νέα γλώσσα θα ισχύσει την επόμενη φορά που θα ανοίξει το Langmin.";
+
+/* Later */
+"later" = "Αργότερα";
+
+/* Library */
+"library" = "Βιβλιοθήκη";
+
+/* No saved items yet */
+"library_empty_title" = "Δεν υπάρχουν αποθηκευμένα στοιχεία";
+
+/* Click a result's bookmark button to save it here. */
+"library_empty_subtitle" = "Πατήστε το κουμπί σελιδοδείκτη σε ένα αποτέλεσμα για να το αποθηκεύσετε εδώ.";
+
+/* Look Up Clipboard in Dictionary */
+"look_up_clipboard_in_dictionary" = "Αναζήτηση προχείρου στο λεξικό";
+
+/* Looking up… */
+"looking_up" = "Αναζήτηση…";
+
+/* Match question */
+"match_question" = "Όπως η ερώτηση";
+
+/* Minimize */
+"minimize" = "Ελαχιστοποίηση";
+
+/* More folders */
+"more_folders" = "Περισσότεροι φάκελοι";
+
+/* More languages */
+"more_languages" = "Περισσότερες γλώσσες";
+
+/* %d saved */
+"n_saved" = "%d αποθηκευμένα";
+
+/* New Explanation */
+"new_explanation" = "Νέα εξήγηση";
+
+/* New Folder… */
+"new_folder_menu" = "Νέος φάκελος…";
+
+/* Copy some text, then try the Langmin action again. */
+"no_clipboard_text_body" = "Αντιγράψτε κάποιο κείμενο και δοκιμάστε ξανά την ενέργεια του Langmin.";
+
+/* No clipboard text */
+"no_clipboard_text_title" = "Δεν υπάρχει κείμενο στο πρόχειρο";
+
+/* No Folder */
+"no_folder" = "Χωρίς φάκελο";
+
+/* No results */
+"library_search_empty_title" = "Δεν υπάρχουν αποτελέσματα";
+
+/* No %@ match “%@”. */
+"no_search_matches" = "Δεν υπάρχουν %@ που να ταιριάζουν με «%@».";
+
+/* None */
+"none" = "Καμία";
+
+/* Not Now */
+"not_now" = "Όχι τώρα";
+
+/* OK */
+"ok" = "ΟΚ";
+
+/* On this Mac */
+"on_this_mac" = "Σε αυτό το Mac";
+
+/* Open */
+"open" = "Άνοιγμα";
+
+/* Open */
+"open_in_window" = "Άνοιγμα";
+
+/* Open Langmin */
+"open_langmin" = "Άνοιγμα Langmin";
+
+/* Open Langmin at login */
+"open_langmin_at_login" = "Άνοιγμα Langmin κατά τη σύνδεση";
+
+/* Open in a result window */
+"open_result_window" = "Άνοιγμα σε παράθυρο αποτελέσματος";
+
+/* Open Settings */
+"open_settings" = "Άνοιγμα Ρυθμίσεων";
+
+/* Open Setup Assistant */
+"open_setup_assistant" = "Άνοιγμα Βοηθού διαμόρφωσης";
+
+/* Opening… */
+"opening_hud" = "Άνοιγμα…";
+
+/* Opening… */
+"opening_progress" = "Άνοιγμα…";
+
+/* Other */
+"other" = "Άλλα";
+
+/* ↵ run    ⇥ pin chip    ⌘, options */
+"palette_legend_chip" = "↵ εκτέλεση    ⇥ καρφίτσωμα ετικέτας    ⌘, επιλογές";
+
+/* Paste */
+"paste" = "Επικόλληση";
+
+/* Langmin can't access the pasted file */
+"pasted_file_denied" = "Το Langmin δεν έχει πρόσβαση στο επικολλημένο αρχείο";
+
+/* Langmin can't access the pasted files */
+"pasted_files_denied" = "Το Langmin δεν έχει πρόσβαση στα επικολλημένα αρχεία";
+
+/* macOS did not grant access to these files. Drag them into this window instead. */
+"pasted_files_denied_body" = "Το macOS δεν επέτρεψε την πρόσβαση σε αυτά τα αρχεία. Σύρετέ τα σε αυτό το παράθυρο.";
+
+/* Look up a word… */
+"placeholder_dictionary" = "Αναζητήστε μια λέξη…";
+
+/* What would you like explained? */
+"placeholder_explain" = "Τι θέλετε να εξηγηθεί;";
+
+/* What would you like proofread? */
+"placeholder_proofread" = "Τι θέλετε να διορθωθεί;";
+
+/* What would you like rewritten? */
+"placeholder_rewrite" = "Τι θέλετε να ξαναγραφτεί;";
+
+/* What would you like summarized? */
+"placeholder_summarize" = "Τι θέλετε να συνοψιστεί;";
+
+/* What would you like translated? */
+"placeholder_translate" = "Τι θέλετε να μεταφραστεί;";
+
+/* Preparing narration… */
+"preparing_narration" = "Προετοιμασία αφήγησης…";
+
+/* Privacy Policy… */
+"privacy_policy" = "Πολιτική απορρήτου…";
+
+/* Family Sharing included. */
+"pro_family_caption" = "Περιλαμβάνεται Οικογενειακή κοινή χρήση.";
+
+/* OpenAI, Anthropic, Gemini, Grok, DeepSeek, and custom endpoints */
+"pro_feature_cloud" = "OpenAI, Anthropic, Gemini, Grok, DeepSeek και προσαρμοσμένα τελικά σημεία";
+
+/* Library folders */
+"pro_feature_folders" = "Φάκελοι στη Βιβλιοθήκη";
+
+/* Web research for current facts and sources */
+"pro_feature_research" = "Αναζήτηση στο web για επίκαιρα στοιχεία και πηγές";
+
+/* OpenAI and Grok voices */
+"pro_feature_voices" = "Φωνές OpenAI και Grok";
+
+/* Apple Intelligence, Apple voices, and the Library stay free. */
+"pro_free_note" = "Το Apple Intelligence, οι φωνές Apple και η Βιβλιοθήκη παραμένουν δωρεάν.";
+
+/* Buy once for %@ */
+"pro_lifetime_button" = "Αγορά μία φορά με %@";
+
+/* Contacting the App Store… */
+"pro_loading" = "Επικοινωνία με το App Store…";
+
+/* Manage Subscription… */
+"pro_manage_subscription" = "Διαχείριση συνδρομής…";
+
+/* %@ Pro… */
+"pro_menu" = "%@ Pro…";
+
+/* This purchase is still pending. %@ Pro unlocks when the App Store confirms it. */
+"pro_pending_body" = "Αυτή η αγορά εκκρεμεί ακόμη. Το %@ Pro ξεκλειδώνει όταν την επιβεβαιώσει το App Store.";
+
+/* Purchase pending */
+"pro_pending_title" = "Εκκρεμής αγορά";
+
+/* Privacy Policy */
+"pro_privacy_policy" = "Πολιτική απορρήτου";
+
+/* The purchase didn't complete: %@ */
+"pro_purchase_failed" = "Η αγορά δεν ολοκληρώθηκε: %@";
+
+/* Cloud models are part of %@ Pro. */
+"pro_reason_cloud" = "Τα μοντέλα cloud ανήκουν στο %@ Pro.";
+
+/* Library folders are part of %@ Pro. */
+"pro_reason_folders" = "Οι φάκελοι της Βιβλιοθήκης ανήκουν στο %@ Pro.";
+
+/* Get more with %@ Pro. */
+"pro_reason_general" = "Περισσότερες δυνατότητες με το %@ Pro.";
+
+/* OpenAI and Grok voices are part of %@ Pro. */
+"pro_reason_voices" = "Οι φωνές OpenAI και Grok ανήκουν στο %@ Pro.";
+
+/* Couldn't restore purchases */
+
+/* No %@ Pro purchase was found for this Apple Account. */
+"pro_restore_none_body" = "Δεν βρέθηκε αγορά του %@ Pro για αυτόν τον λογαριασμό Apple.";
+
+/* Nothing to restore */
+"pro_restore_none_title" = "Δεν υπάρχει τίποτα για επαναφορά";
+
+/* Restore Purchases */
+"pro_restore_purchases" = "Επαναφορά αγορών";
+
+/* Pro */
+"pro_status_active" = "Pro";
+
+/* Pro · ends %@ */
+"pro_status_ends" = "Pro · λήγει %@";
+
+/* Pro · shared with your family */
+"pro_status_family" = "Pro · σε κοινή χρήση με την οικογένειά σας";
+
+/* Free */
+"pro_status_free" = "Δωρεάν";
+
+/* Pro · lifetime */
+"pro_status_lifetime" = "Pro · εφ' όρου ζωής";
+
+/* Pro · renews %@ */
+"pro_status_renews" = "Pro · ανανεώνεται %@";
+
+/* Pro trial · ends %@ */
+"pro_status_trial_ends" = "Δοκιμή Pro · λήγει %@";
+
+/* Pro trial · first payment %@ */
+"pro_status_trial_renews" = "Δοκιμή Pro · πρώτη πληρωμή %@";
+
+/* Pro trial · until %@ */
+"pro_status_trial_until" = "Δοκιμή Pro · έως %@";
+
+/* Pro · until %@ */
+"pro_status_until" = "Pro · έως %@";
+
+/* Pro purchases are unavailable right now. Please try again later. */
+"pro_store_unavailable" = "Οι αγορές Pro δεν είναι διαθέσιμες αυτή τη στιγμή. Δοκιμάστε ξανά αργότερα.";
+
+/* Payment goes to your Apple Account. A subscription renews automatically each year unless it is cancelled in your App Store settings at least a day before the period ends. */
+"pro_terms" = "Η πληρωμή χρεώνεται στον λογαριασμό Apple σας. Η συνδρομή ανανεώνεται αυτόματα κάθε χρόνο, εκτός αν ακυρωθεί στις ρυθμίσεις του App Store τουλάχιστον μία ημέρα πριν από το τέλος της περιόδου.";
+
+/* Terms of Use */
+"pro_terms_of_use" = "Όροι χρήσης";
+
+/* Cancel at least a day before the free trial ends to avoid being charged. */
+
+/* %@ Pro */
+"pro_title" = "%@ Pro";
+
+/* Start free trial */
+
+/* Try free for a month */
+
+/* then %@ a year · cancel anytime */
+
+/* The App Store could not verify this purchase. */
+"pro_unverified" = "Το App Store δεν μπόρεσε να επαληθεύσει αυτήν την αγορά.";
+
+/* Upgrade… */
+"pro_upgrade_button" = "Αναβάθμιση…";
+
+/* Subscribe for %@ a year */
+"pro_yearly_button" = "Συνδρομή με %@ τον χρόνο";
+
+/* Renews automatically each year · cancel anytime */
+"pro_yearly_caption" = "Ανανεώνεται αυτόματα κάθε χρόνο · ακύρωση οποιαδήποτε στιγμή";
+
+/* You have %@ Pro. */
+"pro_you_have" = "Έχετε το %@ Pro.";
+
+/* Pronounce — click to choose a voice first */
+"pronounce_setup_tooltip" = "Προφορά — κάντε κλικ για να επιλέξετε πρώτα μια φωνή";
+
+/* Pronunciation voice */
+"pronunciation_voice" = "Φωνή προφοράς";
+
+/* Proofread */
+"proofread" = "Διόρθωση";
+
+/* Proofread Clipboard */
+"proofread_clipboard" = "Διόρθωση προχείρου";
+
+/* Proofreading… */
+"proofreading" = "Διόρθωση σε εξέλιξη…";
+
+/* Quit %@ */
+"quit_app" = "Τερματισμός %@";
+
+/* Quit Now */
+"quit_now" = "Τερματισμός τώρα";
+
+/* Redo */
+"redo" = "Επανάληψη";
+
+/* Remember choices */
+"remember_choices" = "Απομνημόνευση επιλογών";
+
+/* Rename */
+"rename" = "Μετονομασία";
+
+/* Rename Folder */
+"rename_folder_menu" = "Μετονομασία φακέλου";
+
+/* Rephrasing… */
+"rephrasing" = "Αναδιατύπωση…";
+
+/* Reset Defaults */
+"reset_defaults" = "Επαναφορά προεπιλογών";
+
+/* Press Save to restore defaults, or open Setup Assistant to choose new settings. */
+"reset_wizard_body" = "Πατήστε Αποθήκευση για επαναφορά των προεπιλογών ή ανοίξτε τον Βοηθό διαμόρφωσης για να επιλέξετε νέες ρυθμίσεις.";
+
+/* Start over with the Setup Assistant? */
+"reset_wizard_title" = "Να ξεκινήσετε από την αρχή με τον Βοηθό διαμόρφωσης;";
+
+/* Empty and loading results */
+"results_empty_title" = "Όποτε είστε έτοιμοι";
+"results_empty_hint" = "Εισαγάγετε κείμενο στα αριστερά και πατήστε ⌘↵ για να δείτε το αποτέλεσμα εδώ.";
+"results_loading_title" = "Δημιουργία του αποτελέσματος";
+"retry" = "Επανάληψη";
+
+/* Rewrite */
+"rewrite" = "Επαναδιατύπωση";
+
+/* Rewrite Clipboard */
+"rewrite_clipboard" = "Επαναδιατύπωση προχείρου";
+
+/* App Language */
+"row_app_language" = "Γλώσσα εφαρμογής";
+
+/* Launcher Window */
+"row_launcher_window" = "Παράθυρο εκκίνησης";
+
+/* Online Research */
+"row_online_research" = "Διαδικτυακή αναζήτηση";
+
+/* Secret Protection */
+"row_secret_protection" = "Προστασία μυστικών";
+
+/* Run */
+"run" = "Εκτέλεση";
+
+/* look up */
+"run_verb_dictionary" = "αναζήτηση";
+
+/* explain */
+"run_verb_explain" = "εξήγηση";
+
+/* proofread */
+"run_verb_proofread" = "διόρθωση";
+
+/* rewrite */
+"run_verb_rewrite" = "επαναδιατύπωση";
+
+/* summarize */
+"run_verb_summarize" = "περίληψη";
+
+/* translate */
+"run_verb_translate" = "μετάφραση";
+
+/* Save */
+"save" = "Αποθήκευση";
+
+/* Save Audio… */
+"save_audio" = "Αποθήκευση ήχου…";
+
+/* Save Text… */
+"save_text" = "Αποθήκευση κειμένου…";
+
+/* Search actions */
+"search_actions" = "Αναζήτηση ενεργειών";
+
+/* ⌘K search */
+"search_actions_hint" = "⌘K αναζήτηση";
+
+/* Search languages */
+"search_languages" = "Αναζήτηση γλωσσών";
+
+/* Search Library */
+"search_library" = "Αναζήτηση στη βιβλιοθήκη";
+
+/* Search models */
+"search_models" = "Αναζήτηση μοντέλων";
+
+/* titles */
+"search_scope_titles" = "τίτλοι";
+
+/* titles or contents */
+"search_scope_titles_contents" = "τίτλοι ή περιεχόμενα";
+
+/* Search voices */
+"search_voices" = "Αναζήτηση φωνών";
+
+/* Services */
+"services" = "Υπηρεσίες";
+
+/* Settings… */
+"settings" = "Ρυθμίσεις…";
+
+/* Settings */
+"settings_window" = "Ρυθμίσεις";
+
+/* Setup Assistant… */
+"setup_assistant" = "Βοηθός διαμόρφωσης…";
+
+/* Show All */
+"show_all" = "Εμφάνιση όλων";
+
+/* Show Langmin in the menu bar */
+"show_langmin_in_the_menu_bar" = "Εμφάνιση του Langmin στη γραμμή μενού";
+
+/* %@ with %@… */
+"status_with_model" = "%@ με %@…";
+
+/* Style */
+"style" = "Στιλ";
+
+/* Summarize */
+"summarize" = "Σύνοψη";
+
+/* Summarize Clipboard */
+"summarize_clipboard" = "Σύνοψη προχείρου";
+
+/* Summarizing… */
+"summarizing" = "Σύνοψη σε εξέλιξη…";
+
+/* System Default */
+"system_default" = "Προεπιλογή συστήματος";
+
+/* Advanced */
+"tab_advanced" = "Προηγμένα";
+
+/* General */
+"tab_general" = "Γενικά";
+
+/* Models */
+"tab_models" = "Μοντέλα";
+
+/* Reading */
+"tab_reading" = "Ανάγνωση";
+
+/* Shortcuts */
+"tab_shortcuts" = "Συντομεύσεις";
+
+/* Window */
+"tab_window" = "Παράθυρο";
+
+/* Tightening… */
+"tightening" = "Συμπύκνωση…";
+
+/* Translate */
+"translate" = "Μετάφραση";
+
+/* Translate Clipboard */
+"translate_clipboard" = "Μετάφραση προχείρου";
+
+/* Translating… */
+"translating" = "Μετάφραση σε εξέλιξη…";
+
+/* Undo */
+"undo" = "Αναίρεση";
+
+/* Untitled */
+"untitled" = "Χωρίς τίτλο";
+
+/* Another app asked Langmin to process this text:\n\n“%@”\n\nRunning sends it to your configured model. */
+"url_run_confirm_body" = "Μια άλλη εφαρμογή ζήτησε από το Langmin να επεξεργαστεί αυτό το κείμενο:\n\n«%@»\n\nΜε την εκτέλεση θα σταλεί στο διαμορφωμένο μοντέλο.";
+
+/* Run “%@” from a link? */
+"url_run_confirm_title" = "Εκτέλεση «%@» από σύνδεσμο;";
+
+/* Use web research when available */
+"use_web_research" = "Χρήση αναζήτησης στον ιστό όταν είναι διαθέσιμη";
+
+/* Warn before sending secrets */
+"warn_before_secrets" = "Προειδοποίηση πριν από την αποστολή μυστικών";
+
+/* Window */
+"window" = "Παράθυρο";
+
+/* Runs on your Mac. Free, with no account needed. */
+"wizard_apple_available" = "Εκτελείται στο Mac σας. Δωρεάν, χωρίς λογαριασμό.";
+
+/* Apple Intelligence (on this Mac, private and free) */
+"wizard_apple_row" = "Apple Intelligence (σε αυτό το Mac, ιδιωτικό και δωρεάν)";
+
+/* Apple Intelligence (not available on this Mac) */
+"wizard_apple_row_unavailable" = "Apple Intelligence (μη διαθέσιμο σε αυτό το Mac)";
+
+/* Not available on this Mac (requires Apple Intelligence). Choose a cloud provider below. */
+"wizard_apple_unavailable" = "Μη διαθέσιμο σε αυτό το Mac (απαιτεί Apple Intelligence). Επιλέξτε έναν πάροχο cloud παρακάτω.";
+
+/* Read results aloud or hear Dictionary words and examples. Choose a voice that supports the language.\n\nApple voices run on your Mac for free. OpenAI and Grok voices require Pro and a provider API key. */
+"wizard_audio_body" = "Ακούστε αποτελέσματα, λέξεις και παραδείγματα του Λεξικού. Επιλέξτε φωνή που υποστηρίζει τη γλώσσα.\n\nΟι φωνές Apple εκτελούνται δωρεάν στο Mac σας. Οι φωνές OpenAI και Grok απαιτούν Pro και κλειδί API του παρόχου.";
+
+/* Hear your words */
+"wizard_audio_title" = "Ακούστε τις λέξεις σας";
+
+/* Back */
+"wizard_back" = "Πίσω";
+
+/* macOS may ask for clipboard access when you first use a shortcut. */
+"wizard_clipboard_note" = "Το macOS μπορεί να ζητήσει πρόσβαση στο πρόχειρο όταν χρησιμοποιήσετε μια συντόμευση για πρώτη φορά.";
+
+/* Continue */
+"wizard_continue" = "Συνέχεια";
+
+/* Also answer in */
+"wizard_extra_languages" = "Απάντηση και σε";
+
+/* Finish */
+"wizard_finish" = "Τέλος";
+
+/* Keys stay in macOS Keychain. Requests go directly to your provider. Add keys or a local model later in Settings → Models. */
+"wizard_key_note_local" = "Τα κλειδιά μένουν στην Κλειδοθήκη του macOS. Τα αιτήματα πηγαίνουν απευθείας στον πάροχο. Προσθέστε κλειδιά ή τοπικό μοντέλο αργότερα στις Ρυθμίσεις → Μοντέλα.";
+
+/* API key (optional, add any time) */
+"wizard_key_optional" = "Κλειδί API (προαιρετικό, προσθέστε το όποτε θέλετε)";
+
+/* Choose translation languages. Extra languages add versions to Dictionary, Explain, and Summarize results. Change either list in the launcher's mode menus. */
+"wizard_language_body_single_source" = "Επιλέξτε γλώσσες μετάφρασης. Οι επιπλέον γλώσσες προσθέτουν εκδόσεις στα αποτελέσματα Λεξικού, Εξήγησης και Σύνοψης. Αλλάξτε τις λίστες στα μενού λειτουργιών του παραθύρου εκκίνησης.";
+
+/* Your languages */
+"wizard_language_title" = "Οι γλώσσες σας";
+
+/* Set Up Later */
+"wizard_later" = "Διαμόρφωση αργότερα";
+
+/* Cloud providers, web research, Library folders, and cloud voices require %@ Pro. Apple Intelligence is free. Eligible subscriptions include a trial. */
+"wizard_pro_note" = "Your first 30 days include %@ Pro. Apple Intelligence stays free afterward.";
+
+/* Dictionary pronunciation voice */
+"wizard_pronunciation_voice" = "Φωνή προφοράς λεξικού";
+
+/* Claude models with web research. */
+"wizard_provider_anthropic" = "Μοντέλα Claude με αναζήτηση στον ιστό.";
+
+/* Switch models in the launcher, or open All models to enable more. */
+"wizard_provider_body_multi" = "Αλλάξτε μοντέλο στο παράθυρο εκκίνησης ή ενεργοποιήστε περισσότερα από το Όλα τα μοντέλα.";
+
+/* DeepSeek chat and reasoning models. */
+"wizard_provider_deepseek" = "Μοντέλα DeepSeek για συνομιλία και συλλογισμό.";
+
+/* Gemini models with web research. */
+"wizard_provider_gemini" = "Μοντέλα Gemini με αναζήτηση στον ιστό.";
+
+/* Grok text models and optional voices. */
+"wizard_provider_grok" = "Μοντέλα κειμένου Grok και προαιρετικές φωνές.";
+
+/* GPT models with web research. */
+"wizard_provider_openai" = "Μοντέλα GPT με αναζήτηση στον ιστό.";
+
+/* Choose your providers */
+"wizard_provider_title_multi" = "Επιλέξτε παρόχους";
+
+/* Copy text and use a shortcut, or open the launcher and start typing.\n\nChange your choices in the launcher's menus or Settings. */
+"wizard_ready_body_simple" = "Langmin starts a free 30-day trial when you first open it. No subscription starts, and you will not be charged.";
+
+/* You're all set */
+"wizard_ready_title" = "30 days of full access";
+
+/* Use these shortcuts from another app after copying text. Proofread and Rewrite copy the result. The other four modes show it in the HUD. Open opens a result window; Dismiss closes the HUD.\n\nIn Langmin's main window, these shortcuts select a mode. Press ⌘Return to run it. */
+"wizard_shortcuts_body" = "Αντιγράψτε κείμενο σε άλλη εφαρμογή και χρησιμοποιήστε αυτές τις συντομεύσεις. Η Διόρθωση και η Επαναδιατύπωση αντιγράφουν το αποτέλεσμα. Οι άλλες τέσσερις λειτουργίες το εμφανίζουν στο HUD. Το Άνοιγμα ανοίγει παράθυρο αποτελέσματος· το Κλείσιμο κλείνει το HUD.\n\nΣτο κύριο παράθυρο του Langmin, οι συντομεύσεις επιλέγουν λειτουργία. Πατήστε ⌘Return για εκτέλεση.";
+
+/* Step %d of %d */
+"wizard_step_n_of_m" = "Βήμα %d από %d";
+
+/* Translate to */
+"wizard_translate_to" = "Μετάφραση σε";
+
+/* Proofread, rewrite, explain, summarize, translate, and look up words. Listen to results and Dictionary examples.\n\nChoose your settings now or change them later. */
+"wizard_welcome_body_short" = "Διορθώστε, ξαναγράψτε, εξηγήστε, συνοψίστε, μεταφράστε και αναζητήστε λέξεις. Ακούστε αποτελέσματα και παραδείγματα του Λεξικού.\n\nΕπιλέξτε ρυθμίσεις τώρα ή αλλάξτε τις αργότερα.";
+
+/* Welcome to %@ */
+"wizard_welcome_title" = "Καλώς ήρθατε στο %@";
+
+/* Langmin Setup */
+"wizard_window" = "Διαμόρφωση Langmin";
+
+/* Open Langmin at login to keep its menu-bar actions and shortcuts available. */
+"wizard_workflow_body" = "Ανοίξτε το Langmin κατά τη σύνδεση για να είναι διαθέσιμες οι ενέργειες της γραμμής μενού και οι συντομεύσεις.";
+
+/* Always at hand */
+"wizard_workflow_title" = "Πάντα διαθέσιμο";
+
+/* Your providers */
+"your_providers" = "Οι πάροχοί σας";
+
+/* Dictionary illustrations */
+"illustration" = "Εικονογράφηση";
+"illustration_apple_note" = "Δημιουργήστε και επιλέξτε μια εικόνα στο Mac σας";
+"illustration_apple_unavailable" = "Απαιτεί macOS 15.4 ή νεότερο και Image Playground";
+"illustration_cloud_note" = "Ξεχωριστή χρέωση · χρησιμοποιεί το κλειδί API OpenAI σας";
+"illustration_generated" = "Εικονογράφηση δημιουργημένη με ΤΝ";
+"illustration_generating" = "Δημιουργία εικονογράφησης…";
+"illustration_failed" = "Δεν ήταν δυνατή η δημιουργία εικονογράφησης";
+"illustration_missing_key" = "Προσθέστε ένα κλειδί API OpenAI στις Ρυθμίσεις → Μοντέλα.";
+"illustration_save" = "Αποθήκευση εικόνας…";
+"illustration_remove" = "Αφαίρεση εικονογράφησης";
+
+"reading_webpage" = "Ανάγνωση σελίδας…";
+
+"loading_page_images" = "Φόρτωση εικόνων σελίδας…";
+
+/* Follow-up */
+"followup_title" = "Συνέχεια";
+
+/* Ask a follow-up or request changes… */
+"followup_placeholder" = "Κάντε μια συμπληρωματική ερώτηση ή ζητήστε αλλαγές…";
+
+/* Send follow-up */
+"followup_send" = "Αποστολή ερώτησης";
+
+/* Replying… */
+"followup_working" = "Σύνταξη απάντησης…";
+
+/* You */
+"followup_you" = "Εσείς";
+
+/* Copy reply */
+"followup_copy" = "Αντιγραφή απάντησης";
+
+/* Delete reply */
+"followup_delete_reply" = "Διαγραφή απάντησης";
+
+/* The message could not be deleted: %@ */
+"followup_delete_failed" = "Δεν ήταν δυνατή η διαγραφή του μηνύματος: %@";
+
+/* Print… */
+"print" = "Εκτύπωση…";
+
+/* Quick HUD playback */
+"hud_read_paragraph" = "Εκφώνηση αυτής της παραγράφου";
+"hud_stop_playback" = "Διακοπή εκφώνησης";
+"hud_playback_failed" = "Δεν ήταν δυνατή η εκφώνηση αυτού του κειμένου";
+"hud_voice_api_key" = "Προσθέστε ένα κλειδί API για το %@ στις Ρυθμίσεις για να χρησιμοποιήσετε αυτή τη φωνή.";
+
+"request_failed" = "Το αίτημα απέτυχε";
+
+/* Translation skipped */
+"translation_skipped" = "Η μετάφραση παραλείφθηκε";
+
+/* Already in this language. */
+"translation_already_in_language" = "Το κείμενο είναι ήδη στην επιλεγμένη γλώσσα.";
+
+/* Library window placement */
+"detach_library" = "Άνοιγμα βιβλιοθήκης σε ξεχωριστό παράθυρο";
+"attach_library" = "Μεταφορά βιβλιοθήκης στο κύριο παράθυρο";
+
+/* Result text editing */
+"apply" = "Εφαρμογή";
+"discard_changes" = "Απόρριψη αλλαγών";
+"done" = "Τέλος";
+"edit_link" = "Επεξεργασία συνδέσμου";
+"edit_text" = "Επεξεργασία κειμένου";
+"format_text" = "Μορφοποίηση κειμένου";
+"remove_link" = "Αφαίρεση συνδέσμου";
+"save_text_changes" = "Να αποθηκευτούν οι αλλαγές στο κείμενο;";
+"text_style" = "Στυλ κειμένου";
+"save_edits_remove_audio" = "Αποθήκευση αλλαγών και αφαίρεση ήχου;";
+"save_edits_remove_audio_detail" = "Η αποθήκευση αυτών των αλλαγών θα αφαιρέσει όλη τη συνημμένη αφήγηση και τον ήχο προφοράς. Μπορείτε να δημιουργήσετε νέο ήχο μετά.";
+
+/* iCloud Library sync */
+"pro_feature_icloud" = "Συγχρονισμός βιβλιοθήκης μέσω iCloud";
+"pro_reason_icloud" = "Ο συγχρονισμός βιβλιοθήκης μέσω iCloud περιλαμβάνεται στο %@ Pro.";
+
+/* Automatically illustrate new lookups */
+"illustration_automatic" = "Αυτόματη εικονογράφηση νέων αναζητήσεων";
+
+/* Automatic images are off by default. To add an image yourself, use the picture button on a Dictionary result. */
+"illustration_manual_note" = "Οι αυτόματες εικόνες είναι απενεργοποιημένες από προεπιλογή. Για να προσθέσετε εικόνα, χρησιμοποιήστε το κουμπί εικόνας σε ένα αποτέλεσμα του Λεξικού.";
+
+/* Image Provider */
+"illustration_provider" = "Πάροχος εικόνων";
+
+/* Choose in result */
+"illustration_choose_in_result" = "Επιλογή στο αποτέλεσμα";
+
+/* Choose a provider before turning on automatic images. You can also add an image from a Dictionary result's picture button. */
+"illustration_choose_provider_note" = "Επιλέξτε πάροχο πριν ενεργοποιήσετε τις αυτόματες εικόνες. Μπορείτε επίσης να προσθέσετε εικόνα με το κουμπί εικόνας σε ένα αποτέλεσμα του Λεξικού.";
+
+/* Create and choose images on your Mac. Automatic mode opens Image Playground after each Dictionary lookup. */
+"illustration_apple_settings_note" = "Δημιουργήστε και επιλέξτε εικόνες στο Mac σας. Στην αυτόματη λειτουργία, το Image Playground ανοίγει μετά από κάθε αναζήτηση στο Λεξικό.";
+
+/* Requires Pro and an OpenAI API key in Settings → Models. Each image is billed separately. Creates one landscape image at medium quality. */
+"illustration_openai_settings_note" = "Απαιτεί Pro και κλειδί API OpenAI στις Ρυθμίσεις → Μοντέλα. Κάθε εικόνα χρεώνεται ξεχωριστά. Δημιουργεί μία οριζόντια εικόνα μέτριας ποιότητας.";
+
+/* Illustrations */
+"tab_illustrations" = "Εικονογραφήσεις";
+
+/* Empty launcher input */
+"input_start_hint" = "Γράψτε ή επικολλήστε εδώ, ή σύρετε ένα αρχείο";
+"input_documents" = "Έγγραφα";
+"input_images" = "Εικόνες";
+"input_audio" = "Ήχος";
+"input_drop_title" = "Αφήστε το αρχείο για προσθήκη κειμένου";
+
+/* Source-build purchase footer */
+"source_build_title" = "Trial ended";
+"source_build_support" = "Apple Intelligence stays free, while other Pro features require purchase.";
+"source_build_purchase" = "Αγορά";
+"source_build_dismiss" = "Dismiss";
+"pro_app_trial_one_day" = "Pro trial · 1 day remaining";
+"pro_app_trial_days" = "Pro trial · %d days remaining";
+"wizard_trial_during_title" = "Your first 30 days";
+"wizard_trial_during_langmin" = "Use every Langmin feature without app limits. Provider charges may still apply.";
+"wizard_trial_after_title" = "After the trial";
+"wizard_trial_after_langmin" = "Apple Intelligence, Apple voices, Apple transcription, text editing, and the Library stay free. Other Pro features require a purchase.";
+"wizard_trial_plans_title" = "Keep Pro";
+"wizard_trial_plans_body" = "Choose a yearly plan or lifetime access at any time.";
