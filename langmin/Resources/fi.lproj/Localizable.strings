@@ -1,0 +1,983 @@
+/* Langmin — fi localization. Comments give English text or name a related group. */
+
+/* About %@ */
+"about_app" = "Tietoja: %@";
+
+/* All */
+"all_chip" = "Kaikki";
+
+/* All models */
+"all_models" = "Kaikki mallit";
+
+/* Answer language */
+"answer_language" = "Vastauksen kieli";
+
+/* %@ Help */
+"app_help" = "%@-ohje";
+
+/* Back */
+"back" = "Takaisin";
+
+/* Bring All to Front */
+"bring_all_to_front" = "Tuo kaikki eteen";
+
+/* Delete %d items from %@? */
+"bulk_delete_confirm_many" = "Poistetaanko %d kohdetta osiosta ”%@”?";
+
+/* Delete 1 item from %@? */
+"bulk_delete_confirm_one" = "Poistetaanko 1 kohde osiosta ”%@”?";
+
+/* Only the items matching the current search are deleted. */
+"bulk_delete_search_note" = "Vain nykyistä hakua vastaavat kohteet poistetaan.";
+
+/* Use Undo to restore an item before it disappears. */
+"bulk_delete_undo_note" = "Palauta kohde Kumoa-painikkeella ennen kuin se katoaa.";
+
+/* Cancel */
+"cancel" = "Peruuta";
+
+/* Cancel Current Action */
+"cancel_current_action" = "Peruuta nykyinen toiminto";
+
+/* Cancel this request (Esc) */
+"cancel_this_request_esc" = "Peruuta tämä pyyntö (Esc)";
+
+/* Cancelled */
+"cancelled" = "Peruutettu";
+
+/* Cancelling… */
+"cancelling" = "Peruutetaan…";
+
+/* Cancelling */
+"cancelling_a11y" = "Peruutetaan";
+
+/* Clear after submit */
+"clear_after_submit" = "Tyhjennä lähettämisen jälkeen";
+
+/* You copied something else while Langmin was working. Replace it with the transformed text? */
+"clipboard_changed_body" = "Kopioit jotain muuta, kun Langmin työskenteli. Korvataanko se muunnetulla tekstillä?";
+
+/* The clipboard changed */
+"clipboard_changed_title" = "Leikepöytä muuttui";
+
+/* Clipboard unchanged */
+"clipboard_unchanged" = "Leikepöytä ennallaan";
+
+/* macOS did not accept the transformed text. The previous clipboard contents were restored. */
+"clipboard_write_failed_restored" = "macOS ei hyväksynyt muunnettua tekstiä. Leikepöydän aiempi sisältö palautettiin.";
+
+/* macOS did not accept the transformed text, and the previous clipboard contents could not be restored. */
+"clipboard_write_failed_unrestored" = "macOS ei hyväksynyt muunnettua tekstiä, eikä leikepöydän aiempaa sisältöä voitu palauttaa.";
+
+/* Close */
+"close" = "Sulje";
+
+/* ⌘V to paste */
+"cmd_v_to_paste" = "⌘V — sijoita";
+
+/* Compose with Clipboard */
+"compose_with_clipboard" = "Kirjoita leikepöydän avulla";
+
+/* Copied */
+"copied" = "Kopioitu";
+
+/* Copy */
+"copy" = "Kopioi";
+
+/* Copy this paragraph */
+"copy_paragraph" = "Kopioi tämä kappale";
+
+/* Copy Result */
+"copy_result" = "Kopioi tulos";
+
+/* Copying… */
+"copying" = "Kopioidaan…";
+
+/* Could not delete one saved item */
+"could_not_delete_one_saved_item" = "Yhtä tallennettua kohdetta ei voitu poistaa";
+
+/* Could not delete some saved items */
+"could_not_delete_some_saved_items" = "Joitakin tallennettuja kohteita ei voitu poistaa";
+
+/* Could not delete this saved item */
+"could_not_delete_this_saved_item" = "Tätä tallennettua kohdetta ei voitu poistaa";
+
+/* Could not export this saved item */
+"could_not_export_this_saved_item" = "Tätä tallennettua kohdetta ei voitu viedä";
+
+/* Could not open the result */
+"could_not_open_result" = "Tulosta ei voitu avata";
+
+/* Could not rename this saved item */
+"could_not_rename_this_saved_item" = "Tämän tallennetun kohteen nimeä ei voitu muuttaa";
+
+/* Could not restore this saved item */
+"could_not_restore_this_saved_item" = "Tätä tallennettua kohdetta ei voitu palauttaa";
+
+/* Could not save audio */
+"could_not_save_audio" = "Ääntä ei voitu tallentaa";
+
+/* Could not update the clipboard */
+"could_not_update_clipboard" = "Leikepöytää ei voitu päivittää";
+
+/* Could not update the login item */
+"could_not_update_the_login_item" = "Kirjautumiskohdetta ei voitu päivittää";
+
+/* Cut */
+"cut" = "Leikkaa";
+
+/* Cycle Through Windows */
+"cycle_through_windows" = "Selaa ikkunoita";
+
+/* Delete */
+"delete" = "Poista";
+
+/* Delete All %d… */
+"delete_all_n" = "Poista kaikki %d…";
+
+/* Delete Folder */
+"delete_folder_menu" = "Poista kansio";
+
+/* All entries stay in the Library */
+"delete_folder_subtitle" = "Kaikki merkinnät jäävät Kirjastoon";
+
+/* Delete %d Shown… */
+"delete_n_shown" = "Poista näkyvät %d…";
+
+/* Deleted “%@” */
+"deleted_item" = "”%@” poistettu";
+
+/* Dictionary */
+"dictionary" = "Sanakirja";
+
+/* Dictionary Lookup */
+"dictionary_lookup" = "Sanakirjahaku";
+
+/* Dismiss */
+"dismiss" = "Sulje";
+
+/* Drop or paste documents, images, or audio */
+"drop_hint" = "Vedä tai sijoita dokumentteja, kuvia tai äänitiedostoja";
+
+/* Edit */
+"edit" = "Muokkaus";
+
+/* Deeper essay */
+"effort_detailed" = "Syvällisempi essee";
+
+/* Short and clear */
+"effort_simple" = "Lyhyt ja selkeä";
+
+/* Balanced depth */
+"effort_standard" = "Tasapainoinen syvyys";
+
+/* Elaborating… */
+"elaborating" = "Laajennetaan…";
+
+/* Explain */
+"explain" = "Selitys";
+
+/* Explain Clipboard */
+"explain_clipboard" = "Selitä leikepöytä";
+
+/* Explaining… */
+"explaining" = "Selitetään…";
+
+/* Export Audio… */
+"export_audio_menu" = "Vie ääni…";
+
+/* Export Audio */
+"export_audio_panel" = "Vie ääni";
+
+/* Export Text… */
+"export_text_menu" = "Vie teksti…";
+
+/* Export Text */
+"export_text_panel" = "Vie teksti";
+
+/* Extra languages */
+"extra_languages" = "Lisäkielet";
+
+/* File */
+"file" = "Arkisto";
+
+/* File In */
+"file_in_submenu" = "Arkistoi kansioon";
+
+/* Filter folders */
+"filter_folders" = "Suodata kansioita";
+
+/* Find… */
+"find_item" = "Etsi…";
+
+/* Find */
+"find_menu" = "Etsi";
+
+/* ↵ create · esc cancel */
+"folder_create_hint" = "↵ luo · esc peruuta";
+
+/* Nothing in this folder yet */
+"folder_empty_title" = "Tämä kansio on vielä tyhjä";
+
+/* Drag results onto a folder chip, or right-click one and file it here. */
+"folder_empty_subtitle" = "Vedä tuloksia kansion merkkiin tai napsauta tulosta hiiren kakkospainikkeella ja arkistoi se tänne.";
+
+/* already exists */
+"folder_exists_hint" = "on jo olemassa";
+
+/* already exists · ↵ opens it */
+"folder_exists_opens_hint" = "on jo olemassa · ↵ avaa sen";
+
+/* Folder name */
+"folder_name_placeholder" = "Kansion nimi";
+
+/* ↵ rename · esc cancel */
+"folder_rename_hint" = "↵ nimeä uudelleen · esc peruuta";
+
+/* Help */
+"help" = "Ohje";
+
+/* Hide %@ */
+"hide_app" = "Kätke %@";
+
+/* Hide Others */
+"hide_others" = "Kätke muut";
+
+/* Explaining */
+"hud_explaining" = "Selitetään";
+
+/* Looking up */
+"hud_looking_up" = "Haetaan";
+
+/* 1 word */
+"hud_one_word" = "1 sana";
+
+/* Proofreading */
+"hud_proofreading" = "Oikoluetaan";
+
+/* Rewriting */
+"hud_rewriting" = "Kirjoitetaan uudelleen";
+
+/* Summarizing */
+"hud_summarizing" = "Tiivistetään";
+
+/* Translating */
+"hud_translating" = "Käännetään";
+
+/* %d words */
+"hud_word_count" = "%d sanaa";
+
+/* Keep Current Clipboard */
+"keep_current_clipboard" = "Säilytä nykyinen leikepöytä";
+
+/* Language level */
+"language_level" = "Kielitaso";
+
+/* The new language takes effect the next time Langmin opens. */
+"language_restart_notice" = "Uusi kieli tulee käyttöön, kun Langmin avataan seuraavan kerran.";
+
+/* Later */
+"later" = "Myöhemmin";
+
+/* Library */
+"library" = "Kirjasto";
+
+/* No saved items yet */
+"library_empty_title" = "Ei vielä tallennettuja kohteita";
+
+/* Click a result's bookmark button to save it here. */
+"library_empty_subtitle" = "Tallenna tulos tänne napsauttamalla sen kirjanmerkkipainiketta.";
+
+/* Look Up Clipboard in Dictionary */
+"look_up_clipboard_in_dictionary" = "Etsi leikepöytä sanakirjasta";
+
+/* Looking up… */
+"looking_up" = "Etsitään…";
+
+/* Match question */
+"match_question" = "Kysymyksen mukaan";
+
+/* Minimize */
+"minimize" = "Pienennä";
+
+/* More folders */
+"more_folders" = "Lisää kansioita";
+
+/* More languages */
+"more_languages" = "Lisää kieliä";
+
+/* %d saved */
+"n_saved" = "%d tallennettu";
+
+/* New Explanation */
+"new_explanation" = "Uusi selitys";
+
+/* New Folder… */
+"new_folder_menu" = "Uusi kansio…";
+
+/* Copy some text, then try the Langmin action again. */
+"no_clipboard_text_body" = "Kopioi tekstiä ja yritä Langmin-toimintoa uudelleen.";
+
+/* No clipboard text */
+"no_clipboard_text_title" = "Leikepöydällä ei ole tekstiä";
+
+/* No Folder */
+"no_folder" = "Ei kansiota";
+
+/* No results */
+"library_search_empty_title" = "Ei tuloksia";
+
+/* No %@ match “%@”. */
+"no_search_matches" = "Ei %@, jotka vastaavat hakua ”%@”.";
+
+/* None */
+"none" = "Ei mitään";
+
+/* Not Now */
+"not_now" = "Ei nyt";
+
+/* OK */
+"ok" = "OK";
+
+/* On this Mac */
+"on_this_mac" = "Tällä Macilla";
+
+/* Open */
+"open" = "Avaa";
+
+/* Open */
+"open_in_window" = "Avaa";
+
+/* Open Langmin */
+"open_langmin" = "Avaa Langmin";
+
+/* Open Langmin at login */
+"open_langmin_at_login" = "Avaa Langmin kirjautuessa";
+
+/* Open in a result window */
+"open_result_window" = "Avaa tulosikkunassa";
+
+/* Open Settings */
+"open_settings" = "Avaa Asetukset";
+
+/* Open Setup Assistant */
+"open_setup_assistant" = "Avaa asennusavustaja";
+
+/* Opening… */
+"opening_hud" = "Avataan…";
+
+/* Opening… */
+"opening_progress" = "Avataan…";
+
+/* Other */
+"other" = "Muu";
+
+/* ↵ run    ⇥ pin chip    ⌘, options */
+"palette_legend_chip" = "↵ suorita    ⇥ kiinnitä merkki    ⌘, asetukset";
+
+/* Paste */
+"paste" = "Sijoita";
+
+/* Langmin can't access the pasted file */
+"pasted_file_denied" = "Langmin ei voi käyttää sijoitettua tiedostoa";
+
+/* Langmin can't access the pasted files */
+"pasted_files_denied" = "Langmin ei voi käyttää sijoitettuja tiedostoja";
+
+/* macOS did not grant access to these files. Drag them into this window instead. */
+"pasted_files_denied_body" = "macOS ei antanut pääsyä näihin tiedostoihin. Vedä ne tähän ikkunaan.";
+
+/* Look up a word… */
+"placeholder_dictionary" = "Hae sanaa…";
+
+/* What would you like explained? */
+"placeholder_explain" = "Mitä haluat selitettävän?";
+
+/* What would you like proofread? */
+"placeholder_proofread" = "Mitä haluat oikoluettavan?";
+
+/* What would you like rewritten? */
+"placeholder_rewrite" = "Mitä haluat kirjoitettavan uudelleen?";
+
+/* What would you like summarized? */
+"placeholder_summarize" = "Mitä haluat tiivistettävän?";
+
+/* What would you like translated? */
+"placeholder_translate" = "Mitä haluat käännettävän?";
+
+/* Preparing narration… */
+"preparing_narration" = "Valmistellaan lukemista…";
+
+/* Privacy Policy… */
+"privacy_policy" = "Tietosuojakäytäntö…";
+
+/* Family Sharing included. */
+"pro_family_caption" = "Perhejako sisältyy.";
+
+/* OpenAI, Anthropic, Gemini, Grok, DeepSeek, and custom endpoints */
+"pro_feature_cloud" = "OpenAI, Anthropic, Gemini, Grok, DeepSeek ja omat päätepisteet";
+
+/* Library folders */
+"pro_feature_folders" = "Kansiot Kirjastossa";
+
+/* Web research for current facts and sources */
+"pro_feature_research" = "Verkkohaku ajantasaisia faktoja ja lähteitä varten";
+
+/* OpenAI and Grok voices */
+"pro_feature_voices" = "OpenAI- ja Grok-äänet";
+
+/* Apple Intelligence, Apple voices, and the Library stay free. */
+"pro_free_note" = "Apple Intelligence, Applen äänet ja Kirjasto pysyvät ilmaisina.";
+
+/* Buy once for %@ */
+"pro_lifetime_button" = "Osta kerran hintaan %@";
+
+/* Contacting the App Store… */
+"pro_loading" = "Yhdistetään App Storeen…";
+
+/* Manage Subscription… */
+"pro_manage_subscription" = "Hallitse tilausta…";
+
+/* %@ Pro… */
+"pro_menu" = "%@ Pro…";
+
+/* This purchase is still pending. %@ Pro unlocks when the App Store confirms it. */
+"pro_pending_body" = "Tämä ostos on vielä kesken. %@ Pro avautuu, kun App Store vahvistaa sen.";
+
+/* Purchase pending */
+"pro_pending_title" = "Ostos odottaa";
+
+/* Privacy Policy */
+"pro_privacy_policy" = "Tietosuojakäytäntö";
+
+/* The purchase didn't complete: %@ */
+"pro_purchase_failed" = "Ostoa ei saatu valmiiksi: %@";
+
+/* Cloud models are part of %@ Pro. */
+"pro_reason_cloud" = "Pilvimallit kuuluvat %@ Pro -versioon.";
+
+/* Library folders are part of %@ Pro. */
+"pro_reason_folders" = "Kirjaston kansiot kuuluvat %@ Pro -versioon.";
+
+/* Get more with %@ Pro. */
+"pro_reason_general" = "Lisää toimintoja %@ Prolla.";
+
+/* OpenAI and Grok voices are part of %@ Pro. */
+"pro_reason_voices" = "OpenAI- ja Grok-äänet kuuluvat %@ Pro -versioon.";
+
+/* Couldn't restore purchases */
+
+/* No %@ Pro purchase was found for this Apple Account. */
+"pro_restore_none_body" = "Tälle Apple-tilille ei löytynyt %@ Pro -ostoa.";
+
+/* Nothing to restore */
+"pro_restore_none_title" = "Ei palautettavaa";
+
+/* Restore Purchases */
+"pro_restore_purchases" = "Palauta ostot";
+
+/* Pro */
+"pro_status_active" = "Pro";
+
+/* Pro · ends %@ */
+"pro_status_ends" = "Pro · päättyy %@";
+
+/* Pro · shared with your family */
+"pro_status_family" = "Pro · jaettu perheesi kanssa";
+
+/* Free */
+"pro_status_free" = "Ilmainen";
+
+/* Pro · lifetime */
+"pro_status_lifetime" = "Pro · elinikäinen";
+
+/* Pro · renews %@ */
+"pro_status_renews" = "Pro · uusiutuu %@";
+
+/* Pro trial · ends %@ */
+"pro_status_trial_ends" = "Pro-kokeilu · päättyy %@";
+
+/* Pro trial · first payment %@ */
+"pro_status_trial_renews" = "Pro-kokeilu · ensimmäinen maksu %@";
+
+/* Pro trial · until %@ */
+"pro_status_trial_until" = "Pro-kokeilu · %@ asti";
+
+/* Pro · until %@ */
+"pro_status_until" = "Pro · %@ asti";
+
+/* Pro purchases are unavailable right now. Please try again later. */
+"pro_store_unavailable" = "Pro-ostot eivät ole juuri nyt saatavilla. Yritä myöhemmin uudelleen.";
+
+/* Payment goes to your Apple Account. A subscription renews automatically each year unless it is cancelled in your App Store settings at least a day before the period ends. */
+"pro_terms" = "Maksu veloitetaan Apple-tililtäsi. Tilaus uusiutuu automaattisesti joka vuosi, ellei sitä peruuteta App Storen asetuksissa vähintään päivää ennen jakson päättymistä.";
+
+/* Terms of Use */
+"pro_terms_of_use" = "Käyttöehdot";
+
+/* Cancel at least a day before the free trial ends to avoid being charged. */
+
+/* %@ Pro */
+"pro_title" = "%@ Pro";
+
+/* Start free trial */
+
+/* Try free for a month */
+
+/* then %@ a year · cancel anytime */
+
+/* The App Store could not verify this purchase. */
+"pro_unverified" = "App Store ei voinut vahvistaa tätä ostoa.";
+
+/* Upgrade… */
+"pro_upgrade_button" = "Päivitä…";
+
+/* Subscribe for %@ a year */
+"pro_yearly_button" = "Tilaa hintaan %@ vuodessa";
+
+/* Renews automatically each year · cancel anytime */
+"pro_yearly_caption" = "Uusiutuu automaattisesti joka vuosi · peruuta milloin tahansa";
+
+/* You have %@ Pro. */
+"pro_you_have" = "Sinulla on %@ Pro.";
+
+/* Pronounce — click to choose a voice first */
+"pronounce_setup_tooltip" = "Ääntäminen — valitse ensin ääni napsauttamalla";
+
+/* Pronunciation voice */
+"pronunciation_voice" = "Ääntämisääni";
+
+/* Proofread */
+"proofread" = "Oikoluku";
+
+/* Proofread Clipboard */
+"proofread_clipboard" = "Oikolue leikepöytä";
+
+/* Proofreading… */
+"proofreading" = "Oikoluetaan…";
+
+/* Quit %@ */
+"quit_app" = "Lopeta %@";
+
+/* Quit Now */
+"quit_now" = "Lopeta nyt";
+
+/* Redo */
+"redo" = "Tee sittenkin";
+
+/* Remember choices */
+"remember_choices" = "Muista valinnat";
+
+/* Rename */
+"rename" = "Muuta nimeä";
+
+/* Rename Folder */
+"rename_folder_menu" = "Nimeä kansio uudelleen";
+
+/* Rephrasing… */
+"rephrasing" = "Muotoillaan uudelleen…";
+
+/* Reset Defaults */
+"reset_defaults" = "Palauta oletukset";
+
+/* Press Save to restore defaults, or open Setup Assistant to choose new settings. */
+"reset_wizard_body" = "Palauta oletukset painamalla Tallenna tai valitse uudet asetukset avaamalla asennusavustaja.";
+
+/* Start over with the Setup Assistant? */
+"reset_wizard_title" = "Aloitetaanko alusta asennusavustajan kanssa?";
+
+/* Empty and loading results */
+"results_empty_title" = "Aloita, kun olet valmis";
+"results_empty_hint" = "Kirjoita teksti vasemmalle ja paina ⌘↵ nähdäksesi tuloksen tässä.";
+"results_loading_title" = "Tulosta luodaan";
+"retry" = "Yritä uudelleen";
+
+/* Rewrite */
+"rewrite" = "Uudelleenkirjoitus";
+
+/* Rewrite Clipboard */
+"rewrite_clipboard" = "Kirjoita leikepöytä uudelleen";
+
+/* App Language */
+"row_app_language" = "Apin kieli";
+
+/* Launcher Window */
+"row_launcher_window" = "Käynnistysikkuna";
+
+/* Online Research */
+"row_online_research" = "Verkkohaku";
+
+/* Secret Protection */
+"row_secret_protection" = "Salaisuuksien suojaus";
+
+/* Run */
+"run" = "Suorita";
+
+/* look up */
+"run_verb_dictionary" = "hae sanakirjasta";
+
+/* explain */
+"run_verb_explain" = "selitä";
+
+/* proofread */
+"run_verb_proofread" = "oikolue";
+
+/* rewrite */
+"run_verb_rewrite" = "kirjoita uudelleen";
+
+/* summarize */
+"run_verb_summarize" = "tiivistä";
+
+/* translate */
+"run_verb_translate" = "käännä";
+
+/* Save */
+"save" = "Tallenna";
+
+/* Save Audio… */
+"save_audio" = "Tallenna ääni…";
+
+/* Save Text… */
+"save_text" = "Tallenna teksti…";
+
+/* Search actions */
+"search_actions" = "Hae toimintoja";
+
+/* ⌘K search */
+"search_actions_hint" = "⌘K haku";
+
+/* Search languages */
+"search_languages" = "Hae kieliä";
+
+/* Search Library */
+"search_library" = "Etsi kirjastosta";
+
+/* Search models */
+"search_models" = "Hae malleja";
+
+/* titles */
+"search_scope_titles" = "otsikoita";
+
+/* titles or contents */
+"search_scope_titles_contents" = "otsikoita tai sisältöjä";
+
+/* Search voices */
+"search_voices" = "Hae ääniä";
+
+/* Services */
+"services" = "Palvelut";
+
+/* Settings… */
+"settings" = "Asetukset…";
+
+/* Settings */
+"settings_window" = "Asetukset";
+
+/* Setup Assistant… */
+"setup_assistant" = "Asennusavustaja…";
+
+/* Show All */
+"show_all" = "Näytä kaikki";
+
+/* Show Langmin in the menu bar */
+"show_langmin_in_the_menu_bar" = "Näytä Langmin valikkorivillä";
+
+/* %@ with %@… */
+"status_with_model" = "%@ – %@…";
+
+/* Style */
+"style" = "Tyyli";
+
+/* Summarize */
+"summarize" = "Tiivistelmä";
+
+/* Summarize Clipboard */
+"summarize_clipboard" = "Tiivistä leikepöytä";
+
+/* Summarizing… */
+"summarizing" = "Tiivistetään…";
+
+/* System Default */
+"system_default" = "Järjestelmän oletus";
+
+/* Advanced */
+"tab_advanced" = "Lisäasetukset";
+
+/* General */
+"tab_general" = "Yleiset";
+
+/* Models */
+"tab_models" = "Mallit";
+
+/* Reading */
+"tab_reading" = "Ääneenluku";
+
+/* Shortcuts */
+"tab_shortcuts" = "Pikanäppäimet";
+
+/* Window */
+"tab_window" = "Ikkuna";
+
+/* Tightening… */
+"tightening" = "Lyhennetään…";
+
+/* Translate */
+"translate" = "Käännös";
+
+/* Translate Clipboard */
+"translate_clipboard" = "Käännä leikepöytä";
+
+/* Translating… */
+"translating" = "Käännetään…";
+
+/* Undo */
+"undo" = "Kumoa";
+
+/* Untitled */
+"untitled" = "Nimetön";
+
+/* Another app asked Langmin to process this text:\n\n“%@”\n\nRunning sends it to your configured model. */
+"url_run_confirm_body" = "Toinen appi pyysi Langminia käsittelemään tämän tekstin:\n\n”%@”\n\nSuoritettaessa se lähetetään määritettyyn malliin.";
+
+/* Run “%@” from a link? */
+"url_run_confirm_title" = "Suoritetaanko ”%@” linkistä?";
+
+/* Use web research when available */
+"use_web_research" = "Käytä verkkohakua, kun se on saatavilla";
+
+/* Warn before sending secrets */
+"warn_before_secrets" = "Varoita ennen salaisuuksien lähettämistä";
+
+/* Window */
+"window" = "Ikkuna";
+
+/* Runs on your Mac. Free, with no account needed. */
+"wizard_apple_available" = "Toimii Macillasi. Ilmainen, ei vaadi tiliä.";
+
+/* Apple Intelligence (on this Mac, private and free) */
+"wizard_apple_row" = "Apple Intelligence (tällä Macilla, yksityinen ja ilmainen)";
+
+/* Apple Intelligence (not available on this Mac) */
+"wizard_apple_row_unavailable" = "Apple Intelligence (ei saatavilla tällä Macilla)";
+
+/* Not available on this Mac (requires Apple Intelligence). Choose a cloud provider below. */
+"wizard_apple_unavailable" = "Ei saatavilla tällä Macilla (vaatii Apple Intelligencen). Valitse pilvipalvelu alta.";
+
+/* Read results aloud or hear Dictionary words and examples. Choose a voice that supports the language.\n\nApple voices run on your Mac for free. OpenAI and Grok voices require Pro and a provider API key. */
+"wizard_audio_body" = "Kuuntele tuloksia sekä Sanakirjan sanoja ja esimerkkejä. Valitse kieltä tukeva ääni.\n\nApplen äänet toimivat Macillasi ilmaiseksi. OpenAI- ja Grok-äänet vaativat Pron ja palveluntarjoajan API-avaimen.";
+
+/* Hear your words */
+"wizard_audio_title" = "Kuule sanasi";
+
+/* Back */
+"wizard_back" = "Takaisin";
+
+/* macOS may ask for clipboard access when you first use a shortcut. */
+"wizard_clipboard_note" = "macOS saattaa pyytää pääsyä leikepöydälle, kun käytät pikanäppäintä ensimmäisen kerran.";
+
+/* Continue */
+"wizard_continue" = "Jatka";
+
+/* Also answer in */
+"wizard_extra_languages" = "Vastaa myös kielillä";
+
+/* Finish */
+"wizard_finish" = "Valmis";
+
+/* Keys stay in macOS Keychain. Requests go directly to your provider. Add keys or a local model later in Settings → Models. */
+"wizard_key_note_local" = "Avaimet säilytetään macOS:n Avainnipussa. Pyynnöt lähetetään suoraan palveluntarjoajalle. Lisää avaimia tai paikallinen malli myöhemmin kohdassa Asetukset → Mallit.";
+
+/* API key (optional, add any time) */
+"wizard_key_optional" = "API-avain (valinnainen, lisää milloin tahansa)";
+
+/* Choose translation languages. Extra languages add versions to Dictionary, Explain, and Summarize results. Change either list in the launcher's mode menus. */
+"wizard_language_body_single_source" = "Valitse käännöskielet. Lisäkielet lisäävät kieliversioita Sanakirjan, Selityksen ja Tiivistelmän tuloksiin. Muuta listoja käynnistysikkunan tilavalikoissa.";
+
+/* Your languages */
+"wizard_language_title" = "Kielesi";
+
+/* Set Up Later */
+"wizard_later" = "Määritä myöhemmin";
+
+/* Cloud providers, web research, Library folders, and cloud voices require %@ Pro. Apple Intelligence is free. Eligible subscriptions include a trial. */
+"wizard_pro_note" = "Your first 30 days include %@ Pro. Apple Intelligence stays free afterward.";
+
+/* Dictionary pronunciation voice */
+"wizard_pronunciation_voice" = "Sanakirjan ääntämisääni";
+
+/* Claude models with web research. */
+"wizard_provider_anthropic" = "Claude-mallit ja verkkohaku.";
+
+/* Switch models in the launcher, or open All models to enable more. */
+"wizard_provider_body_multi" = "Vaihda mallia käynnistysikkunassa tai ota lisää käyttöön kohdassa Kaikki mallit.";
+
+/* DeepSeek chat and reasoning models. */
+"wizard_provider_deepseek" = "DeepSeek-mallit keskusteluun ja päättelyyn.";
+
+/* Gemini models with web research. */
+"wizard_provider_gemini" = "Gemini-mallit ja verkkohaku.";
+
+/* Grok text models and optional voices. */
+"wizard_provider_grok" = "Grokin tekstimallit ja valinnaiset äänet.";
+
+/* GPT models with web research. */
+"wizard_provider_openai" = "GPT-mallit ja verkkohaku.";
+
+/* Choose your providers */
+"wizard_provider_title_multi" = "Valitse palveluntarjoajat";
+
+/* Copy text and use a shortcut, or open the launcher and start typing.\n\nChange your choices in the launcher's menus or Settings. */
+"wizard_ready_body_simple" = "Langmin starts a free 30-day trial when you first open it. No subscription starts, and you will not be charged.";
+
+/* You're all set */
+"wizard_ready_title" = "30 days of full access";
+
+/* Use these shortcuts from another app after copying text. Proofread and Rewrite copy the result. The other four modes show it in the HUD. Open opens a result window; Dismiss closes the HUD.\n\nIn Langmin's main window, these shortcuts select a mode. Press ⌘Return to run it. */
+"wizard_shortcuts_body" = "Kopioi teksti toisessa apissa ja käytä näitä pikanäppäimiä. Oikoluku ja Uudelleenkirjoitus kopioivat tuloksen. Muut neljä tilaa näyttävät sen HUD-paneelissa. Avaa avaa tulosikkunan; Sulje sulkee HUD-paneelin.\n\nLangminin pääikkunassa nämä pikanäppäimet valitsevat tilan. Suorita se painamalla ⌘Return.";
+
+/* Step %d of %d */
+"wizard_step_n_of_m" = "Vaihe %d/%d";
+
+/* Translate to */
+"wizard_translate_to" = "Käännä kielelle";
+
+/* Proofread, rewrite, explain, summarize, translate, and look up words. Listen to results and Dictionary examples.\n\nChoose your settings now or change them later. */
+"wizard_welcome_body_short" = "Oikolue, kirjoita uudelleen, selitä, tiivistä, käännä ja hae sanoja. Kuuntele tuloksia ja Sanakirjan esimerkkejä.\n\nValitse asetukset nyt tai muuta niitä myöhemmin.";
+
+/* Welcome to %@ */
+"wizard_welcome_title" = "Tervetuloa: %@";
+
+/* Langmin Setup */
+"wizard_window" = "Langminin asennus";
+
+/* Open Langmin at login to keep its menu-bar actions and shortcuts available. */
+"wizard_workflow_body" = "Avaa Langmin kirjautuessa, jotta valikkorivin toiminnot ja pikanäppäimet ovat käytettävissä.";
+
+/* Always at hand */
+"wizard_workflow_title" = "Aina käden ulottuvilla";
+
+/* Your providers */
+"your_providers" = "Palveluntarjoajasi";
+
+/* Dictionary illustrations */
+"illustration" = "Kuvitus";
+"illustration_apple_note" = "Luo ja valitse kuva Macillasi";
+"illustration_apple_unavailable" = "Vaatii macOS 15.4:n tai uudemman ja Image Playgroundin";
+"illustration_cloud_note" = "Laskutetaan erikseen · käyttää OpenAI-API-avaintasi";
+"illustration_generated" = "Tekoälyn luoma kuvitus";
+"illustration_generating" = "Luodaan kuvitusta…";
+"illustration_failed" = "Kuvitusta ei voitu luoda";
+"illustration_missing_key" = "Lisää OpenAI-API-avain kohdassa Asetukset → Mallit.";
+"illustration_save" = "Tallenna kuva…";
+"illustration_remove" = "Poista kuvitus";
+
+"reading_webpage" = "Luetaan sivua…";
+
+"loading_page_images" = "Ladataan sivun kuvia…";
+
+/* Follow-up */
+"followup_title" = "Jatkokysymys";
+
+/* Ask a follow-up or request changes… */
+"followup_placeholder" = "Esitä jatkokysymys tai pyydä muutoksia…";
+
+/* Send follow-up */
+"followup_send" = "Lähetä jatkokysymys";
+
+/* Replying… */
+"followup_working" = "Vastataan…";
+
+/* You */
+"followup_you" = "Sinä";
+
+/* Copy reply */
+"followup_copy" = "Kopioi vastaus";
+
+/* Delete reply */
+"followup_delete_reply" = "Poista vastaus";
+
+/* The message could not be deleted: %@ */
+"followup_delete_failed" = "Viestiä ei voitu poistaa: %@";
+
+/* Print… */
+"print" = "Tulosta…";
+
+/* Quick HUD playback */
+"hud_read_paragraph" = "Lue tämä kappale ääneen";
+"hud_stop_playback" = "Lopeta lukeminen";
+"hud_playback_failed" = "Tekstiä ei voitu lukea ääneen";
+"hud_voice_api_key" = "Lisää asetuksissa %@-API-avain käyttääksesi tätä ääntä.";
+
+"request_failed" = "Pyyntö epäonnistui";
+
+/* Translation skipped */
+"translation_skipped" = "Käännös ohitettu";
+
+/* Already in this language. */
+"translation_already_in_language" = "Teksti on jo valitulla kielellä.";
+
+/* Library window placement */
+"detach_library" = "Avaa kirjasto erilliseen ikkunaan";
+"attach_library" = "Siirrä kirjasto pääikkunaan";
+
+/* Result text editing */
+"apply" = "Käytä";
+"discard_changes" = "Hylkää muutokset";
+"done" = "Valmis";
+"edit_link" = "Muokkaa linkkiä";
+"edit_text" = "Muokkaa tekstiä";
+"format_text" = "Muotoile tekstiä";
+"remove_link" = "Poista linkki";
+"save_text_changes" = "Tallennetaanko tekstin muutokset?";
+"text_style" = "Tekstin tyyli";
+"save_edits_remove_audio" = "Tallennetaanko muutokset ja poistetaanko ääni?";
+"save_edits_remove_audio_detail" = "Näiden muutosten tallentaminen poistaa kaiken liitetyn luenta- ja ääntämisäänen. Voit luoda uuden äänen myöhemmin.";
+
+/* iCloud Library sync */
+"pro_feature_icloud" = "Kirjaston iCloud-synkronointi";
+"pro_reason_icloud" = "Kirjaston iCloud-synkronointi sisältyy %@ Prohon.";
+
+/* Automatically illustrate new lookups */
+"illustration_automatic" = "Kuvita uudet haut automaattisesti";
+
+/* Automatic images are off by default. To add an image yourself, use the picture button on a Dictionary result. */
+"illustration_manual_note" = "Automaattiset kuvat ovat oletuksena pois käytöstä. Voit lisätä kuvan itse sanakirjatuloksen kuvapainikkeella.";
+
+/* Image Provider */
+"illustration_provider" = "Kuvapalvelun tarjoaja";
+
+/* Choose in result */
+"illustration_choose_in_result" = "Valitse tuloksessa";
+
+/* Choose a provider before turning on automatic images. You can also add an image from a Dictionary result's picture button. */
+"illustration_choose_provider_note" = "Valitse palveluntarjoaja ennen automaattisten kuvien käyttöönottoa. Voit lisätä kuvan myös sanakirjatuloksen kuvapainikkeella.";
+
+/* Create and choose images on your Mac. Automatic mode opens Image Playground after each Dictionary lookup. */
+"illustration_apple_settings_note" = "Luo ja valitse kuvia Macillasi. Automaattitilassa Image Playground avautuu jokaisen sanakirjahaun jälkeen.";
+
+/* Requires Pro and an OpenAI API key in Settings → Models. Each image is billed separately. Creates one landscape image at medium quality. */
+"illustration_openai_settings_note" = "Vaatii Pron ja OpenAI-API-avaimen kohdassa Asetukset → Mallit. Jokainen kuva laskutetaan erikseen. Luo yhden vaakasuuntaisen kuvan keskitason laadulla.";
+
+/* Illustrations */
+"tab_illustrations" = "Kuvitus";
+
+/* Empty launcher input */
+"input_start_hint" = "Kirjoita tai sijoita tekstiä tai vedä tiedosto tähän";
+"input_documents" = "Asiakirjat";
+"input_images" = "Kuvat";
+"input_audio" = "Ääni";
+"input_drop_title" = "Lisää teksti pudottamalla";
+
+/* Source-build purchase footer */
+"source_build_title" = "Trial ended";
+"source_build_support" = "Apple Intelligence stays free, while other Pro features require purchase.";
+"source_build_purchase" = "Osta";
+"source_build_dismiss" = "Dismiss";
+"pro_app_trial_one_day" = "Pro trial · 1 day remaining";
+"pro_app_trial_days" = "Pro trial · %d days remaining";
+"wizard_trial_during_title" = "Your first 30 days";
+"wizard_trial_during_langmin" = "Use every Langmin feature without app limits. Provider charges may still apply.";
+"wizard_trial_after_title" = "After the trial";
+"wizard_trial_after_langmin" = "Apple Intelligence, Apple voices, Apple transcription, text editing, and the Library stay free. Other Pro features require a purchase.";
+"wizard_trial_plans_title" = "Keep Pro";
+"wizard_trial_plans_body" = "Choose a yearly plan or lifetime access at any time.";
