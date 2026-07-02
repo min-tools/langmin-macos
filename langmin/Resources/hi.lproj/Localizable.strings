@@ -1,0 +1,983 @@
+/* Langmin — hi localization. Comments give English text or name a related group. */
+
+/* About %@ */
+"about_app" = "%@ के बारे में";
+
+/* All */
+"all_chip" = "सभी";
+
+/* All models */
+"all_models" = "सभी मॉडल";
+
+/* Answer language */
+"answer_language" = "उत्तर की भाषा";
+
+/* %@ Help */
+"app_help" = "%@ सहायता";
+
+/* Back */
+"back" = "पीछे";
+
+/* Bring All to Front */
+"bring_all_to_front" = "सभी को सामने लाएँ";
+
+/* Delete %d items from %@? */
+"bulk_delete_confirm_many" = "“%2$@” से %1$d आइटम हटाएँ?";
+
+/* Delete 1 item from %@? */
+"bulk_delete_confirm_one" = "“%@” से 1 आइटम हटाएँ?";
+
+/* Only the items matching the current search are deleted. */
+"bulk_delete_search_note" = "केवल वर्तमान खोज से मेल खाते आइटम हटाए जाते हैं।";
+
+/* Use Undo to restore an item before it disappears. */
+"bulk_delete_undo_note" = "आइटम गायब होने से पहले उसे पूर्ववत करें बटन से वापस लाएँ।";
+
+/* Cancel */
+"cancel" = "रद्द करें";
+
+/* Cancel Current Action */
+"cancel_current_action" = "वर्तमान क्रिया रद्द करें";
+
+/* Cancel this request (Esc) */
+"cancel_this_request_esc" = "यह अनुरोध रद्द करें (Esc)";
+
+/* Cancelled */
+"cancelled" = "रद्द किया गया";
+
+/* Cancelling… */
+"cancelling" = "रद्द किया जा रहा है…";
+
+/* Cancelling */
+"cancelling_a11y" = "रद्द किया जा रहा है";
+
+/* Clear after submit */
+"clear_after_submit" = "भेजने के बाद साफ़ करें";
+
+/* You copied something else while Langmin was working. Replace it with the transformed text? */
+"clipboard_changed_body" = "Langmin के काम करते समय आपने कुछ और कॉपी किया। क्या इसे रूपांतरित टेक्स्ट से बदलें?";
+
+/* The clipboard changed */
+"clipboard_changed_title" = "क्लिपबोर्ड बदल गया";
+
+/* Clipboard unchanged */
+"clipboard_unchanged" = "क्लिपबोर्ड अपरिवर्तित";
+
+/* macOS did not accept the transformed text. The previous clipboard contents were restored. */
+"clipboard_write_failed_restored" = "macOS ने रूपांतरित टेक्स्ट स्वीकार नहीं किया। क्लिपबोर्ड की पिछली सामग्री बहाल कर दी गई।";
+
+/* macOS did not accept the transformed text, and the previous clipboard contents could not be restored. */
+"clipboard_write_failed_unrestored" = "macOS ने रूपांतरित टेक्स्ट स्वीकार नहीं किया, और क्लिपबोर्ड की पिछली सामग्री बहाल नहीं की जा सकी।";
+
+/* Close */
+"close" = "बंद करें";
+
+/* ⌘V to paste */
+"cmd_v_to_paste" = "पेस्ट करने के लिए ⌘V";
+
+/* Compose with Clipboard */
+"compose_with_clipboard" = "क्लिपबोर्ड से लिखें";
+
+/* Copied */
+"copied" = "कॉपी हो गया";
+
+/* Copy */
+"copy" = "कॉपी करें";
+
+/* Copy this paragraph */
+"copy_paragraph" = "यह अनुच्छेद कॉपी करें";
+
+/* Copy Result */
+"copy_result" = "परिणाम कॉपी करें";
+
+/* Copying… */
+"copying" = "कॉपी हो रहा है…";
+
+/* Could not delete one saved item */
+"could_not_delete_one_saved_item" = "एक सहेजा गया आइटम हटाया नहीं जा सका";
+
+/* Could not delete some saved items */
+"could_not_delete_some_saved_items" = "कुछ सहेजे गए आइटम हटाए नहीं जा सके";
+
+/* Could not delete this saved item */
+"could_not_delete_this_saved_item" = "यह सहेजा गया आइटम हटाया नहीं जा सका";
+
+/* Could not export this saved item */
+"could_not_export_this_saved_item" = "यह सहेजा गया आइटम निर्यात नहीं हो सका";
+
+/* Could not open the result */
+"could_not_open_result" = "परिणाम खोला नहीं जा सका";
+
+/* Could not rename this saved item */
+"could_not_rename_this_saved_item" = "इस सहेजे गए आइटम का नाम बदला नहीं जा सका";
+
+/* Could not restore this saved item */
+"could_not_restore_this_saved_item" = "यह सहेजा गया आइटम पुनर्स्थापित नहीं हो सका";
+
+/* Could not save audio */
+"could_not_save_audio" = "ऑडियो सहेजा नहीं जा सका";
+
+/* Could not update the clipboard */
+"could_not_update_clipboard" = "क्लिपबोर्ड अपडेट नहीं हो सका";
+
+/* Could not update the login item */
+"could_not_update_the_login_item" = "लॉगिन आइटम अपडेट नहीं हो सका";
+
+/* Cut */
+"cut" = "काटें";
+
+/* Cycle Through Windows */
+"cycle_through_windows" = "विंडो बदलें";
+
+/* Delete */
+"delete" = "हटाएँ";
+
+/* Delete All %d… */
+"delete_all_n" = "सभी %d हटाएँ…";
+
+/* Delete Folder */
+"delete_folder_menu" = "फ़ोल्डर हटाएँ";
+
+/* All entries stay in the Library */
+"delete_folder_subtitle" = "सभी प्रविष्टियाँ लाइब्रेरी में बनी रहती हैं";
+
+/* Delete %d Shown… */
+"delete_n_shown" = "दिखाए गए %d हटाएँ…";
+
+/* Deleted “%@” */
+"deleted_item" = "“%@” हटाया गया";
+
+/* Dictionary */
+"dictionary" = "शब्दकोश";
+
+/* Dictionary Lookup */
+"dictionary_lookup" = "शब्दकोश में खोज";
+
+/* Dismiss */
+"dismiss" = "बंद करें";
+
+/* Drop or paste documents, images, or audio */
+"drop_hint" = "दस्तावेज़, छवियाँ या ऑडियो खींचें या पेस्ट करें";
+
+/* Edit */
+"edit" = "संपादन";
+
+/* Deeper essay */
+"effort_detailed" = "गहरा निबंध";
+
+/* Short and clear */
+"effort_simple" = "संक्षिप्त और स्पष्ट";
+
+/* Balanced depth */
+"effort_standard" = "संतुलित गहराई";
+
+/* Elaborating… */
+"elaborating" = "विस्तार हो रहा है…";
+
+/* Explain */
+"explain" = "व्याख्या";
+
+/* Explain Clipboard */
+"explain_clipboard" = "क्लिपबोर्ड समझाएँ";
+
+/* Explaining… */
+"explaining" = "समझाया जा रहा है…";
+
+/* Export Audio… */
+"export_audio_menu" = "ऑडियो निर्यात करें…";
+
+/* Export Audio */
+"export_audio_panel" = "ऑडियो निर्यात करें";
+
+/* Export Text… */
+"export_text_menu" = "टेक्स्ट निर्यात करें…";
+
+/* Export Text */
+"export_text_panel" = "टेक्स्ट निर्यात करें";
+
+/* Extra languages */
+"extra_languages" = "अतिरिक्त भाषाएँ";
+
+/* File */
+"file" = "फ़ाइल";
+
+/* File In */
+"file_in_submenu" = "इसमें रखें";
+
+/* Filter folders */
+"filter_folders" = "फ़ोल्डर फ़िल्टर करें";
+
+/* Find… */
+"find_item" = "खोजें…";
+
+/* Find */
+"find_menu" = "खोजें";
+
+/* ↵ create · esc cancel */
+"folder_create_hint" = "↵ बनाएँ · esc रद्द करें";
+
+/* Nothing in this folder yet */
+"folder_empty_title" = "इस फ़ोल्डर में अभी कुछ नहीं है।";
+
+/* Drag results onto a folder chip, or right-click one and file it here. */
+"folder_empty_subtitle" = "परिणामों को किसी फ़ोल्डर चिप पर खींचें, या किसी परिणाम पर राइट-क्लिक करके उसे यहाँ रखें।";
+
+/* already exists */
+"folder_exists_hint" = "पहले से मौजूद है";
+
+/* already exists · ↵ opens it */
+"folder_exists_opens_hint" = "पहले से मौजूद है · ↵ इसे खोलता है";
+
+/* Folder name */
+"folder_name_placeholder" = "फ़ोल्डर का नाम";
+
+/* ↵ rename · esc cancel */
+"folder_rename_hint" = "↵ नाम बदलें · esc रद्द करें";
+
+/* Help */
+"help" = "सहायता";
+
+/* Hide %@ */
+"hide_app" = "%@ छिपाएँ";
+
+/* Hide Others */
+"hide_others" = "अन्य छिपाएँ";
+
+/* Explaining */
+"hud_explaining" = "समझाया जा रहा है";
+
+/* Looking up */
+"hud_looking_up" = "खोजा जा रहा है";
+
+/* 1 word */
+"hud_one_word" = "1 शब्द";
+
+/* Proofreading */
+"hud_proofreading" = "प्रूफ़रीड हो रहा है";
+
+/* Rewriting */
+"hud_rewriting" = "फिर से लिखा जा रहा है";
+
+/* Summarizing */
+"hud_summarizing" = "सारांश बन रहा है";
+
+/* Translating */
+"hud_translating" = "अनुवाद हो रहा है";
+
+/* %d words */
+"hud_word_count" = "%d शब्द";
+
+/* Keep Current Clipboard */
+"keep_current_clipboard" = "वर्तमान क्लिपबोर्ड रखें";
+
+/* Language level */
+"language_level" = "भाषा का स्तर";
+
+/* The new language takes effect the next time Langmin opens. */
+"language_restart_notice" = "नई भाषा अगली बार Langmin खोलने पर लागू होगी।";
+
+/* Later */
+"later" = "बाद में";
+
+/* Library */
+"library" = "लाइब्रेरी";
+
+/* No saved items yet */
+"library_empty_title" = "अभी कोई आइटम सहेजा नहीं गया है।";
+
+/* Click a result's bookmark button to save it here. */
+"library_empty_subtitle" = "परिणाम को यहाँ सहेजने के लिए उसका बुकमार्क बटन दबाएँ।";
+
+/* Look Up Clipboard in Dictionary */
+"look_up_clipboard_in_dictionary" = "क्लिपबोर्ड को शब्दकोश में देखें";
+
+/* Looking up… */
+"looking_up" = "खोजा जा रहा है…";
+
+/* Match question */
+"match_question" = "प्रश्न की भाषा में";
+
+/* Minimize */
+"minimize" = "छोटा करें";
+
+/* More folders */
+"more_folders" = "और फ़ोल्डर";
+
+/* More languages */
+"more_languages" = "और भाषाएँ";
+
+/* %d saved */
+"n_saved" = "%d सहेजे गए";
+
+/* New Explanation */
+"new_explanation" = "नई व्याख्या";
+
+/* New Folder… */
+"new_folder_menu" = "नया फ़ोल्डर…";
+
+/* Copy some text, then try the Langmin action again. */
+"no_clipboard_text_body" = "कुछ टेक्स्ट कॉपी करें, फिर Langmin की क्रिया दोबारा आज़माएँ।";
+
+/* No clipboard text */
+"no_clipboard_text_title" = "क्लिपबोर्ड में कोई टेक्स्ट नहीं";
+
+/* No Folder */
+"no_folder" = "कोई फ़ोल्डर नहीं";
+
+/* No results */
+"library_search_empty_title" = "कोई परिणाम नहीं";
+
+/* No %@ match “%@”. */
+"no_search_matches" = "“%2$@” से मेल खाते %1$@ नहीं हैं।";
+
+/* None */
+"none" = "कोई नहीं";
+
+/* Not Now */
+"not_now" = "अभी नहीं";
+
+/* OK */
+"ok" = "ठीक है";
+
+/* On this Mac */
+"on_this_mac" = "इस Mac पर";
+
+/* Open */
+"open" = "खोलें";
+
+/* Open */
+"open_in_window" = "खोलें";
+
+/* Open Langmin */
+"open_langmin" = "Langmin खोलें";
+
+/* Open Langmin at login */
+"open_langmin_at_login" = "लॉगिन पर Langmin खोलें";
+
+/* Open in a result window */
+"open_result_window" = "परिणाम विंडो में खोलें";
+
+/* Open Settings */
+"open_settings" = "सेटिंग्ज़ खोलें";
+
+/* Open Setup Assistant */
+"open_setup_assistant" = "सेटअप सहायक खोलें";
+
+/* Opening… */
+"opening_hud" = "खुल रहा है…";
+
+/* Opening… */
+"opening_progress" = "खुल रहा है…";
+
+/* Other */
+"other" = "अन्य";
+
+/* ↵ run    ⇥ pin chip    ⌘, options */
+"palette_legend_chip" = "↵ चलाएँ    ⇥ चिप पिन करें    ⌘, विकल्प";
+
+/* Paste */
+"paste" = "पेस्ट करें";
+
+/* Langmin can't access the pasted file */
+"pasted_file_denied" = "Langmin पेस्ट की गई फ़ाइल तक नहीं पहुँच सकता";
+
+/* Langmin can't access the pasted files */
+"pasted_files_denied" = "Langmin पेस्ट की गई फ़ाइलों तक नहीं पहुँच सकता";
+
+/* macOS did not grant access to these files. Drag them into this window instead. */
+"pasted_files_denied_body" = "macOS ने इन फ़ाइलों का ऐक्सेस नहीं दिया। इन्हें इस विंडो में खींचें।";
+
+/* Look up a word… */
+"placeholder_dictionary" = "कोई शब्द खोजें…";
+
+/* What would you like explained? */
+"placeholder_explain" = "आप क्या समझना चाहते हैं?";
+
+/* What would you like proofread? */
+"placeholder_proofread" = "आप क्या प्रूफ़रीड करवाना चाहते हैं?";
+
+/* What would you like rewritten? */
+"placeholder_rewrite" = "आप क्या फिर से लिखवाना चाहते हैं?";
+
+/* What would you like summarized? */
+"placeholder_summarize" = "आप किसका सारांश चाहते हैं?";
+
+/* What would you like translated? */
+"placeholder_translate" = "आप क्या अनुवाद करवाना चाहते हैं?";
+
+/* Preparing narration… */
+"preparing_narration" = "वाचन तैयार हो रहा है…";
+
+/* Privacy Policy… */
+"privacy_policy" = "गोपनीयता नीति…";
+
+/* Family Sharing included. */
+"pro_family_caption" = "फ़ैमिली शेयरिंग शामिल है।";
+
+/* OpenAI, Anthropic, Gemini, Grok, DeepSeek, and custom endpoints */
+"pro_feature_cloud" = "OpenAI, Anthropic, Gemini, Grok, DeepSeek और कस्टम एंडपॉइंट";
+
+/* Library folders */
+"pro_feature_folders" = "लाइब्रेरी में फ़ोल्डर";
+
+/* Web research for current facts and sources */
+"pro_feature_research" = "ताज़ा तथ्यों और स्रोतों के लिए वेब खोज";
+
+/* OpenAI and Grok voices */
+"pro_feature_voices" = "OpenAI और Grok की आवाज़ें";
+
+/* Apple Intelligence, Apple voices, and the Library stay free. */
+"pro_free_note" = "Apple Intelligence, Apple की आवाज़ें और लाइब्रेरी हमेशा निःशुल्क रहेंगे।";
+
+/* Buy once for %@ */
+"pro_lifetime_button" = "%@ में एक बार ख़रीदें";
+
+/* Contacting the App Store… */
+"pro_loading" = "App Store से संपर्क किया जा रहा है…";
+
+/* Manage Subscription… */
+"pro_manage_subscription" = "सदस्यता प्रबंधित करें…";
+
+/* %@ Pro… */
+"pro_menu" = "%@ Pro…";
+
+/* This purchase is still pending. %@ Pro unlocks when the App Store confirms it. */
+"pro_pending_body" = "यह खरीदारी अभी लंबित है। App Store की पुष्टि के बाद %@ Pro अनलॉक होगा।";
+
+/* Purchase pending */
+"pro_pending_title" = "खरीदारी लंबित है";
+
+/* Privacy Policy */
+"pro_privacy_policy" = "गोपनीयता नीति";
+
+/* The purchase didn't complete: %@ */
+"pro_purchase_failed" = "ख़रीद पूरी नहीं हो सकी: %@";
+
+/* Cloud models are part of %@ Pro. */
+"pro_reason_cloud" = "क्लाउड मॉडल %@ Pro का हिस्सा हैं।";
+
+/* Library folders are part of %@ Pro. */
+"pro_reason_folders" = "लाइब्रेरी के फ़ोल्डर %@ Pro का हिस्सा हैं।";
+
+/* Get more with %@ Pro. */
+"pro_reason_general" = "%@ Pro के साथ और सुविधाएँ पाएँ।";
+
+/* OpenAI and Grok voices are part of %@ Pro. */
+"pro_reason_voices" = "OpenAI और Grok की आवाज़ें %@ Pro का हिस्सा हैं।";
+
+/* Couldn't restore purchases */
+
+/* No %@ Pro purchase was found for this Apple Account. */
+"pro_restore_none_body" = "इस Apple खाते के लिए %@ Pro की कोई ख़रीद नहीं मिली।";
+
+/* Nothing to restore */
+"pro_restore_none_title" = "पुनर्स्थापित करने के लिए कुछ नहीं";
+
+/* Restore Purchases */
+"pro_restore_purchases" = "ख़रीदारियाँ पुनर्स्थापित करें";
+
+/* Pro */
+"pro_status_active" = "Pro";
+
+/* Pro · ends %@ */
+"pro_status_ends" = "Pro · %@ को समाप्त";
+
+/* Pro · shared with your family */
+"pro_status_family" = "Pro · आपके परिवार के साथ साझा";
+
+/* Free */
+"pro_status_free" = "निःशुल्क";
+
+/* Pro · lifetime */
+"pro_status_lifetime" = "Pro · आजीवन";
+
+/* Pro · renews %@ */
+"pro_status_renews" = "Pro · %@ को नवीनीकरण";
+
+/* Pro trial · ends %@ */
+"pro_status_trial_ends" = "Pro ट्रायल · %@ को समाप्त";
+
+/* Pro trial · first payment %@ */
+"pro_status_trial_renews" = "Pro ट्रायल · पहला भुगतान %@";
+
+/* Pro trial · until %@ */
+"pro_status_trial_until" = "Pro ट्रायल · %@ तक";
+
+/* Pro · until %@ */
+"pro_status_until" = "Pro · %@ तक";
+
+/* Pro purchases are unavailable right now. Please try again later. */
+"pro_store_unavailable" = "Pro की खरीदारी अभी उपलब्ध नहीं है। बाद में फिर कोशिश करें।";
+
+/* Payment goes to your Apple Account. A subscription renews automatically each year unless it is cancelled in your App Store settings at least a day before the period ends. */
+"pro_terms" = "भुगतान आपके Apple खाते से लिया जाता है। सदस्यता हर साल अपने आप नवीनीकृत होती है, जब तक अवधि समाप्त होने से कम से कम एक दिन पहले App Store सेटिंग्ज़ में इसे रद्द न किया जाए।";
+
+/* Terms of Use */
+"pro_terms_of_use" = "उपयोग की शर्तें";
+
+/* Cancel at least a day before the free trial ends to avoid being charged. */
+
+/* %@ Pro */
+"pro_title" = "%@ Pro";
+
+/* Start free trial */
+
+/* Try free for a month */
+
+/* then %@ a year · cancel anytime */
+
+/* The App Store could not verify this purchase. */
+"pro_unverified" = "App Store इस ख़रीद की पुष्टि नहीं कर सका।";
+
+/* Upgrade… */
+"pro_upgrade_button" = "अपग्रेड करें…";
+
+/* Subscribe for %@ a year */
+"pro_yearly_button" = "%@ प्रति वर्ष में सदस्यता लें";
+
+/* Renews automatically each year · cancel anytime */
+"pro_yearly_caption" = "हर साल अपने आप नवीनीकृत · कभी भी रद्द करें";
+
+/* You have %@ Pro. */
+"pro_you_have" = "आपके पास %@ Pro है।";
+
+/* Pronounce — click to choose a voice first */
+"pronounce_setup_tooltip" = "उच्चारण — पहले आवाज़ चुनने के लिए क्लिक करें";
+
+/* Pronunciation voice */
+"pronunciation_voice" = "उच्चारण की आवाज़";
+
+/* Proofread */
+"proofread" = "प्रूफ़रीडिंग";
+
+/* Proofread Clipboard */
+"proofread_clipboard" = "क्लिपबोर्ड प्रूफ़रीड करें";
+
+/* Proofreading… */
+"proofreading" = "प्रूफ़रीडिंग…";
+
+/* Quit %@ */
+"quit_app" = "%@ छोड़ें";
+
+/* Quit Now */
+"quit_now" = "अभी छोड़ें";
+
+/* Redo */
+"redo" = "फिर करें";
+
+/* Remember choices */
+"remember_choices" = "चयन याद रखें";
+
+/* Rename */
+"rename" = "नाम बदलें";
+
+/* Rename Folder */
+"rename_folder_menu" = "फ़ोल्डर का नाम बदलें";
+
+/* Rephrasing… */
+"rephrasing" = "पुनर्लेखन हो रहा है…";
+
+/* Reset Defaults */
+"reset_defaults" = "डिफ़ॉल्ट पर रीसेट करें";
+
+/* Press Save to restore defaults, or open Setup Assistant to choose new settings. */
+"reset_wizard_body" = "डिफ़ॉल्ट बहाल करने के लिए सहेजें दबाएँ, या नई सेटिंग्ज़ चुनने के लिए सेटअप सहायक खोलें।";
+
+/* Start over with the Setup Assistant? */
+"reset_wizard_title" = "सेटअप सहायक के साथ फिर से शुरू करें?";
+
+/* Empty and loading results */
+"results_empty_title" = "जब चाहें, शुरू करें";
+"results_empty_hint" = "बाईं ओर टेक्स्ट दर्ज करें, फिर यहाँ परिणाम देखने के लिए ⌘↵ दबाएँ।";
+"results_loading_title" = "आपका परिणाम तैयार हो रहा है";
+"retry" = "फिर कोशिश करें";
+
+/* Rewrite */
+"rewrite" = "पुनर्लेखन";
+
+/* Rewrite Clipboard */
+"rewrite_clipboard" = "क्लिपबोर्ड पुनर्लेखित करें";
+
+/* App Language */
+"row_app_language" = "ऐप की भाषा";
+
+/* Launcher Window */
+"row_launcher_window" = "लॉन्चर विंडो";
+
+/* Online Research */
+"row_online_research" = "ऑनलाइन खोज";
+
+/* Secret Protection */
+"row_secret_protection" = "गोपनीय जानकारी की सुरक्षा";
+
+/* Run */
+"run" = "चलाएँ";
+
+/* look up */
+"run_verb_dictionary" = "शब्दकोश में खोजें";
+
+/* explain */
+"run_verb_explain" = "समझाएँ";
+
+/* proofread */
+"run_verb_proofread" = "प्रूफ़रीड";
+
+/* rewrite */
+"run_verb_rewrite" = "फिर से लिखें";
+
+/* summarize */
+"run_verb_summarize" = "सारांश";
+
+/* translate */
+"run_verb_translate" = "अनुवाद";
+
+/* Save */
+"save" = "सहेजें";
+
+/* Save Audio… */
+"save_audio" = "ऑडियो सहेजें…";
+
+/* Save Text… */
+"save_text" = "टेक्स्ट सहेजें…";
+
+/* Search actions */
+"search_actions" = "क्रियाएँ खोजें";
+
+/* ⌘K search */
+"search_actions_hint" = "⌘K खोजें";
+
+/* Search languages */
+"search_languages" = "भाषाएँ खोजें";
+
+/* Search Library */
+"search_library" = "लाइब्रेरी में खोजें";
+
+/* Search models */
+"search_models" = "मॉडल खोजें";
+
+/* titles */
+"search_scope_titles" = "शीर्षक";
+
+/* titles or contents */
+"search_scope_titles_contents" = "शीर्षक या सामग्री";
+
+/* Search voices */
+"search_voices" = "आवाज़ें खोजें";
+
+/* Services */
+"services" = "सेवाएँ";
+
+/* Settings… */
+"settings" = "सेटिंग्ज़…";
+
+/* Settings */
+"settings_window" = "सेटिंग्ज़";
+
+/* Setup Assistant… */
+"setup_assistant" = "सेटअप सहायक…";
+
+/* Show All */
+"show_all" = "सभी दिखाएँ";
+
+/* Show Langmin in the menu bar */
+"show_langmin_in_the_menu_bar" = "मेनू बार में Langmin दिखाएँ";
+
+/* %@ with %@… */
+"status_with_model" = "%@ — %@ के साथ…";
+
+/* Style */
+"style" = "शैली";
+
+/* Summarize */
+"summarize" = "सारांश";
+
+/* Summarize Clipboard */
+"summarize_clipboard" = "क्लिपबोर्ड का सारांश बनाएँ";
+
+/* Summarizing… */
+"summarizing" = "सारांश बन रहा है…";
+
+/* System Default */
+"system_default" = "सिस्टम डिफ़ॉल्ट";
+
+/* Advanced */
+"tab_advanced" = "उन्नत";
+
+/* General */
+"tab_general" = "सामान्य";
+
+/* Models */
+"tab_models" = "मॉडल";
+
+/* Reading */
+"tab_reading" = "पठन";
+
+/* Shortcuts */
+"tab_shortcuts" = "शॉर्टकट";
+
+/* Window */
+"tab_window" = "विंडो";
+
+/* Tightening… */
+"tightening" = "संक्षिप्त हो रहा है…";
+
+/* Translate */
+"translate" = "अनुवाद";
+
+/* Translate Clipboard */
+"translate_clipboard" = "क्लिपबोर्ड अनुवाद करें";
+
+/* Translating… */
+"translating" = "अनुवाद हो रहा है…";
+
+/* Undo */
+"undo" = "पूर्ववत करें";
+
+/* Untitled */
+"untitled" = "शीर्षकहीन";
+
+/* Another app asked Langmin to process this text:\n\n“%@”\n\nRunning sends it to your configured model. */
+"url_run_confirm_body" = "किसी अन्य ऐप ने Langmin से यह टेक्स्ट प्रोसेस करने को कहा:\n\n“%@”\n\nचलाने पर यह आपके कॉन्फ़िगर किए मॉडल को भेजा जाएगा।";
+
+/* Run “%@” from a link? */
+"url_run_confirm_title" = "लिंक से “%@” चलाएँ?";
+
+/* Use web research when available */
+"use_web_research" = "उपलब्ध होने पर वेब खोज का उपयोग करें";
+
+/* Warn before sending secrets */
+"warn_before_secrets" = "गोपनीय जानकारी भेजने से पहले चेतावनी दें";
+
+/* Window */
+"window" = "विंडो";
+
+/* Runs on your Mac. Free, with no account needed. */
+"wizard_apple_available" = "आपके Mac पर चलता है। मुफ़्त, बिना खाते के।";
+
+/* Apple Intelligence (on this Mac, private and free) */
+"wizard_apple_row" = "Apple Intelligence (इस Mac पर, निजी और निःशुल्क)";
+
+/* Apple Intelligence (not available on this Mac) */
+"wizard_apple_row_unavailable" = "Apple Intelligence (इस Mac पर उपलब्ध नहीं)";
+
+/* Not available on this Mac (requires Apple Intelligence). Choose a cloud provider below. */
+"wizard_apple_unavailable" = "इस Mac पर उपलब्ध नहीं (Apple Intelligence आवश्यक है)। नीचे कोई क्लाउड प्रदाता चुनें।";
+
+/* Read results aloud or hear Dictionary words and examples. Choose a voice that supports the language.\n\nApple voices run on your Mac for free. OpenAI and Grok voices require Pro and a provider API key. */
+"wizard_audio_body" = "परिणाम, शब्दकोश के शब्द और उदाहरण सुनें। ऐसी आवाज़ चुनें जो भाषा का समर्थन करती हो।\n\nApple की आवाज़ें आपके Mac पर मुफ़्त चलती हैं। OpenAI और Grok की आवाज़ों के लिए Pro और प्रदाता की API कुंजी चाहिए।";
+
+/* Hear your words */
+"wizard_audio_title" = "अपने शब्द सुनें";
+
+/* Back */
+"wizard_back" = "पीछे";
+
+/* macOS may ask for clipboard access when you first use a shortcut. */
+"wizard_clipboard_note" = "पहली बार शॉर्टकट इस्तेमाल करने पर macOS क्लिपबोर्ड का ऐक्सेस माँग सकता है।";
+
+/* Continue */
+"wizard_continue" = "जारी रखें";
+
+/* Also answer in */
+"wizard_extra_languages" = "इनमें भी उत्तर दें";
+
+/* Finish */
+"wizard_finish" = "समाप्त";
+
+/* Keys stay in macOS Keychain. Requests go directly to your provider. Add keys or a local model later in Settings → Models. */
+"wizard_key_note_local" = "कुंजियाँ macOS कीचेन में रहती हैं। अनुरोध सीधे प्रदाता को जाते हैं। कुंजियाँ या स्थानीय मॉडल बाद में सेटिंग्ज़ → मॉडल में जोड़ें।";
+
+/* API key (optional, add any time) */
+"wizard_key_optional" = "API कुंजी (वैकल्पिक, कभी भी जोड़ें)";
+
+/* Choose translation languages. Extra languages add versions to Dictionary, Explain, and Summarize results. Change either list in the launcher's mode menus. */
+"wizard_language_body_single_source" = "अनुवाद की भाषाएँ चुनें। अतिरिक्त भाषाएँ शब्दकोश, व्याख्या और सारांश के परिणामों में दूसरे भाषा संस्करण जोड़ती हैं। दोनों सूचियाँ लॉन्चर के मोड मेनू में बदलें।";
+
+/* Your languages */
+"wizard_language_title" = "आपकी भाषाएँ";
+
+/* Set Up Later */
+"wizard_later" = "बाद में सेट करें";
+
+/* Cloud providers, web research, Library folders, and cloud voices require %@ Pro. Apple Intelligence is free. Eligible subscriptions include a trial. */
+"wizard_pro_note" = "Your first 30 days include %@ Pro. Apple Intelligence stays free afterward.";
+
+/* Dictionary pronunciation voice */
+"wizard_pronunciation_voice" = "शब्दकोश उच्चारण की आवाज़";
+
+/* Claude models with web research. */
+"wizard_provider_anthropic" = "वेब खोज के साथ Claude मॉडल।";
+
+/* Switch models in the launcher, or open All models to enable more. */
+"wizard_provider_body_multi" = "लॉन्चर में मॉडल बदलें या सभी मॉडल में और मॉडल चालू करें।";
+
+/* DeepSeek chat and reasoning models. */
+"wizard_provider_deepseek" = "चैट और तर्क के लिए DeepSeek मॉडल।";
+
+/* Gemini models with web research. */
+"wizard_provider_gemini" = "वेब खोज के साथ Gemini मॉडल।";
+
+/* Grok text models and optional voices. */
+"wizard_provider_grok" = "Grok टेक्स्ट मॉडल और वैकल्पिक आवाज़ें।";
+
+/* GPT models with web research. */
+"wizard_provider_openai" = "वेब खोज के साथ GPT मॉडल।";
+
+/* Choose your providers */
+"wizard_provider_title_multi" = "अपने प्रदाता चुनें";
+
+/* Copy text and use a shortcut, or open the launcher and start typing.\n\nChange your choices in the launcher's menus or Settings. */
+"wizard_ready_body_simple" = "Langmin starts a free 30-day trial when you first open it. No subscription starts, and you will not be charged.";
+
+/* You're all set */
+"wizard_ready_title" = "30 days of full access";
+
+/* Use these shortcuts from another app after copying text. Proofread and Rewrite copy the result. The other four modes show it in the HUD. Open opens a result window; Dismiss closes the HUD.\n\nIn Langmin's main window, these shortcuts select a mode. Press ⌘Return to run it. */
+"wizard_shortcuts_body" = "किसी दूसरे ऐप में टेक्स्ट कॉपी करके ये शॉर्टकट इस्तेमाल करें। प्रूफ़रीडिंग और पुनर्लेखन परिणाम कॉपी करते हैं। बाकी चार मोड परिणाम HUD में दिखाते हैं। खोलें से परिणाम की विंडो खुलती है; बंद करें से HUD बंद होता है।\n\nLangmin की मुख्य विंडो में ये शॉर्टकट मोड चुनते हैं। उसे चलाने के लिए ⌘Return दबाएँ।";
+
+/* Step %d of %d */
+"wizard_step_n_of_m" = "चरण %d / %d";
+
+/* Translate to */
+"wizard_translate_to" = "इसमें अनुवाद करें";
+
+/* Proofread, rewrite, explain, summarize, translate, and look up words. Listen to results and Dictionary examples.\n\nChoose your settings now or change them later. */
+"wizard_welcome_body_short" = "टेक्स्ट सुधारें, फिर से लिखें, समझें, सारांश बनाएँ, अनुवाद करें और शब्द खोजें। परिणाम और शब्दकोश के उदाहरण सुनें।\n\nअभी सेटिंग्ज़ चुनें या बाद में बदलें।";
+
+/* Welcome to %@ */
+"wizard_welcome_title" = "%@ में आपका स्वागत है";
+
+/* Langmin Setup */
+"wizard_window" = "Langmin सेटअप";
+
+/* Open Langmin at login to keep its menu-bar actions and shortcuts available. */
+"wizard_workflow_body" = "लॉगिन पर Langmin खोलें ताकि मेनू बार की क्रियाएँ और शॉर्टकट उपलब्ध रहें।";
+
+/* Always at hand */
+"wizard_workflow_title" = "हमेशा हाथ में";
+
+/* Your providers */
+"your_providers" = "आपके प्रदाता";
+
+/* Dictionary illustrations */
+"illustration" = "चित्रण";
+"illustration_apple_note" = "अपने Mac पर चित्र बनाएँ और चुनें";
+"illustration_apple_unavailable" = "macOS 15.4 या बाद का संस्करण और Image Playground आवश्यक है";
+"illustration_cloud_note" = "अलग से शुल्क · आपकी OpenAI API कुंजी का उपयोग";
+"illustration_generated" = "AI द्वारा बनाया गया चित्रण";
+"illustration_generating" = "चित्रण बनाया जा रहा है…";
+"illustration_failed" = "चित्रण नहीं बनाया जा सका";
+"illustration_missing_key" = "सेटिंग्स → मॉडल में OpenAI API कुंजी जोड़ें।";
+"illustration_save" = "चित्र सहेजें…";
+"illustration_remove" = "चित्रण हटाएँ";
+
+"reading_webpage" = "पेज पढ़ा जा रहा है…";
+
+"loading_page_images" = "पेज की छवियाँ लोड हो रही हैं…";
+
+/* Follow-up */
+"followup_title" = "अगला सवाल";
+
+/* Ask a follow-up or request changes… */
+"followup_placeholder" = "अगला सवाल पूछें या बदलाव करने को कहें…";
+
+/* Send follow-up */
+"followup_send" = "सवाल भेजें";
+
+/* Replying… */
+"followup_working" = "जवाब दिया जा रहा है…";
+
+/* You */
+"followup_you" = "आप";
+
+/* Copy reply */
+"followup_copy" = "जवाब कॉपी करें";
+
+/* Delete reply */
+"followup_delete_reply" = "जवाब हटाएँ";
+
+/* The message could not be deleted: %@ */
+"followup_delete_failed" = "संदेश हटाया नहीं जा सका: %@";
+
+/* Print… */
+"print" = "प्रिंट करें…";
+
+/* Quick HUD playback */
+"hud_read_paragraph" = "इस अनुच्छेद को पढ़कर सुनाएँ";
+"hud_stop_playback" = "पढ़ना रोकें";
+"hud_playback_failed" = "इस पाठ को पढ़कर सुनाया नहीं जा सका";
+"hud_voice_api_key" = "इस आवाज़ का उपयोग करने के लिए सेटिंग्स में %@ की API कुंजी जोड़ें।";
+
+"request_failed" = "अनुरोध विफल हुआ";
+
+/* Translation skipped */
+"translation_skipped" = "अनुवाद छोड़ दिया गया";
+
+/* Already in this language. */
+"translation_already_in_language" = "टेक्स्ट पहले से चुनी गई भाषा में है।";
+
+/* Library window placement */
+"detach_library" = "लाइब्रेरी अलग विंडो में खोलें";
+"attach_library" = "लाइब्रेरी मुख्य विंडो में ले जाएँ";
+
+/* Result text editing */
+"apply" = "लागू करें";
+"discard_changes" = "बदलाव छोड़ें";
+"done" = "हो गया";
+"edit_link" = "लिंक संपादित करें";
+"edit_text" = "टेक्स्ट संपादित करें";
+"format_text" = "टेक्स्ट फ़ॉर्मैट करें";
+"remove_link" = "लिंक हटाएँ";
+"save_text_changes" = "टेक्स्ट के बदलाव सहेजें?";
+"text_style" = "टेक्स्ट शैली";
+"save_edits_remove_audio" = "बदलाव सहेजें और ऑडियो हटाएँ?";
+"save_edits_remove_audio_detail" = "इन बदलावों को सहेजने से जुड़े हुए सभी कथन और उच्चारण ऑडियो हट जाएँगे। आप बाद में नया ऑडियो बना सकते हैं।";
+
+/* iCloud Library sync */
+"pro_feature_icloud" = "iCloud से लाइब्रेरी सिंक";
+"pro_reason_icloud" = "iCloud से लाइब्रेरी सिंक करने की सुविधा %@ Pro में शामिल है।";
+
+/* Automatically illustrate new lookups */
+"illustration_automatic" = "नई खोजों के लिए अपने आप चित्र बनाएँ";
+
+/* Automatic images are off by default. To add an image yourself, use the picture button on a Dictionary result. */
+"illustration_manual_note" = "अपने आप चित्र बनाना डिफ़ॉल्ट रूप से बंद है। खुद चित्र जोड़ने के लिए शब्दकोश के परिणाम में चित्र बटन का उपयोग करें।";
+
+/* Image Provider */
+"illustration_provider" = "चित्र प्रदाता";
+
+/* Choose in result */
+"illustration_choose_in_result" = "परिणाम में चुनें";
+
+/* Choose a provider before turning on automatic images. You can also add an image from a Dictionary result's picture button. */
+"illustration_choose_provider_note" = "अपने आप चित्र बनाना चालू करने से पहले प्रदाता चुनें। आप शब्दकोश के परिणाम में चित्र बटन से भी चित्र जोड़ सकते हैं।";
+
+/* Create and choose images on your Mac. Automatic mode opens Image Playground after each Dictionary lookup. */
+"illustration_apple_settings_note" = "अपने Mac पर चित्र बनाएँ और चुनें। स्वचालित मोड में शब्दकोश की हर खोज के बाद Image Playground खुलता है।";
+
+/* Requires Pro and an OpenAI API key in Settings → Models. Each image is billed separately. Creates one landscape image at medium quality. */
+"illustration_openai_settings_note" = "Pro और सेटिंग्ज़ → मॉडल में OpenAI API कुंजी आवश्यक है। हर चित्र का अलग शुल्क लगता है। मध्यम गुणवत्ता का एक क्षैतिज चित्र बनाता है।";
+
+/* Illustrations */
+"tab_illustrations" = "चित्रण";
+
+/* Empty launcher input */
+"input_start_hint" = "यहाँ लिखें, पेस्ट करें या फ़ाइल खींचकर छोड़ें";
+"input_documents" = "दस्तावेज़";
+"input_images" = "छवियाँ";
+"input_audio" = "ऑडियो";
+"input_drop_title" = "टेक्स्ट जोड़ने के लिए छोड़ें";
+
+/* Source-build purchase footer */
+"source_build_title" = "Trial ended";
+"source_build_support" = "Apple Intelligence stays free, while other Pro features require purchase.";
+"source_build_purchase" = "खरीदें";
+"source_build_dismiss" = "Dismiss";
+"pro_app_trial_one_day" = "Pro trial · 1 day remaining";
+"pro_app_trial_days" = "Pro trial · %d days remaining";
+"wizard_trial_during_title" = "Your first 30 days";
+"wizard_trial_during_langmin" = "Use every Langmin feature without app limits. Provider charges may still apply.";
+"wizard_trial_after_title" = "After the trial";
+"wizard_trial_after_langmin" = "Apple Intelligence, Apple voices, Apple transcription, text editing, and the Library stay free. Other Pro features require a purchase.";
+"wizard_trial_plans_title" = "Keep Pro";
+"wizard_trial_plans_body" = "Choose a yearly plan or lifetime access at any time.";
