@@ -1,0 +1,983 @@
+/* Langmin — hu localization. Comments give English text or name a related group. */
+
+/* About %@ */
+"about_app" = "A(z) %@ névjegye";
+
+/* All */
+"all_chip" = "Mind";
+
+/* All models */
+"all_models" = "Minden modell";
+
+/* Answer language */
+"answer_language" = "Válasz nyelve";
+
+/* %@ Help */
+"app_help" = "%@ súgó";
+
+/* Back */
+"back" = "Vissza";
+
+/* Bring All to Front */
+"bring_all_to_front" = "Az összes előrehozása";
+
+/* Delete %d items from %@? */
+"bulk_delete_confirm_many" = "Töröl %d elemet innen: „%@”?";
+
+/* Delete 1 item from %@? */
+"bulk_delete_confirm_one" = "Töröl 1 elemet innen: „%@”?";
+
+/* Only the items matching the current search are deleted. */
+"bulk_delete_search_note" = "Csak az aktuális keresésnek megfelelő elemek törlődnek.";
+
+/* Use Undo to restore an item before it disappears. */
+"bulk_delete_undo_note" = "A Visszavonás gombbal visszaállíthatja az elemet, mielőtt eltűnik.";
+
+/* Cancel */
+"cancel" = "Mégsem";
+
+/* Cancel Current Action */
+"cancel_current_action" = "Aktuális művelet megszakítása";
+
+/* Cancel this request (Esc) */
+"cancel_this_request_esc" = "Kérés megszakítása (Esc)";
+
+/* Cancelled */
+"cancelled" = "Megszakítva";
+
+/* Cancelling… */
+"cancelling" = "Megszakítás…";
+
+/* Cancelling */
+"cancelling_a11y" = "Megszakítás";
+
+/* Clear after submit */
+"clear_after_submit" = "Törlés küldés után";
+
+/* You copied something else while Langmin was working. Replace it with the transformed text? */
+"clipboard_changed_body" = "Amíg a Langmin dolgozott, valami mást másolt ki. Lecseréli az átalakított szövegre?";
+
+/* The clipboard changed */
+"clipboard_changed_title" = "A vágólap megváltozott";
+
+/* Clipboard unchanged */
+"clipboard_unchanged" = "A vágólap változatlan";
+
+/* macOS did not accept the transformed text. The previous clipboard contents were restored. */
+"clipboard_write_failed_restored" = "A macOS nem fogadta el az átalakított szöveget. A vágólap korábbi tartalma visszaállt.";
+
+/* macOS did not accept the transformed text, and the previous clipboard contents could not be restored. */
+"clipboard_write_failed_unrestored" = "A macOS nem fogadta el az átalakított szöveget, és a vágólap korábbi tartalmát nem sikerült visszaállítani.";
+
+/* Close */
+"close" = "Bezárás";
+
+/* ⌘V to paste */
+"cmd_v_to_paste" = "⌘V a beillesztéshez";
+
+/* Compose with Clipboard */
+"compose_with_clipboard" = "Írás a vágólapról";
+
+/* Copied */
+"copied" = "Másolva";
+
+/* Copy */
+"copy" = "Másolás";
+
+/* Copy this paragraph */
+"copy_paragraph" = "Bekezdés másolása";
+
+/* Copy Result */
+"copy_result" = "Eredmény másolása";
+
+/* Copying… */
+"copying" = "Másolás…";
+
+/* Could not delete one saved item */
+"could_not_delete_one_saved_item" = "Egy mentett elemet nem sikerült törölni";
+
+/* Could not delete some saved items */
+"could_not_delete_some_saved_items" = "Néhány mentett elemet nem sikerült törölni";
+
+/* Could not delete this saved item */
+"could_not_delete_this_saved_item" = "Ezt a mentett elemet nem sikerült törölni";
+
+/* Could not export this saved item */
+"could_not_export_this_saved_item" = "Ezt a mentett elemet nem sikerült exportálni";
+
+/* Could not open the result */
+"could_not_open_result" = "Nem sikerült megnyitni az eredményt";
+
+/* Could not rename this saved item */
+"could_not_rename_this_saved_item" = "Ezt a mentett elemet nem sikerült átnevezni";
+
+/* Could not restore this saved item */
+"could_not_restore_this_saved_item" = "Ezt a mentett elemet nem sikerült visszaállítani";
+
+/* Could not save audio */
+"could_not_save_audio" = "A hangot nem sikerült menteni";
+
+/* Could not update the clipboard */
+"could_not_update_clipboard" = "Nem sikerült frissíteni a vágólapot";
+
+/* Could not update the login item */
+"could_not_update_the_login_item" = "A bejelentkezési elemet nem sikerült frissíteni";
+
+/* Cut */
+"cut" = "Kivágás";
+
+/* Cycle Through Windows */
+"cycle_through_windows" = "Váltás az ablakok között";
+
+/* Delete */
+"delete" = "Törlés";
+
+/* Delete All %d… */
+"delete_all_n" = "Mind a(z) %d törlése…";
+
+/* Delete Folder */
+"delete_folder_menu" = "Mappa törlése";
+
+/* All entries stay in the Library */
+"delete_folder_subtitle" = "Minden bejegyzés a Könyvtárban marad";
+
+/* Delete %d Shown… */
+"delete_n_shown" = "%d megjelenített törlése…";
+
+/* Deleted “%@” */
+"deleted_item" = "„%@” törölve";
+
+/* Dictionary */
+"dictionary" = "Szótár";
+
+/* Dictionary Lookup */
+"dictionary_lookup" = "Szótári keresés";
+
+/* Dismiss */
+"dismiss" = "Bezárás";
+
+/* Drop or paste documents, images, or audio */
+"drop_hint" = "Húzzon vagy illesszen be dokumentumokat, képeket vagy hangfájlokat";
+
+/* Edit */
+"edit" = "Szerkesztés";
+
+/* Deeper essay */
+"effort_detailed" = "Mélyebb esszé";
+
+/* Short and clear */
+"effort_simple" = "Rövid és világos";
+
+/* Balanced depth */
+"effort_standard" = "Kiegyensúlyozott mélység";
+
+/* Elaborating… */
+"elaborating" = "Kifejtés…";
+
+/* Explain */
+"explain" = "Magyarázat";
+
+/* Explain Clipboard */
+"explain_clipboard" = "Vágólap magyarázata";
+
+/* Explaining… */
+"explaining" = "Magyarázat készül…";
+
+/* Export Audio… */
+"export_audio_menu" = "Hang exportálása…";
+
+/* Export Audio */
+"export_audio_panel" = "Hang exportálása";
+
+/* Export Text… */
+"export_text_menu" = "Szöveg exportálása…";
+
+/* Export Text */
+"export_text_panel" = "Szöveg exportálása";
+
+/* Extra languages */
+"extra_languages" = "További nyelvek";
+
+/* File */
+"file" = "Fájl";
+
+/* File In */
+"file_in_submenu" = "Elhelyezés ide";
+
+/* Filter folders */
+"filter_folders" = "Mappák szűrése";
+
+/* Find… */
+"find_item" = "Keresés…";
+
+/* Find */
+"find_menu" = "Keresés";
+
+/* ↵ create · esc cancel */
+"folder_create_hint" = "↵ létrehozás · esc mégse";
+
+/* Nothing in this folder yet */
+"folder_empty_title" = "Ez a mappa még üres";
+
+/* Drag results onto a folder chip, or right-click one and file it here. */
+"folder_empty_subtitle" = "Húzzon találatokat egy mappacímkére, vagy kattintson egyre jobb gombbal, és helyezze el itt.";
+
+/* already exists */
+"folder_exists_hint" = "már létezik";
+
+/* already exists · ↵ opens it */
+"folder_exists_opens_hint" = "már létezik · ↵ megnyitja";
+
+/* Folder name */
+"folder_name_placeholder" = "Mappa neve";
+
+/* ↵ rename · esc cancel */
+"folder_rename_hint" = "↵ átnevezés · esc mégse";
+
+/* Help */
+"help" = "Súgó";
+
+/* Hide %@ */
+"hide_app" = "%@ elrejtése";
+
+/* Hide Others */
+"hide_others" = "Többi elrejtése";
+
+/* Explaining */
+"hud_explaining" = "Magyarázat";
+
+/* Looking up */
+"hud_looking_up" = "Keresés";
+
+/* 1 word */
+"hud_one_word" = "1 szó";
+
+/* Proofreading */
+"hud_proofreading" = "Lektorálás";
+
+/* Rewriting */
+"hud_rewriting" = "Átfogalmazás";
+
+/* Summarizing */
+"hud_summarizing" = "Összefoglalás";
+
+/* Translating */
+"hud_translating" = "Fordítás";
+
+/* %d words */
+"hud_word_count" = "%d szó";
+
+/* Keep Current Clipboard */
+"keep_current_clipboard" = "Jelenlegi vágólap megtartása";
+
+/* Language level */
+"language_level" = "Nyelvi szint";
+
+/* The new language takes effect the next time Langmin opens. */
+"language_restart_notice" = "Az új nyelv a Langmin következő indításakor lép életbe.";
+
+/* Later */
+"later" = "Később";
+
+/* Library */
+"library" = "Könyvtár";
+
+/* No saved items yet */
+"library_empty_title" = "Még nincsenek mentett elemek";
+
+/* Click a result's bookmark button to save it here. */
+"library_empty_subtitle" = "A mentéshez kattintson az eredmény könyvjelzőgombjára.";
+
+/* Look Up Clipboard in Dictionary */
+"look_up_clipboard_in_dictionary" = "Vágólap kikeresése a szótárban";
+
+/* Looking up… */
+"looking_up" = "Keresés…";
+
+/* Match question */
+"match_question" = "A kérdés nyelvén";
+
+/* Minimize */
+"minimize" = "Kis méret";
+
+/* More folders */
+"more_folders" = "További mappák";
+
+/* More languages */
+"more_languages" = "Több nyelv";
+
+/* %d saved */
+"n_saved" = "%d mentve";
+
+/* New Explanation */
+"new_explanation" = "Új magyarázat";
+
+/* New Folder… */
+"new_folder_menu" = "Új mappa…";
+
+/* Copy some text, then try the Langmin action again. */
+"no_clipboard_text_body" = "Másoljon ki egy szöveget, majd próbálja újra a Langmin-műveletet.";
+
+/* No clipboard text */
+"no_clipboard_text_title" = "Nincs szöveg a vágólapon";
+
+/* No Folder */
+"no_folder" = "Nincs mappa";
+
+/* No results */
+"library_search_empty_title" = "Nincs találat";
+
+/* No %@ match “%@”. */
+"no_search_matches" = "Nincs a keresésnek megfelelő %@: „%@”.";
+
+/* None */
+"none" = "Nincs";
+
+/* Not Now */
+"not_now" = "Most nem";
+
+/* OK */
+"ok" = "OK";
+
+/* On this Mac */
+"on_this_mac" = "Ezen a Macen";
+
+/* Open */
+"open" = "Megnyitás";
+
+/* Open */
+"open_in_window" = "Megnyitás";
+
+/* Open Langmin */
+"open_langmin" = "Langmin megnyitása";
+
+/* Open Langmin at login */
+"open_langmin_at_login" = "Langmin megnyitása bejelentkezéskor";
+
+/* Open in a result window */
+"open_result_window" = "Megnyitás eredményablakban";
+
+/* Open Settings */
+"open_settings" = "Beállítások megnyitása";
+
+/* Open Setup Assistant */
+"open_setup_assistant" = "Beállítási segéd megnyitása";
+
+/* Opening… */
+"opening_hud" = "Megnyitás…";
+
+/* Opening… */
+"opening_progress" = "Megnyitás…";
+
+/* Other */
+"other" = "Egyéb";
+
+/* ↵ run    ⇥ pin chip    ⌘, options */
+"palette_legend_chip" = "↵ futtatás    ⇥ címke rögzítése    ⌘, beállítások";
+
+/* Paste */
+"paste" = "Beillesztés";
+
+/* Langmin can't access the pasted file */
+"pasted_file_denied" = "A Langmin nem fér hozzá a beillesztett fájlhoz";
+
+/* Langmin can't access the pasted files */
+"pasted_files_denied" = "A Langmin nem fér hozzá a beillesztett fájlokhoz";
+
+/* macOS did not grant access to these files. Drag them into this window instead. */
+"pasted_files_denied_body" = "A macOS nem engedélyezte a hozzáférést ezekhez a fájlokhoz. Húzza őket ebbe az ablakba.";
+
+/* Look up a word… */
+"placeholder_dictionary" = "Szó keresése…";
+
+/* What would you like explained? */
+"placeholder_explain" = "Mit szeretne elmagyaráztatni?";
+
+/* What would you like proofread? */
+"placeholder_proofread" = "Mit szeretne lektoráltatni?";
+
+/* What would you like rewritten? */
+"placeholder_rewrite" = "Mit szeretne átfogalmaztatni?";
+
+/* What would you like summarized? */
+"placeholder_summarize" = "Mit szeretne összefoglaltatni?";
+
+/* What would you like translated? */
+"placeholder_translate" = "Mit szeretne lefordíttatni?";
+
+/* Preparing narration… */
+"preparing_narration" = "Felolvasás előkészítése…";
+
+/* Privacy Policy… */
+"privacy_policy" = "Adatvédelmi irányelvek…";
+
+/* Family Sharing included. */
+"pro_family_caption" = "Családi megosztással.";
+
+/* OpenAI, Anthropic, Gemini, Grok, DeepSeek, and custom endpoints */
+"pro_feature_cloud" = "OpenAI, Anthropic, Gemini, Grok, DeepSeek és egyéni végpontok";
+
+/* Library folders */
+"pro_feature_folders" = "Mappák a Könyvtárban";
+
+/* Web research for current facts and sources */
+"pro_feature_research" = "Webes keresés friss tényekhez és forrásokhoz";
+
+/* OpenAI and Grok voices */
+"pro_feature_voices" = "OpenAI- és Grok-hangok";
+
+/* Apple Intelligence, Apple voices, and the Library stay free. */
+"pro_free_note" = "Az Apple Intelligence, az Apple-hangok és a Könyvtár ingyenesek maradnak.";
+
+/* Buy once for %@ */
+"pro_lifetime_button" = "Egyszeri vásárlás: %@";
+
+/* Contacting the App Store… */
+"pro_loading" = "Kapcsolódás az App Store-hoz…";
+
+/* Manage Subscription… */
+"pro_manage_subscription" = "Előfizetés kezelése…";
+
+/* %@ Pro… */
+"pro_menu" = "%@ Pro…";
+
+/* This purchase is still pending. %@ Pro unlocks when the App Store confirms it. */
+"pro_pending_body" = "Ez a vásárlás még függőben van. A %@ Pro akkor válik elérhetővé, amikor az App Store megerősíti.";
+
+/* Purchase pending */
+"pro_pending_title" = "Függőben lévő vásárlás";
+
+/* Privacy Policy */
+"pro_privacy_policy" = "Adatvédelmi irányelvek";
+
+/* The purchase didn't complete: %@ */
+"pro_purchase_failed" = "A vásárlás nem fejeződött be: %@";
+
+/* Cloud models are part of %@ Pro. */
+"pro_reason_cloud" = "A felhőmodellek a %@ Pro részei.";
+
+/* Library folders are part of %@ Pro. */
+"pro_reason_folders" = "A Könyvtár mappái a %@ Pro részei.";
+
+/* Get more with %@ Pro. */
+"pro_reason_general" = "Több lehetőség a %@ Próval.";
+
+/* OpenAI and Grok voices are part of %@ Pro. */
+"pro_reason_voices" = "Az OpenAI- és Grok-hangok a %@ Pro részei.";
+
+/* Couldn't restore purchases */
+
+/* No %@ Pro purchase was found for this Apple Account. */
+"pro_restore_none_body" = "Ehhez az Apple-fiókhoz nem található %@ Pro vásárlás.";
+
+/* Nothing to restore */
+"pro_restore_none_title" = "Nincs mit visszaállítani";
+
+/* Restore Purchases */
+"pro_restore_purchases" = "Vásárlások visszaállítása";
+
+/* Pro */
+"pro_status_active" = "Pro";
+
+/* Pro · ends %@ */
+"pro_status_ends" = "Pro · lejár: %@";
+
+/* Pro · shared with your family */
+"pro_status_family" = "Pro · megosztva a családdal";
+
+/* Free */
+"pro_status_free" = "Ingyenes";
+
+/* Pro · lifetime */
+"pro_status_lifetime" = "Pro · örökös";
+
+/* Pro · renews %@ */
+"pro_status_renews" = "Pro · megújul: %@";
+
+/* Pro trial · ends %@ */
+"pro_status_trial_ends" = "Pro próbaidőszak · lejár: %@";
+
+/* Pro trial · first payment %@ */
+"pro_status_trial_renews" = "Pro próbaidőszak · első fizetés: %@";
+
+/* Pro trial · until %@ */
+"pro_status_trial_until" = "Pro próbaidőszak · eddig: %@";
+
+/* Pro · until %@ */
+"pro_status_until" = "Pro · eddig: %@";
+
+/* Pro purchases are unavailable right now. Please try again later. */
+"pro_store_unavailable" = "A Pro-vásárlások jelenleg nem érhetők el. Próbálja újra később.";
+
+/* Payment goes to your Apple Account. A subscription renews automatically each year unless it is cancelled in your App Store settings at least a day before the period ends. */
+"pro_terms" = "A fizetés az Apple-fiókját terheli. Az előfizetés évente automatikusan megújul, ha nem mondja le az App Store beállításaiban legalább egy nappal az időszak vége előtt.";
+
+/* Terms of Use */
+"pro_terms_of_use" = "Felhasználási feltételek";
+
+/* Cancel at least a day before the free trial ends to avoid being charged. */
+
+/* %@ Pro */
+"pro_title" = "%@ Pro";
+
+/* Start free trial */
+
+/* Try free for a month */
+
+/* then %@ a year · cancel anytime */
+
+/* The App Store could not verify this purchase. */
+"pro_unverified" = "Az App Store nem tudta ellenőrizni ezt a vásárlást.";
+
+/* Upgrade… */
+"pro_upgrade_button" = "Váltás Próra…";
+
+/* Subscribe for %@ a year */
+"pro_yearly_button" = "Előfizetés évi %@ áron";
+
+/* Renews automatically each year · cancel anytime */
+"pro_yearly_caption" = "Évente automatikusan megújul · bármikor lemondható";
+
+/* You have %@ Pro. */
+"pro_you_have" = "A %@ Pro aktív.";
+
+/* Pronounce — click to choose a voice first */
+"pronounce_setup_tooltip" = "Kiejtés — kattintson, és előbb válasszon hangot";
+
+/* Pronunciation voice */
+"pronunciation_voice" = "Kiejtési hang";
+
+/* Proofread */
+"proofread" = "Lektorálás";
+
+/* Proofread Clipboard */
+"proofread_clipboard" = "Vágólap lektorálása";
+
+/* Proofreading… */
+"proofreading" = "Lektorálás folyamatban…";
+
+/* Quit %@ */
+"quit_app" = "%@ kilépés";
+
+/* Quit Now */
+"quit_now" = "Kilépés most";
+
+/* Redo */
+"redo" = "Ismétlés";
+
+/* Remember choices */
+"remember_choices" = "Választások megjegyzése";
+
+/* Rename */
+"rename" = "Átnevezés";
+
+/* Rename Folder */
+"rename_folder_menu" = "Mappa átnevezése";
+
+/* Rephrasing… */
+"rephrasing" = "Átfogalmazás…";
+
+/* Reset Defaults */
+"reset_defaults" = "Alapértelmezések visszaállítása";
+
+/* Press Save to restore defaults, or open Setup Assistant to choose new settings. */
+"reset_wizard_body" = "Nyomja meg a Mentés gombot az alapértékek visszaállításához, vagy nyissa meg a Beállítási segédet új beállítások kiválasztásához.";
+
+/* Start over with the Setup Assistant? */
+"reset_wizard_title" = "Kezdjük elölről a Beállítási segéddel?";
+
+/* Empty and loading results */
+"results_empty_title" = "Kezdheti, amikor készen áll";
+"results_empty_hint" = "Írjon be szöveget a bal oldalon, majd nyomja meg a ⌘↵ billentyűkombinációt az eredmény megtekintéséhez.";
+"results_loading_title" = "Az eredmény készítése";
+"retry" = "Újra";
+
+/* Rewrite */
+"rewrite" = "Átírás";
+
+/* Rewrite Clipboard */
+"rewrite_clipboard" = "Vágólap átírása";
+
+/* App Language */
+"row_app_language" = "Az app nyelve";
+
+/* Launcher Window */
+"row_launcher_window" = "Indítóablak";
+
+/* Online Research */
+"row_online_research" = "Online keresés";
+
+/* Secret Protection */
+"row_secret_protection" = "Titkok védelme";
+
+/* Run */
+"run" = "Futtatás";
+
+/* look up */
+"run_verb_dictionary" = "keresés";
+
+/* explain */
+"run_verb_explain" = "magyarázat";
+
+/* proofread */
+"run_verb_proofread" = "ellenőrzés";
+
+/* rewrite */
+"run_verb_rewrite" = "átírás";
+
+/* summarize */
+"run_verb_summarize" = "összefoglalás";
+
+/* translate */
+"run_verb_translate" = "fordítás";
+
+/* Save */
+"save" = "Mentés";
+
+/* Save Audio… */
+"save_audio" = "Hang mentése…";
+
+/* Save Text… */
+"save_text" = "Szöveg mentése…";
+
+/* Search actions */
+"search_actions" = "Műveletek keresése";
+
+/* ⌘K search */
+"search_actions_hint" = "⌘K keresés";
+
+/* Search languages */
+"search_languages" = "Nyelvek keresése";
+
+/* Search Library */
+"search_library" = "Keresés a könyvtárban";
+
+/* Search models */
+"search_models" = "Modellek keresése";
+
+/* titles */
+"search_scope_titles" = "cím";
+
+/* titles or contents */
+"search_scope_titles_contents" = "cím vagy tartalom";
+
+/* Search voices */
+"search_voices" = "Hangok keresése";
+
+/* Services */
+"services" = "Szolgáltatások";
+
+/* Settings… */
+"settings" = "Beállítások…";
+
+/* Settings */
+"settings_window" = "Beállítások";
+
+/* Setup Assistant… */
+"setup_assistant" = "Beállítási segéd…";
+
+/* Show All */
+"show_all" = "Összes megjelenítése";
+
+/* Show Langmin in the menu bar */
+"show_langmin_in_the_menu_bar" = "Langmin megjelenítése a menüsorban";
+
+/* %@ with %@… */
+"status_with_model" = "%@ – %@…";
+
+/* Style */
+"style" = "Stílus";
+
+/* Summarize */
+"summarize" = "Összefoglalás";
+
+/* Summarize Clipboard */
+"summarize_clipboard" = "Vágólap összefoglalása";
+
+/* Summarizing… */
+"summarizing" = "Összefoglalás készül…";
+
+/* System Default */
+"system_default" = "Rendszer alapértelmezése";
+
+/* Advanced */
+"tab_advanced" = "Speciális";
+
+/* General */
+"tab_general" = "Általános";
+
+/* Models */
+"tab_models" = "Modellek";
+
+/* Reading */
+"tab_reading" = "Felolvasás";
+
+/* Shortcuts */
+"tab_shortcuts" = "Gyorsbillentyűk";
+
+/* Window */
+"tab_window" = "Ablak";
+
+/* Tightening… */
+"tightening" = "Tömörítés…";
+
+/* Translate */
+"translate" = "Fordítás";
+
+/* Translate Clipboard */
+"translate_clipboard" = "Vágólap fordítása";
+
+/* Translating… */
+"translating" = "Fordítás folyamatban…";
+
+/* Undo */
+"undo" = "Visszavonás";
+
+/* Untitled */
+"untitled" = "Névtelen";
+
+/* Another app asked Langmin to process this text:\n\n“%@”\n\nRunning sends it to your configured model. */
+"url_run_confirm_body" = "Egy másik app arra kérte a Langmint, hogy dolgozza fel ezt a szöveget:\n\n„%@”\n\nFuttatáskor a beállított modellnek lesz elküldve.";
+
+/* Run “%@” from a link? */
+"url_run_confirm_title" = "Futtatja a(z) „%@” műveletet egy hivatkozásból?";
+
+/* Use web research when available */
+"use_web_research" = "Webes keresés használata, ha elérhető";
+
+/* Warn before sending secrets */
+"warn_before_secrets" = "Figyelmeztetés titkok küldése előtt";
+
+/* Window */
+"window" = "Ablak";
+
+/* Runs on your Mac. Free, with no account needed. */
+"wizard_apple_available" = "A Macjén fut. Ingyenes, nem kell hozzá fiók.";
+
+/* Apple Intelligence (on this Mac, private and free) */
+"wizard_apple_row" = "Apple Intelligence (ezen a Macen, privát és ingyenes)";
+
+/* Apple Intelligence (not available on this Mac) */
+"wizard_apple_row_unavailable" = "Apple Intelligence (ezen a Macen nem érhető el)";
+
+/* Not available on this Mac (requires Apple Intelligence). Choose a cloud provider below. */
+"wizard_apple_unavailable" = "Ezen a Macen nem érhető el (Apple Intelligence szükséges). Válasszon alább egy felhőszolgáltatót.";
+
+/* Read results aloud or hear Dictionary words and examples. Choose a voice that supports the language.\n\nApple voices run on your Mac for free. OpenAI and Grok voices require Pro and a provider API key. */
+"wizard_audio_body" = "Hallgassa meg az eredményeket, a Szótár szavait és példáit. Válasszon az adott nyelvet támogató hangot.\n\nAz Apple-hangok ingyenesen futnak a Macen. Az OpenAI- és Grok-hangokhoz Pro és a szolgáltató API-kulcsa szükséges.";
+
+/* Hear your words */
+"wizard_audio_title" = "Hallja a szavait";
+
+/* Back */
+"wizard_back" = "Vissza";
+
+/* macOS may ask for clipboard access when you first use a shortcut. */
+"wizard_clipboard_note" = "A macOS a gyorsbillentyű első használatakor hozzáférést kérhet a vágólaphoz.";
+
+/* Continue */
+"wizard_continue" = "Folytatás";
+
+/* Also answer in */
+"wizard_extra_languages" = "Válasz ezen is";
+
+/* Finish */
+"wizard_finish" = "Befejezés";
+
+/* Keys stay in macOS Keychain. Requests go directly to your provider. Add keys or a local model later in Settings → Models. */
+"wizard_key_note_local" = "A kulcsok a macOS Kulcskarikájában maradnak. A kérések közvetlenül a szolgáltatóhoz mennek. Kulcsokat vagy helyi modellt később is hozzáadhat a Beállítások → Modellek menüben.";
+
+/* API key (optional, add any time) */
+"wizard_key_optional" = "API-kulcs (nem kötelező, bármikor hozzáadható)";
+
+/* Choose translation languages. Extra languages add versions to Dictionary, Explain, and Summarize results. Change either list in the launcher's mode menus. */
+"wizard_language_body_single_source" = "Válasszon fordítási nyelveket. A további nyelvek új nyelvi változatokat adnak a Szótár, Magyarázat és Összefoglalás eredményeihez. A listákat az indítóablak módmenüiben módosíthatja.";
+
+/* Your languages */
+"wizard_language_title" = "Az Ön nyelvei";
+
+/* Set Up Later */
+"wizard_later" = "Beállítás később";
+
+/* Cloud providers, web research, Library folders, and cloud voices require %@ Pro. Apple Intelligence is free. Eligible subscriptions include a trial. */
+"wizard_pro_note" = "Your first 30 days include %@ Pro. Apple Intelligence stays free afterward.";
+
+/* Dictionary pronunciation voice */
+"wizard_pronunciation_voice" = "Szótári kiejtési hang";
+
+/* Claude models with web research. */
+"wizard_provider_anthropic" = "Claude-modellek webes kereséssel.";
+
+/* Switch models in the launcher, or open All models to enable more. */
+"wizard_provider_body_multi" = "Modellt az indítóablakban válthat; továbbiakat a Minden modell menüben engedélyezhet.";
+
+/* DeepSeek chat and reasoning models. */
+"wizard_provider_deepseek" = "DeepSeek-modellek beszélgetéshez és következtetéshez.";
+
+/* Gemini models with web research. */
+"wizard_provider_gemini" = "Gemini-modellek webes kereséssel.";
+
+/* Grok text models and optional voices. */
+"wizard_provider_grok" = "Grok-szövegmodellek és választható hangok.";
+
+/* GPT models with web research. */
+"wizard_provider_openai" = "GPT-modellek webes kereséssel.";
+
+/* Choose your providers */
+"wizard_provider_title_multi" = "Válasszon szolgáltatókat";
+
+/* Copy text and use a shortcut, or open the launcher and start typing.\n\nChange your choices in the launcher's menus or Settings. */
+"wizard_ready_body_simple" = "Langmin starts a free 30-day trial when you first open it. No subscription starts, and you will not be charged.";
+
+/* You're all set */
+"wizard_ready_title" = "30 days of full access";
+
+/* Use these shortcuts from another app after copying text. Proofread and Rewrite copy the result. The other four modes show it in the HUD. Open opens a result window; Dismiss closes the HUD.\n\nIn Langmin's main window, these shortcuts select a mode. Press ⌘Return to run it. */
+"wizard_shortcuts_body" = "Másoljon szöveget egy másik appban, majd használja ezeket a billentyűparancsokat. A Lektorálás és az Átírás másolja az eredményt. A másik négy mód a HUD-panelen jeleníti meg. A Megnyitás eredményablakot nyit; a Bezárás bezárja a HUD-ot.\n\nA Langmin főablakában ezek a parancsok módot választanak. A futtatáshoz nyomja meg a ⌘Return billentyűket.";
+
+/* Step %d of %d */
+"wizard_step_n_of_m" = "%d. lépés a(z) %d közül";
+
+/* Translate to */
+"wizard_translate_to" = "Fordítás erre";
+
+/* Proofread, rewrite, explain, summarize, translate, and look up words. Listen to results and Dictionary examples.\n\nChoose your settings now or change them later. */
+"wizard_welcome_body_short" = "Lektoráljon, fogalmazzon át, kérjen magyarázatot, összegezzen, fordítson és keressen szavakat. Hallgassa meg az eredményeket és a Szótár példáit.\n\nVálassza ki a beállításokat most, vagy módosítsa őket később.";
+
+/* Welcome to %@ */
+"wizard_welcome_title" = "Üdvözli a(z) %@";
+
+/* Langmin Setup */
+"wizard_window" = "Langmin beállítása";
+
+/* Open Langmin at login to keep its menu-bar actions and shortcuts available. */
+"wizard_workflow_body" = "Indítsa el a Langmint bejelentkezéskor, hogy a menüsori műveletek és gyorsbillentyűk elérhetők legyenek.";
+
+/* Always at hand */
+"wizard_workflow_title" = "Mindig kéznél";
+
+/* Your providers */
+"your_providers" = "Az Ön szolgáltatói";
+
+/* Dictionary illustrations */
+"illustration" = "Illusztráció";
+"illustration_apple_note" = "Készítsen és válasszon képet a Macjén";
+"illustration_apple_unavailable" = "macOS 15.4 vagy újabb és Image Playground szükséges";
+"illustration_cloud_note" = "Külön díjazással · az Ön OpenAI API-kulcsát használja";
+"illustration_generated" = "MI által generált illusztráció";
+"illustration_generating" = "Illusztráció készítése…";
+"illustration_failed" = "Nem sikerült elkészíteni az illusztrációt";
+"illustration_missing_key" = "Adjon hozzá egy OpenAI API-kulcsot a Beállítások → Modellek menüben.";
+"illustration_save" = "Kép mentése…";
+"illustration_remove" = "Illusztráció eltávolítása";
+
+"reading_webpage" = "Oldal olvasása…";
+
+"loading_page_images" = "Az oldal képeinek betöltése…";
+
+/* Follow-up */
+"followup_title" = "További kérdés";
+
+/* Ask a follow-up or request changes… */
+"followup_placeholder" = "Tegyen fel újabb kérdést, vagy kérjen módosításokat…";
+
+/* Send follow-up */
+"followup_send" = "Kérdés küldése";
+
+/* Replying… */
+"followup_working" = "Válasz készül…";
+
+/* You */
+"followup_you" = "Ön";
+
+/* Copy reply */
+"followup_copy" = "Válasz másolása";
+
+/* Delete reply */
+"followup_delete_reply" = "Válasz törlése";
+
+/* The message could not be deleted: %@ */
+"followup_delete_failed" = "Az üzenet nem törölhető: %@";
+
+/* Print… */
+"print" = "Nyomtatás…";
+
+/* Quick HUD playback */
+"hud_read_paragraph" = "Bekezdés felolvasása";
+"hud_stop_playback" = "Felolvasás leállítása";
+"hud_playback_failed" = "Nem sikerült felolvasni ezt a szöveget";
+"hud_voice_api_key" = "A hang használatához adjon hozzá egy %@ API-kulcsot a Beállításokban.";
+
+"request_failed" = "A kérés sikertelen";
+
+/* Translation skipped */
+"translation_skipped" = "Fordítás kihagyva";
+
+/* Already in this language. */
+"translation_already_in_language" = "A szöveg már a kiválasztott nyelven van.";
+
+/* Library window placement */
+"detach_library" = "Könyvtár megnyitása külön ablakban";
+"attach_library" = "Könyvtár áthelyezése a főablakba";
+
+/* Result text editing */
+"apply" = "Alkalmaz";
+"discard_changes" = "Módosítások elvetése";
+"done" = "Kész";
+"edit_link" = "Hivatkozás szerkesztése";
+"edit_text" = "Szöveg szerkesztése";
+"format_text" = "Szöveg formázása";
+"remove_link" = "Hivatkozás eltávolítása";
+"save_text_changes" = "Menti a szöveg módosításait?";
+"text_style" = "Szövegstílus";
+"save_edits_remove_audio" = "Menti a módosításokat és eltávolítja a hangot?";
+"save_edits_remove_audio_detail" = "A módosítások mentése eltávolítja az összes csatolt felolvasási és kiejtési hanganyagot. Később új hangot hozhat létre.";
+
+/* iCloud Library sync */
+"pro_feature_icloud" = "Könyvtár szinkronizálása az iClouddal";
+"pro_reason_icloud" = "A könyvtár iCloud-szinkronizálása a %@ Pro része.";
+
+/* Automatically illustrate new lookups */
+"illustration_automatic" = "Új keresések automatikus illusztrálása";
+
+/* Automatic images are off by default. To add an image yourself, use the picture button on a Dictionary result. */
+"illustration_manual_note" = "Az automatikus képek alapértelmezés szerint ki vannak kapcsolva. Képet a szótári eredmény képgombjával adhat hozzá.";
+
+/* Image Provider */
+"illustration_provider" = "Képszolgáltató";
+
+/* Choose in result */
+"illustration_choose_in_result" = "Kiválasztás az eredményben";
+
+/* Choose a provider before turning on automatic images. You can also add an image from a Dictionary result's picture button. */
+"illustration_choose_provider_note" = "Válasszon szolgáltatót az automatikus képek bekapcsolása előtt. Képet a szótári eredmény képgombjával is hozzáadhat.";
+
+/* Create and choose images on your Mac. Automatic mode opens Image Playground after each Dictionary lookup. */
+"illustration_apple_settings_note" = "Készítsen és válasszon képeket a Macjén. Automatikus módban az Image Playground minden szótári keresés után megnyílik.";
+
+/* Requires Pro and an OpenAI API key in Settings → Models. Each image is billed separately. Creates one landscape image at medium quality. */
+"illustration_openai_settings_note" = "Pro és OpenAI API-kulcs szükséges a Beállítások → Modellek alatt. Minden kép külön díjköteles. Egy fekvő képet készít közepes minőségben.";
+
+/* Illustrations */
+"tab_illustrations" = "Illusztrációk";
+
+/* Empty launcher input */
+"input_start_hint" = "Írjon vagy illesszen be szöveget, vagy húzzon ide egy fájlt";
+"input_documents" = "Dokumentumok";
+"input_images" = "Képek";
+"input_audio" = "Hang";
+"input_drop_title" = "Ejtse ide a szöveg hozzáadásához";
+
+/* Source-build purchase footer */
+"source_build_title" = "Trial ended";
+"source_build_support" = "Apple Intelligence stays free, while other Pro features require purchase.";
+"source_build_purchase" = "Vásárlás";
+"source_build_dismiss" = "Dismiss";
+"pro_app_trial_one_day" = "Pro trial · 1 day remaining";
+"pro_app_trial_days" = "Pro trial · %d days remaining";
+"wizard_trial_during_title" = "Your first 30 days";
+"wizard_trial_during_langmin" = "Use every Langmin feature without app limits. Provider charges may still apply.";
+"wizard_trial_after_title" = "After the trial";
+"wizard_trial_after_langmin" = "Apple Intelligence, Apple voices, Apple transcription, text editing, and the Library stay free. Other Pro features require a purchase.";
+"wizard_trial_plans_title" = "Keep Pro";
+"wizard_trial_plans_body" = "Choose a yearly plan or lifetime access at any time.";
