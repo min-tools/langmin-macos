@@ -1,0 +1,983 @@
+/* Langmin — id localization. Comments give English text or name a related group. */
+
+/* About %@ */
+"about_app" = "Mengenai %@";
+
+/* All */
+"all_chip" = "Semua";
+
+/* All models */
+"all_models" = "Semua model";
+
+/* Answer language */
+"answer_language" = "Bahasa jawaban";
+
+/* %@ Help */
+"app_help" = "Bantuan %@";
+
+/* Back */
+"back" = "Kembali";
+
+/* Bring All to Front */
+"bring_all_to_front" = "Bawa Semua ke Depan";
+
+/* Delete %d items from %@? */
+"bulk_delete_confirm_many" = "Hapus %d item dari “%@”?";
+
+/* Delete 1 item from %@? */
+"bulk_delete_confirm_one" = "Hapus 1 item dari “%@”?";
+
+/* Only the items matching the current search are deleted. */
+"bulk_delete_search_note" = "Hanya item yang cocok dengan pencarian saat ini yang dihapus.";
+
+/* Use Undo to restore an item before it disappears. */
+"bulk_delete_undo_note" = "Gunakan Urungkan untuk memulihkan item sebelum menghilang.";
+
+/* Cancel */
+"cancel" = "Batal";
+
+/* Cancel Current Action */
+"cancel_current_action" = "Batalkan Tindakan Saat Ini";
+
+/* Cancel this request (Esc) */
+"cancel_this_request_esc" = "Batalkan permintaan ini (Esc)";
+
+/* Cancelled */
+"cancelled" = "Dibatalkan";
+
+/* Cancelling… */
+"cancelling" = "Membatalkan…";
+
+/* Cancelling */
+"cancelling_a11y" = "Membatalkan";
+
+/* Clear after submit */
+"clear_after_submit" = "Kosongkan setelah dikirim";
+
+/* You copied something else while Langmin was working. Replace it with the transformed text? */
+"clipboard_changed_body" = "Anda menyalin hal lain saat Langmin sedang bekerja. Ganti dengan teks yang telah diubah?";
+
+/* The clipboard changed */
+"clipboard_changed_title" = "Papan klip berubah";
+
+/* Clipboard unchanged */
+"clipboard_unchanged" = "Papan klip tidak berubah";
+
+/* macOS did not accept the transformed text. The previous clipboard contents were restored. */
+"clipboard_write_failed_restored" = "macOS tidak menerima teks yang telah diubah. Isi papan klip sebelumnya telah dipulihkan.";
+
+/* macOS did not accept the transformed text, and the previous clipboard contents could not be restored. */
+"clipboard_write_failed_unrestored" = "macOS tidak menerima teks yang telah diubah, dan isi papan klip sebelumnya tidak dapat dipulihkan.";
+
+/* Close */
+"close" = "Tutup";
+
+/* ⌘V to paste */
+"cmd_v_to_paste" = "⌘V untuk menempel";
+
+/* Compose with Clipboard */
+"compose_with_clipboard" = "Tulis dengan Papan Klip";
+
+/* Copied */
+"copied" = "Disalin";
+
+/* Copy */
+"copy" = "Salin";
+
+/* Copy this paragraph */
+"copy_paragraph" = "Salin paragraf ini";
+
+/* Copy Result */
+"copy_result" = "Salin hasil";
+
+/* Copying… */
+"copying" = "Menyalin…";
+
+/* Could not delete one saved item */
+"could_not_delete_one_saved_item" = "Tidak dapat menghapus satu item tersimpan";
+
+/* Could not delete some saved items */
+"could_not_delete_some_saved_items" = "Tidak dapat menghapus beberapa item tersimpan";
+
+/* Could not delete this saved item */
+"could_not_delete_this_saved_item" = "Tidak dapat menghapus item tersimpan ini";
+
+/* Could not export this saved item */
+"could_not_export_this_saved_item" = "Tidak dapat mengekspor item tersimpan ini";
+
+/* Could not open the result */
+"could_not_open_result" = "Tidak dapat membuka hasil";
+
+/* Could not rename this saved item */
+"could_not_rename_this_saved_item" = "Tidak dapat mengganti nama item tersimpan ini";
+
+/* Could not restore this saved item */
+"could_not_restore_this_saved_item" = "Tidak dapat memulihkan item tersimpan ini";
+
+/* Could not save audio */
+"could_not_save_audio" = "Tidak dapat menyimpan audio";
+
+/* Could not update the clipboard */
+"could_not_update_clipboard" = "Tidak dapat memperbarui papan klip";
+
+/* Could not update the login item */
+"could_not_update_the_login_item" = "Tidak dapat memperbarui item login";
+
+/* Cut */
+"cut" = "Potong";
+
+/* Cycle Through Windows */
+"cycle_through_windows" = "Beralih Antar Jendela";
+
+/* Delete */
+"delete" = "Hapus";
+
+/* Delete All %d… */
+"delete_all_n" = "Hapus Semua %d…";
+
+/* Delete Folder */
+"delete_folder_menu" = "Hapus folder";
+
+/* All entries stay in the Library */
+"delete_folder_subtitle" = "Semua entri tetap ada di Pustaka";
+
+/* Delete %d Shown… */
+"delete_n_shown" = "Hapus %d yang Ditampilkan…";
+
+/* Deleted “%@” */
+"deleted_item" = "“%@” dihapus";
+
+/* Dictionary */
+"dictionary" = "Kamus";
+
+/* Dictionary Lookup */
+"dictionary_lookup" = "Pencarian kamus";
+
+/* Dismiss */
+"dismiss" = "Tutup";
+
+/* Drop or paste documents, images, or audio */
+"drop_hint" = "Seret atau tempel dokumen, gambar, atau audio";
+
+/* Edit */
+"edit" = "Edit";
+
+/* Deeper essay */
+"effort_detailed" = "Esai lebih mendalam";
+
+/* Short and clear */
+"effort_simple" = "Singkat dan jelas";
+
+/* Balanced depth */
+"effort_standard" = "Kedalaman seimbang";
+
+/* Elaborating… */
+"elaborating" = "Mengembangkan…";
+
+/* Explain */
+"explain" = "Penjelasan";
+
+/* Explain Clipboard */
+"explain_clipboard" = "Jelaskan Papan Klip";
+
+/* Explaining… */
+"explaining" = "Menjelaskan…";
+
+/* Export Audio… */
+"export_audio_menu" = "Ekspor Audio…";
+
+/* Export Audio */
+"export_audio_panel" = "Ekspor Audio";
+
+/* Export Text… */
+"export_text_menu" = "Ekspor Teks…";
+
+/* Export Text */
+"export_text_panel" = "Ekspor Teks";
+
+/* Extra languages */
+"extra_languages" = "Bahasa tambahan";
+
+/* File */
+"file" = "File";
+
+/* File In */
+"file_in_submenu" = "Arsipkan ke";
+
+/* Filter folders */
+"filter_folders" = "Saring folder";
+
+/* Find… */
+"find_item" = "Cari…";
+
+/* Find */
+"find_menu" = "Cari";
+
+/* ↵ create · esc cancel */
+"folder_create_hint" = "↵ buat · esc batal";
+
+/* Nothing in this folder yet */
+"folder_empty_title" = "Folder ini masih kosong";
+
+/* Drag results onto a folder chip, or right-click one and file it here. */
+"folder_empty_subtitle" = "Seret hasil ke label folder, atau klik kanan hasil dan arsipkan di sini.";
+
+/* already exists */
+"folder_exists_hint" = "sudah ada";
+
+/* already exists · ↵ opens it */
+"folder_exists_opens_hint" = "sudah ada · ↵ membukanya";
+
+/* Folder name */
+"folder_name_placeholder" = "Nama folder";
+
+/* ↵ rename · esc cancel */
+"folder_rename_hint" = "↵ ganti nama · esc batal";
+
+/* Help */
+"help" = "Bantuan";
+
+/* Hide %@ */
+"hide_app" = "Sembunyikan %@";
+
+/* Hide Others */
+"hide_others" = "Sembunyikan Lainnya";
+
+/* Explaining */
+"hud_explaining" = "Menjelaskan";
+
+/* Looking up */
+"hud_looking_up" = "Mencari";
+
+/* 1 word */
+"hud_one_word" = "1 kata";
+
+/* Proofreading */
+"hud_proofreading" = "Memeriksa";
+
+/* Rewriting */
+"hud_rewriting" = "Menulis ulang";
+
+/* Summarizing */
+"hud_summarizing" = "Meringkas";
+
+/* Translating */
+"hud_translating" = "Menerjemahkan";
+
+/* %d words */
+"hud_word_count" = "%d kata";
+
+/* Keep Current Clipboard */
+"keep_current_clipboard" = "Pertahankan papan klip saat ini";
+
+/* Language level */
+"language_level" = "Tingkat bahasa";
+
+/* The new language takes effect the next time Langmin opens. */
+"language_restart_notice" = "Bahasa baru berlaku saat Langmin dibuka berikutnya.";
+
+/* Later */
+"later" = "Nanti";
+
+/* Library */
+"library" = "Pustaka";
+
+/* No saved items yet */
+"library_empty_title" = "Belum ada item tersimpan";
+
+/* Click a result's bookmark button to save it here. */
+"library_empty_subtitle" = "Klik tombol markah pada hasil untuk menyimpannya di sini.";
+
+/* Look Up Clipboard in Dictionary */
+"look_up_clipboard_in_dictionary" = "Cari Papan Klip di Kamus";
+
+/* Looking up… */
+"looking_up" = "Mencari…";
+
+/* Match question */
+"match_question" = "Sesuai pertanyaan";
+
+/* Minimize */
+"minimize" = "Perkecil";
+
+/* More folders */
+"more_folders" = "Folder lainnya";
+
+/* More languages */
+"more_languages" = "Bahasa lainnya";
+
+/* %d saved */
+"n_saved" = "%d tersimpan";
+
+/* New Explanation */
+"new_explanation" = "Penjelasan Baru";
+
+/* New Folder… */
+"new_folder_menu" = "Folder baru…";
+
+/* Copy some text, then try the Langmin action again. */
+"no_clipboard_text_body" = "Salin teks, lalu coba lagi tindakan Langmin.";
+
+/* No clipboard text */
+"no_clipboard_text_title" = "Tidak ada teks di papan klip";
+
+/* No Folder */
+"no_folder" = "Tanpa folder";
+
+/* No results */
+"library_search_empty_title" = "Tidak ada hasil";
+
+/* No %@ match “%@”. */
+"no_search_matches" = "Tidak ada %@ yang cocok dengan “%@”.";
+
+/* None */
+"none" = "Tidak ada";
+
+/* Not Now */
+"not_now" = "Jangan sekarang";
+
+/* OK */
+"ok" = "OK";
+
+/* On this Mac */
+"on_this_mac" = "Di Mac ini";
+
+/* Open */
+"open" = "Buka";
+
+/* Open */
+"open_in_window" = "Buka";
+
+/* Open Langmin */
+"open_langmin" = "Buka Langmin";
+
+/* Open Langmin at login */
+"open_langmin_at_login" = "Buka Langmin saat login";
+
+/* Open in a result window */
+"open_result_window" = "Buka di jendela hasil";
+
+/* Open Settings */
+"open_settings" = "Buka Pengaturan";
+
+/* Open Setup Assistant */
+"open_setup_assistant" = "Buka Asisten Pengaturan";
+
+/* Opening… */
+"opening_hud" = "Membuka…";
+
+/* Opening… */
+"opening_progress" = "Membuka…";
+
+/* Other */
+"other" = "Lainnya";
+
+/* ↵ run    ⇥ pin chip    ⌘, options */
+"palette_legend_chip" = "↵ jalankan    ⇥ sematkan label    ⌘, opsi";
+
+/* Paste */
+"paste" = "Tempel";
+
+/* Langmin can't access the pasted file */
+"pasted_file_denied" = "Langmin tidak dapat mengakses file yang ditempel";
+
+/* Langmin can't access the pasted files */
+"pasted_files_denied" = "Langmin tidak dapat mengakses file yang ditempel";
+
+/* macOS did not grant access to these files. Drag them into this window instead. */
+"pasted_files_denied_body" = "macOS tidak memberikan akses ke file ini. Seret file ke jendela ini.";
+
+/* Look up a word… */
+"placeholder_dictionary" = "Cari sebuah kata…";
+
+/* What would you like explained? */
+"placeholder_explain" = "Apa yang ingin Anda jelaskan?";
+
+/* What would you like proofread? */
+"placeholder_proofread" = "Apa yang ingin Anda periksa?";
+
+/* What would you like rewritten? */
+"placeholder_rewrite" = "Apa yang ingin Anda tulis ulang?";
+
+/* What would you like summarized? */
+"placeholder_summarize" = "Apa yang ingin Anda ringkas?";
+
+/* What would you like translated? */
+"placeholder_translate" = "Apa yang ingin Anda terjemahkan?";
+
+/* Preparing narration… */
+"preparing_narration" = "Menyiapkan narasi…";
+
+/* Privacy Policy… */
+"privacy_policy" = "Kebijakan Privasi…";
+
+/* Family Sharing included. */
+"pro_family_caption" = "Termasuk Berbagi Keluarga.";
+
+/* OpenAI, Anthropic, Gemini, Grok, DeepSeek, and custom endpoints */
+"pro_feature_cloud" = "OpenAI, Anthropic, Gemini, Grok, DeepSeek, dan titik akhir khusus";
+
+/* Library folders */
+"pro_feature_folders" = "Folder di Pustaka";
+
+/* Web research for current facts and sources */
+"pro_feature_research" = "Pencarian web untuk fakta terkini dan sumber";
+
+/* OpenAI and Grok voices */
+"pro_feature_voices" = "Suara OpenAI dan Grok";
+
+/* Apple Intelligence, Apple voices, and the Library stay free. */
+"pro_free_note" = "Apple Intelligence, suara Apple, dan Pustaka tetap gratis.";
+
+/* Buy once for %@ */
+"pro_lifetime_button" = "Beli sekali seharga %@";
+
+/* Contacting the App Store… */
+"pro_loading" = "Menghubungi App Store…";
+
+/* Manage Subscription… */
+"pro_manage_subscription" = "Kelola Langganan…";
+
+/* %@ Pro… */
+"pro_menu" = "%@ Pro…";
+
+/* This purchase is still pending. %@ Pro unlocks when the App Store confirms it. */
+"pro_pending_body" = "Pembelian ini masih tertunda. %@ Pro akan terbuka setelah App Store mengonfirmasinya.";
+
+/* Purchase pending */
+"pro_pending_title" = "Pembelian tertunda";
+
+/* Privacy Policy */
+"pro_privacy_policy" = "Kebijakan Privasi";
+
+/* The purchase didn't complete: %@ */
+"pro_purchase_failed" = "Pembelian tidak selesai: %@";
+
+/* Cloud models are part of %@ Pro. */
+"pro_reason_cloud" = "Model cloud adalah bagian dari %@ Pro.";
+
+/* Library folders are part of %@ Pro. */
+"pro_reason_folders" = "Folder Pustaka adalah bagian dari %@ Pro.";
+
+/* Get more with %@ Pro. */
+"pro_reason_general" = "Dapatkan lebih banyak fitur dengan %@ Pro.";
+
+/* OpenAI and Grok voices are part of %@ Pro. */
+"pro_reason_voices" = "Suara OpenAI dan Grok adalah bagian dari %@ Pro.";
+
+/* Couldn't restore purchases */
+
+/* No %@ Pro purchase was found for this Apple Account. */
+"pro_restore_none_body" = "Tidak ditemukan pembelian %@ Pro untuk Akun Apple ini.";
+
+/* Nothing to restore */
+"pro_restore_none_title" = "Tidak ada yang perlu dipulihkan";
+
+/* Restore Purchases */
+"pro_restore_purchases" = "Pulihkan Pembelian";
+
+/* Pro */
+"pro_status_active" = "Pro";
+
+/* Pro · ends %@ */
+"pro_status_ends" = "Pro · berakhir %@";
+
+/* Pro · shared with your family */
+"pro_status_family" = "Pro · dibagikan dengan keluarga";
+
+/* Free */
+"pro_status_free" = "Gratis";
+
+/* Pro · lifetime */
+"pro_status_lifetime" = "Pro · seumur hidup";
+
+/* Pro · renews %@ */
+"pro_status_renews" = "Pro · diperpanjang %@";
+
+/* Pro trial · ends %@ */
+"pro_status_trial_ends" = "Uji coba Pro · berakhir %@";
+
+/* Pro trial · first payment %@ */
+"pro_status_trial_renews" = "Uji coba Pro · pembayaran pertama %@";
+
+/* Pro trial · until %@ */
+"pro_status_trial_until" = "Uji coba Pro · hingga %@";
+
+/* Pro · until %@ */
+"pro_status_until" = "Pro · hingga %@";
+
+/* Pro purchases are unavailable right now. Please try again later. */
+"pro_store_unavailable" = "Pembelian Pro sedang tidak tersedia. Coba lagi nanti.";
+
+/* Payment goes to your Apple Account. A subscription renews automatically each year unless it is cancelled in your App Store settings at least a day before the period ends. */
+"pro_terms" = "Pembayaran ditagihkan ke Akun Apple Anda. Langganan diperpanjang otomatis setiap tahun kecuali dibatalkan di pengaturan App Store setidaknya sehari sebelum periode berakhir.";
+
+/* Terms of Use */
+"pro_terms_of_use" = "Ketentuan Penggunaan";
+
+/* Cancel at least a day before the free trial ends to avoid being charged. */
+
+/* %@ Pro */
+"pro_title" = "%@ Pro";
+
+/* Start free trial */
+
+/* Try free for a month */
+
+/* then %@ a year · cancel anytime */
+
+/* The App Store could not verify this purchase. */
+"pro_unverified" = "App Store tidak dapat memverifikasi pembelian ini.";
+
+/* Upgrade… */
+"pro_upgrade_button" = "Tingkatkan…";
+
+/* Subscribe for %@ a year */
+"pro_yearly_button" = "Berlangganan seharga %@ per tahun";
+
+/* Renews automatically each year · cancel anytime */
+"pro_yearly_caption" = "Diperpanjang otomatis setiap tahun · batalkan kapan saja";
+
+/* You have %@ Pro. */
+"pro_you_have" = "Anda memiliki %@ Pro.";
+
+/* Pronounce — click to choose a voice first */
+"pronounce_setup_tooltip" = "Lafalkan — klik untuk memilih suara terlebih dahulu";
+
+/* Pronunciation voice */
+"pronunciation_voice" = "Suara pelafalan";
+
+/* Proofread */
+"proofread" = "Koreksi";
+
+/* Proofread Clipboard */
+"proofread_clipboard" = "Koreksi Papan Klip";
+
+/* Proofreading… */
+"proofreading" = "Mengoreksi…";
+
+/* Quit %@ */
+"quit_app" = "Keluar %@";
+
+/* Quit Now */
+"quit_now" = "Keluar Sekarang";
+
+/* Redo */
+"redo" = "Ulangi";
+
+/* Remember choices */
+"remember_choices" = "Ingat pilihan";
+
+/* Rename */
+"rename" = "Ganti Nama";
+
+/* Rename Folder */
+"rename_folder_menu" = "Ganti nama folder";
+
+/* Rephrasing… */
+"rephrasing" = "Menyusun ulang…";
+
+/* Reset Defaults */
+"reset_defaults" = "Kembalikan ke bawaan";
+
+/* Press Save to restore defaults, or open Setup Assistant to choose new settings. */
+"reset_wizard_body" = "Klik Simpan untuk memulihkan pengaturan bawaan, atau buka Asisten Pengaturan untuk memilih pengaturan baru.";
+
+/* Start over with the Setup Assistant? */
+"reset_wizard_title" = "Mulai lagi dengan Asisten Pengaturan?";
+
+/* Empty and loading results */
+"results_empty_title" = "Siap kapan saja";
+"results_empty_hint" = "Masukkan teks di sebelah kiri, lalu tekan ⌘↵ untuk melihat hasilnya di sini.";
+"results_loading_title" = "Menyiapkan hasil Anda";
+"retry" = "Coba lagi";
+
+/* Rewrite */
+"rewrite" = "Penulisan Ulang";
+
+/* Rewrite Clipboard */
+"rewrite_clipboard" = "Tulis Ulang Papan Klip";
+
+/* App Language */
+"row_app_language" = "Bahasa aplikasi";
+
+/* Launcher Window */
+"row_launcher_window" = "Jendela peluncur";
+
+/* Online Research */
+"row_online_research" = "Pencarian daring";
+
+/* Secret Protection */
+"row_secret_protection" = "Perlindungan rahasia";
+
+/* Run */
+"run" = "Jalankan";
+
+/* look up */
+"run_verb_dictionary" = "cari";
+
+/* explain */
+"run_verb_explain" = "jelaskan";
+
+/* proofread */
+"run_verb_proofread" = "periksa";
+
+/* rewrite */
+"run_verb_rewrite" = "tulis ulang";
+
+/* summarize */
+"run_verb_summarize" = "ringkas";
+
+/* translate */
+"run_verb_translate" = "terjemahkan";
+
+/* Save */
+"save" = "Simpan";
+
+/* Save Audio… */
+"save_audio" = "Simpan Audio…";
+
+/* Save Text… */
+"save_text" = "Simpan Teks…";
+
+/* Search actions */
+"search_actions" = "Cari tindakan";
+
+/* ⌘K search */
+"search_actions_hint" = "⌘K cari";
+
+/* Search languages */
+"search_languages" = "Cari bahasa";
+
+/* Search Library */
+"search_library" = "Cari di Pustaka";
+
+/* Search models */
+"search_models" = "Cari model";
+
+/* titles */
+"search_scope_titles" = "judul";
+
+/* titles or contents */
+"search_scope_titles_contents" = "judul atau isi";
+
+/* Search voices */
+"search_voices" = "Cari suara";
+
+/* Services */
+"services" = "Layanan";
+
+/* Settings… */
+"settings" = "Pengaturan…";
+
+/* Settings */
+"settings_window" = "Pengaturan";
+
+/* Setup Assistant… */
+"setup_assistant" = "Asisten Pengaturan…";
+
+/* Show All */
+"show_all" = "Tampilkan Semua";
+
+/* Show Langmin in the menu bar */
+"show_langmin_in_the_menu_bar" = "Tampilkan Langmin di bar menu";
+
+/* %@ with %@… */
+"status_with_model" = "%@ dengan %@…";
+
+/* Style */
+"style" = "Gaya";
+
+/* Summarize */
+"summarize" = "Ringkasan";
+
+/* Summarize Clipboard */
+"summarize_clipboard" = "Ringkas Papan Klip";
+
+/* Summarizing… */
+"summarizing" = "Meringkas…";
+
+/* System Default */
+"system_default" = "Bawaan sistem";
+
+/* Advanced */
+"tab_advanced" = "Lanjutan";
+
+/* General */
+"tab_general" = "Umum";
+
+/* Models */
+"tab_models" = "Model";
+
+/* Reading */
+"tab_reading" = "Pembacaan";
+
+/* Shortcuts */
+"tab_shortcuts" = "Pintasan";
+
+/* Window */
+"tab_window" = "Jendela";
+
+/* Tightening… */
+"tightening" = "Memadatkan…";
+
+/* Translate */
+"translate" = "Terjemahan";
+
+/* Translate Clipboard */
+"translate_clipboard" = "Terjemahkan Papan Klip";
+
+/* Translating… */
+"translating" = "Menerjemahkan…";
+
+/* Undo */
+"undo" = "Urungkan";
+
+/* Untitled */
+"untitled" = "Tanpa Judul";
+
+/* Another app asked Langmin to process this text:\n\n“%@”\n\nRunning sends it to your configured model. */
+"url_run_confirm_body" = "Aplikasi lain meminta Langmin memproses teks ini:\n\n“%@”\n\nMenjalankannya akan mengirim teks ke model yang dikonfigurasi.";
+
+/* Run “%@” from a link? */
+"url_run_confirm_title" = "Jalankan “%@” dari tautan?";
+
+/* Use web research when available */
+"use_web_research" = "Gunakan pencarian web jika tersedia";
+
+/* Warn before sending secrets */
+"warn_before_secrets" = "Peringatkan sebelum mengirim rahasia";
+
+/* Window */
+"window" = "Jendela";
+
+/* Runs on your Mac. Free, with no account needed. */
+"wizard_apple_available" = "Berjalan di Mac Anda. Gratis, tanpa akun.";
+
+/* Apple Intelligence (on this Mac, private and free) */
+"wizard_apple_row" = "Apple Intelligence (di Mac ini, privat dan gratis)";
+
+/* Apple Intelligence (not available on this Mac) */
+"wizard_apple_row_unavailable" = "Apple Intelligence (tidak tersedia di Mac ini)";
+
+/* Not available on this Mac (requires Apple Intelligence). Choose a cloud provider below. */
+"wizard_apple_unavailable" = "Tidak tersedia di Mac ini (memerlukan Apple Intelligence). Pilih penyedia cloud di bawah.";
+
+/* Read results aloud or hear Dictionary words and examples. Choose a voice that supports the language.\n\nApple voices run on your Mac for free. OpenAI and Grok voices require Pro and a provider API key. */
+"wizard_audio_body" = "Dengarkan hasil, kata, dan contoh dalam Kamus. Pilih suara yang mendukung bahasanya.\n\nSuara Apple berjalan gratis di Mac Anda. Suara OpenAI dan Grok memerlukan Pro dan kunci API penyedia.";
+
+/* Hear your words */
+"wizard_audio_title" = "Dengarkan kata-kata Anda";
+
+/* Back */
+"wizard_back" = "Kembali";
+
+/* macOS may ask for clipboard access when you first use a shortcut. */
+"wizard_clipboard_note" = "macOS mungkin meminta akses papan klip saat Anda pertama kali memakai pintasan.";
+
+/* Continue */
+"wizard_continue" = "Lanjutkan";
+
+/* Also answer in */
+"wizard_extra_languages" = "Jawab juga dalam";
+
+/* Finish */
+"wizard_finish" = "Selesai";
+
+/* Keys stay in macOS Keychain. Requests go directly to your provider. Add keys or a local model later in Settings → Models. */
+"wizard_key_note_local" = "Kunci tersimpan di Rantai Kunci macOS. Permintaan dikirim langsung ke penyedia. Tambahkan kunci atau model lokal nanti di Pengaturan → Model.";
+
+/* API key (optional, add any time) */
+"wizard_key_optional" = "Kunci API (opsional, tambahkan kapan saja)";
+
+/* Choose translation languages. Extra languages add versions to Dictionary, Explain, and Summarize results. Change either list in the launcher's mode menus. */
+"wizard_language_body_single_source" = "Pilih bahasa terjemahan. Bahasa tambahan menambahkan versi pada hasil Kamus, Penjelasan, dan Ringkasan. Ubah kedua daftar di menu mode peluncur.";
+
+/* Your languages */
+"wizard_language_title" = "Bahasa Anda";
+
+/* Set Up Later */
+"wizard_later" = "Atur nanti";
+
+/* Cloud providers, web research, Library folders, and cloud voices require %@ Pro. Apple Intelligence is free. Eligible subscriptions include a trial. */
+"wizard_pro_note" = "Your first 30 days include %@ Pro. Apple Intelligence stays free afterward.";
+
+/* Dictionary pronunciation voice */
+"wizard_pronunciation_voice" = "Suara pelafalan kamus";
+
+/* Claude models with web research. */
+"wizard_provider_anthropic" = "Model Claude dengan pencarian web.";
+
+/* Switch models in the launcher, or open All models to enable more. */
+"wizard_provider_body_multi" = "Ganti model di peluncur, atau aktifkan lebih banyak di Semua model.";
+
+/* DeepSeek chat and reasoning models. */
+"wizard_provider_deepseek" = "Model DeepSeek untuk chat dan penalaran.";
+
+/* Gemini models with web research. */
+"wizard_provider_gemini" = "Model Gemini dengan pencarian web.";
+
+/* Grok text models and optional voices. */
+"wizard_provider_grok" = "Model teks Grok dan suara opsional.";
+
+/* GPT models with web research. */
+"wizard_provider_openai" = "Model GPT dengan pencarian web.";
+
+/* Choose your providers */
+"wizard_provider_title_multi" = "Pilih penyedia Anda";
+
+/* Copy text and use a shortcut, or open the launcher and start typing.\n\nChange your choices in the launcher's menus or Settings. */
+"wizard_ready_body_simple" = "Langmin starts a free 30-day trial when you first open it. No subscription starts, and you will not be charged.";
+
+/* You're all set */
+"wizard_ready_title" = "30 days of full access";
+
+/* Use these shortcuts from another app after copying text. Proofread and Rewrite copy the result. The other four modes show it in the HUD. Open opens a result window; Dismiss closes the HUD.\n\nIn Langmin's main window, these shortcuts select a mode. Press ⌘Return to run it. */
+"wizard_shortcuts_body" = "Salin teks di app lain, lalu gunakan pintasan ini. Koreksi dan Penulisan Ulang menyalin hasilnya. Empat mode lainnya menampilkan hasil di HUD. Buka membuka jendela hasil; Tutup menutup HUD.\n\nDi jendela utama Langmin, pintasan ini memilih mode. Tekan ⌘Return untuk menjalankannya.";
+
+/* Step %d of %d */
+"wizard_step_n_of_m" = "Langkah %d dari %d";
+
+/* Translate to */
+"wizard_translate_to" = "Terjemahkan ke";
+
+/* Proofread, rewrite, explain, summarize, translate, and look up words. Listen to results and Dictionary examples.\n\nChoose your settings now or change them later. */
+"wizard_welcome_body_short" = "Koreksi, tulis ulang, jelaskan, ringkas, terjemahkan, dan cari kata. Dengarkan hasil dan contoh Kamus.\n\nPilih pengaturan sekarang atau ubah nanti.";
+
+/* Welcome to %@ */
+"wizard_welcome_title" = "Selamat datang di %@";
+
+/* Langmin Setup */
+"wizard_window" = "Pengaturan Langmin";
+
+/* Open Langmin at login to keep its menu-bar actions and shortcuts available. */
+"wizard_workflow_body" = "Buka Langmin saat login agar tindakan bar menu dan pintasannya tersedia.";
+
+/* Always at hand */
+"wizard_workflow_title" = "Selalu dalam jangkauan";
+
+/* Your providers */
+"your_providers" = "Penyedia Anda";
+
+/* Dictionary illustrations */
+"illustration" = "Ilustrasi";
+"illustration_apple_note" = "Buat dan pilih gambar di Mac Anda";
+"illustration_apple_unavailable" = "Memerlukan macOS 15.4 atau lebih baru dan Image Playground";
+"illustration_cloud_note" = "Ditagih terpisah · menggunakan kunci API OpenAI Anda";
+"illustration_generated" = "Ilustrasi buatan AI";
+"illustration_generating" = "Membuat ilustrasi…";
+"illustration_failed" = "Tidak dapat membuat ilustrasi";
+"illustration_missing_key" = "Tambahkan kunci API OpenAI di Pengaturan → Model.";
+"illustration_save" = "Simpan gambar…";
+"illustration_remove" = "Hapus ilustrasi";
+
+"reading_webpage" = "Membaca halaman…";
+
+"loading_page_images" = "Memuat gambar halaman…";
+
+/* Follow-up */
+"followup_title" = "Pertanyaan lanjutan";
+
+/* Ask a follow-up or request changes… */
+"followup_placeholder" = "Ajukan pertanyaan lanjutan atau minta perubahan…";
+
+/* Send follow-up */
+"followup_send" = "Kirim pertanyaan";
+
+/* Replying… */
+"followup_working" = "Menjawab…";
+
+/* You */
+"followup_you" = "Anda";
+
+/* Copy reply */
+"followup_copy" = "Salin jawaban";
+
+/* Delete reply */
+"followup_delete_reply" = "Hapus balasan";
+
+/* The message could not be deleted: %@ */
+"followup_delete_failed" = "Pesan tidak dapat dihapus: %@";
+
+/* Print… */
+"print" = "Cetak…";
+
+/* Quick HUD playback */
+"hud_read_paragraph" = "Bacakan paragraf ini";
+"hud_stop_playback" = "Hentikan pembacaan";
+"hud_playback_failed" = "Teks ini tidak dapat dibacakan";
+"hud_voice_api_key" = "Tambahkan kunci API %@ di Pengaturan untuk menggunakan suara ini.";
+
+"request_failed" = "Permintaan gagal";
+
+/* Translation skipped */
+"translation_skipped" = "Terjemahan dilewati";
+
+/* Already in this language. */
+"translation_already_in_language" = "Teks sudah dalam bahasa yang dipilih.";
+
+/* Library window placement */
+"detach_library" = "Buka Pustaka di Jendela Terpisah";
+"attach_library" = "Pindahkan Pustaka ke Jendela Utama";
+
+/* Result text editing */
+"apply" = "Terapkan";
+"discard_changes" = "Buang Perubahan";
+"done" = "Selesai";
+"edit_link" = "Edit Tautan";
+"edit_text" = "Edit Teks";
+"format_text" = "Format Teks";
+"remove_link" = "Hapus Tautan";
+"save_text_changes" = "Simpan perubahan teks?";
+"text_style" = "Gaya teks";
+"save_edits_remove_audio" = "Simpan perubahan dan hapus audio?";
+"save_edits_remove_audio_detail" = "Menyimpan perubahan ini akan menghapus semua audio narasi dan pelafalan yang dilampirkan. Anda dapat membuat audio baru setelahnya.";
+
+/* iCloud Library sync */
+"pro_feature_icloud" = "Sinkronisasi Pustaka iCloud";
+"pro_reason_icloud" = "Sinkronisasi Pustaka iCloud termasuk dalam %@ Pro.";
+
+/* Automatically illustrate new lookups */
+"illustration_automatic" = "Ilustrasikan pencarian baru secara otomatis";
+
+/* Automatic images are off by default. To add an image yourself, use the picture button on a Dictionary result. */
+"illustration_manual_note" = "Gambar otomatis dinonaktifkan secara bawaan. Untuk menambahkan gambar sendiri, gunakan tombol gambar pada hasil Kamus.";
+
+/* Image Provider */
+"illustration_provider" = "Penyedia gambar";
+
+/* Choose in result */
+"illustration_choose_in_result" = "Pilih di hasil";
+
+/* Choose a provider before turning on automatic images. You can also add an image from a Dictionary result's picture button. */
+"illustration_choose_provider_note" = "Pilih penyedia sebelum mengaktifkan gambar otomatis. Anda juga dapat menambahkan gambar melalui tombol gambar pada hasil Kamus.";
+
+/* Create and choose images on your Mac. Automatic mode opens Image Playground after each Dictionary lookup. */
+"illustration_apple_settings_note" = "Buat dan pilih gambar di Mac Anda. Dalam mode otomatis, Image Playground terbuka setelah setiap pencarian Kamus.";
+
+/* Requires Pro and an OpenAI API key in Settings → Models. Each image is billed separately. Creates one landscape image at medium quality. */
+"illustration_openai_settings_note" = "Memerlukan Pro dan kunci API OpenAI di Pengaturan → Model. Setiap gambar ditagih terpisah. Membuat satu gambar horizontal dengan kualitas sedang.";
+
+/* Illustrations */
+"tab_illustrations" = "Ilustrasi";
+
+/* Empty launcher input */
+"input_start_hint" = "Ketik atau tempel di sini, atau seret file";
+"input_documents" = "Dokumen";
+"input_images" = "Gambar";
+"input_audio" = "Audio";
+"input_drop_title" = "Lepaskan untuk menambahkan teks";
+
+/* Source-build purchase footer */
+"source_build_title" = "Trial ended";
+"source_build_support" = "Apple Intelligence stays free, while other Pro features require purchase.";
+"source_build_purchase" = "Beli";
+"source_build_dismiss" = "Dismiss";
+"pro_app_trial_one_day" = "Pro trial · 1 day remaining";
+"pro_app_trial_days" = "Pro trial · %d days remaining";
+"wizard_trial_during_title" = "Your first 30 days";
+"wizard_trial_during_langmin" = "Use every Langmin feature without app limits. Provider charges may still apply.";
+"wizard_trial_after_title" = "After the trial";
+"wizard_trial_after_langmin" = "Apple Intelligence, Apple voices, Apple transcription, text editing, and the Library stay free. Other Pro features require a purchase.";
+"wizard_trial_plans_title" = "Keep Pro";
+"wizard_trial_plans_body" = "Choose a yearly plan or lifetime access at any time.";
