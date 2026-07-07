@@ -1,0 +1,983 @@
+/* Langmin — ja localization. Comments give English text or name a related group. */
+
+/* About %@ */
+"about_app" = "%@について";
+
+/* All */
+"all_chip" = "すべて";
+
+/* All models */
+"all_models" = "すべてのモデル";
+
+/* Answer language */
+"answer_language" = "回答の言語";
+
+/* %@ Help */
+"app_help" = "%@ ヘルプ";
+
+/* Back */
+"back" = "戻る";
+
+/* Bring All to Front */
+"bring_all_to_front" = "すべてを手前に移動";
+
+/* Delete %d items from %@? */
+"bulk_delete_confirm_many" = "「%2$@」から%1$d件の項目を削除しますか？";
+
+/* Delete 1 item from %@? */
+"bulk_delete_confirm_one" = "「%@」から1件の項目を削除しますか？";
+
+/* Only the items matching the current search are deleted. */
+"bulk_delete_search_note" = "現在の検索に一致する項目のみが削除されます。";
+
+/* Use Undo to restore an item before it disappears. */
+"bulk_delete_undo_note" = "項目が消える前に「取り消す」で復元できます。";
+
+/* Cancel */
+"cancel" = "キャンセル";
+
+/* Cancel Current Action */
+"cancel_current_action" = "現在のアクションをキャンセル";
+
+/* Cancel this request (Esc) */
+"cancel_this_request_esc" = "このリクエストをキャンセル (Esc)";
+
+/* Cancelled */
+"cancelled" = "キャンセルしました";
+
+/* Cancelling… */
+"cancelling" = "キャンセル中…";
+
+/* Cancelling */
+"cancelling_a11y" = "キャンセル中";
+
+/* Clear after submit */
+"clear_after_submit" = "送信後に消去";
+
+/* You copied something else while Langmin was working. Replace it with the transformed text? */
+"clipboard_changed_body" = "Langmin の処理中に別のものをコピーしました。変換後のテキストで置き換えますか？";
+
+/* The clipboard changed */
+"clipboard_changed_title" = "クリップボードが変わりました";
+
+/* Clipboard unchanged */
+"clipboard_unchanged" = "クリップボードは変更されていません";
+
+/* macOS did not accept the transformed text. The previous clipboard contents were restored. */
+"clipboard_write_failed_restored" = "macOS が変換後のテキストを受け付けませんでした。クリップボードの以前の内容を復元しました。";
+
+/* macOS did not accept the transformed text, and the previous clipboard contents could not be restored. */
+"clipboard_write_failed_unrestored" = "macOS が変換後のテキストを受け付けず、クリップボードの以前の内容も復元できませんでした。";
+
+/* Close */
+"close" = "閉じる";
+
+/* ⌘V to paste */
+"cmd_v_to_paste" = "⌘V でペースト";
+
+/* Compose with Clipboard */
+"compose_with_clipboard" = "クリップボードで作成";
+
+/* Copied */
+"copied" = "コピーしました";
+
+/* Copy */
+"copy" = "コピー";
+
+/* Copy this paragraph */
+"copy_paragraph" = "この段落をコピー";
+
+/* Copy Result */
+"copy_result" = "結果をコピー";
+
+/* Copying… */
+"copying" = "コピー中…";
+
+/* Could not delete one saved item */
+"could_not_delete_one_saved_item" = "保存済み項目を1件削除できませんでした";
+
+/* Could not delete some saved items */
+"could_not_delete_some_saved_items" = "一部の保存済み項目を削除できませんでした";
+
+/* Could not delete this saved item */
+"could_not_delete_this_saved_item" = "この保存済み項目を削除できませんでした";
+
+/* Could not export this saved item */
+"could_not_export_this_saved_item" = "この保存済み項目を書き出せませんでした";
+
+/* Could not open the result */
+"could_not_open_result" = "結果を開けませんでした";
+
+/* Could not rename this saved item */
+"could_not_rename_this_saved_item" = "この保存済み項目の名前を変更できませんでした";
+
+/* Could not restore this saved item */
+"could_not_restore_this_saved_item" = "この保存済み項目を復元できませんでした";
+
+/* Could not save audio */
+"could_not_save_audio" = "オーディオを保存できませんでした";
+
+/* Could not update the clipboard */
+"could_not_update_clipboard" = "クリップボードを更新できませんでした";
+
+/* Could not update the login item */
+"could_not_update_the_login_item" = "ログイン項目を更新できませんでした";
+
+/* Cut */
+"cut" = "カット";
+
+/* Cycle Through Windows */
+"cycle_through_windows" = "ウインドウを切り替える";
+
+/* Delete */
+"delete" = "削除";
+
+/* Delete All %d… */
+"delete_all_n" = "%d件をすべて削除…";
+
+/* Delete Folder */
+"delete_folder_menu" = "フォルダを削除";
+
+/* All entries stay in the Library */
+"delete_folder_subtitle" = "すべての項目はライブラリに残ります";
+
+/* Delete %d Shown… */
+"delete_n_shown" = "表示中の%d件を削除…";
+
+/* Deleted “%@” */
+"deleted_item" = "「%@」を削除しました";
+
+/* Dictionary */
+"dictionary" = "辞書";
+
+/* Dictionary Lookup */
+"dictionary_lookup" = "辞書で調べる";
+
+/* Dismiss */
+"dismiss" = "閉じる";
+
+/* Drop or paste documents, images, or audio */
+"drop_hint" = "書類、画像、音声ファイルをドラッグまたはペースト";
+
+/* Edit */
+"edit" = "編集";
+
+/* Deeper essay */
+"effort_detailed" = "より深いエッセイ";
+
+/* Short and clear */
+"effort_simple" = "短く明快に";
+
+/* Balanced depth */
+"effort_standard" = "バランスの取れた深さ";
+
+/* Elaborating… */
+"elaborating" = "詳しく展開中…";
+
+/* Explain */
+"explain" = "説明";
+
+/* Explain Clipboard */
+"explain_clipboard" = "クリップボードを説明";
+
+/* Explaining… */
+"explaining" = "説明中…";
+
+/* Export Audio… */
+"export_audio_menu" = "オーディオを書き出す…";
+
+/* Export Audio */
+"export_audio_panel" = "オーディオを書き出す";
+
+/* Export Text… */
+"export_text_menu" = "テキストを書き出す…";
+
+/* Export Text */
+"export_text_panel" = "テキストを書き出す";
+
+/* Extra languages */
+"extra_languages" = "追加の言語";
+
+/* File */
+"file" = "ファイル";
+
+/* File In */
+"file_in_submenu" = "フォルダに入れる";
+
+/* Filter folders */
+"filter_folders" = "フォルダを絞り込む";
+
+/* Find… */
+"find_item" = "検索…";
+
+/* Find */
+"find_menu" = "検索";
+
+/* ↵ create · esc cancel */
+"folder_create_hint" = "↵ 作成 · esc キャンセル";
+
+/* Nothing in this folder yet */
+"folder_empty_title" = "このフォルダにはまだ何もありません";
+
+/* Drag results onto a folder chip, or right-click one and file it here. */
+"folder_empty_subtitle" = "結果をフォルダのチップにドラッグするか、結果を右クリックしてここに入れてください。";
+
+/* already exists */
+"folder_exists_hint" = "すでに存在します";
+
+/* already exists · ↵ opens it */
+"folder_exists_opens_hint" = "すでに存在します · ↵ で開く";
+
+/* Folder name */
+"folder_name_placeholder" = "フォルダ名";
+
+/* ↵ rename · esc cancel */
+"folder_rename_hint" = "↵ 名前を変更 · esc キャンセル";
+
+/* Help */
+"help" = "ヘルプ";
+
+/* Hide %@ */
+"hide_app" = "%@を隠す";
+
+/* Hide Others */
+"hide_others" = "ほかを隠す";
+
+/* Explaining */
+"hud_explaining" = "説明中";
+
+/* Looking up */
+"hud_looking_up" = "検索中";
+
+/* 1 word */
+"hud_one_word" = "1 語";
+
+/* Proofreading */
+"hud_proofreading" = "校正中";
+
+/* Rewriting */
+"hud_rewriting" = "書き直し中";
+
+/* Summarizing */
+"hud_summarizing" = "要約中";
+
+/* Translating */
+"hud_translating" = "翻訳中";
+
+/* %d words */
+"hud_word_count" = "%d 語";
+
+/* Keep Current Clipboard */
+"keep_current_clipboard" = "現在のクリップボードを維持";
+
+/* Language level */
+"language_level" = "言語レベル";
+
+/* The new language takes effect the next time Langmin opens. */
+"language_restart_notice" = "新しい言語は次回Langminを開いたときに有効になります。";
+
+/* Later */
+"later" = "あとで";
+
+/* Library */
+"library" = "ライブラリ";
+
+/* No saved items yet */
+"library_empty_title" = "保存した項目はありません";
+
+/* Click a result's bookmark button to save it here. */
+"library_empty_subtitle" = "結果のブックマークボタンをクリックして、ここに保存できます。";
+
+/* Look Up Clipboard in Dictionary */
+"look_up_clipboard_in_dictionary" = "クリップボードを辞書で調べる";
+
+/* Looking up… */
+"looking_up" = "検索中…";
+
+/* Match question */
+"match_question" = "質問に合わせる";
+
+/* Minimize */
+"minimize" = "しまう";
+
+/* More folders */
+"more_folders" = "その他のフォルダ";
+
+/* More languages */
+"more_languages" = "その他の言語";
+
+/* %d saved */
+"n_saved" = "%d 件保存済み";
+
+/* New Explanation */
+"new_explanation" = "新規説明";
+
+/* New Folder… */
+"new_folder_menu" = "新規フォルダ…";
+
+/* Copy some text, then try the Langmin action again. */
+"no_clipboard_text_body" = "テキストをコピーしてから、もう一度 Langmin のアクションを実行してください。";
+
+/* No clipboard text */
+"no_clipboard_text_title" = "クリップボードにテキストがありません";
+
+/* No Folder */
+"no_folder" = "フォルダなし";
+
+/* No results */
+"library_search_empty_title" = "結果なし";
+
+/* No %@ match “%@”. */
+"no_search_matches" = "%1$@に「%2$@」と一致する項目はありません。";
+
+/* None */
+"none" = "なし";
+
+/* Not Now */
+"not_now" = "後で";
+
+/* OK */
+"ok" = "OK";
+
+/* On this Mac */
+"on_this_mac" = "この Mac 上";
+
+/* Open */
+"open" = "開く";
+
+/* Open */
+"open_in_window" = "開く";
+
+/* Open Langmin */
+"open_langmin" = "Langminを開く";
+
+/* Open Langmin at login */
+"open_langmin_at_login" = "ログイン時にLangminを開く";
+
+/* Open in a result window */
+"open_result_window" = "結果ウインドウで開く";
+
+/* Open Settings */
+"open_settings" = "設定を開く";
+
+/* Open Setup Assistant */
+"open_setup_assistant" = "設定アシスタントを開く";
+
+/* Opening… */
+"opening_hud" = "開いています…";
+
+/* Opening… */
+"opening_progress" = "開いています…";
+
+/* Other */
+"other" = "その他";
+
+/* ↵ run    ⇥ pin chip    ⌘, options */
+"palette_legend_chip" = "↵ 実行    ⇥ チップを固定    ⌘, オプション";
+
+/* Paste */
+"paste" = "ペースト";
+
+/* Langmin can't access the pasted file */
+"pasted_file_denied" = "Langminはペーストされたファイルにアクセスできません";
+
+/* Langmin can't access the pasted files */
+"pasted_files_denied" = "Langminはペーストされたファイルにアクセスできません";
+
+/* macOS did not grant access to these files. Drag them into this window instead. */
+"pasted_files_denied_body" = "macOSがこれらのファイルへのアクセスを許可しませんでした。このウインドウにドラッグしてください。";
+
+/* Look up a word… */
+"placeholder_dictionary" = "単語を調べる…";
+
+/* What would you like explained? */
+"placeholder_explain" = "説明してほしいことは？";
+
+/* What would you like proofread? */
+"placeholder_proofread" = "校正したい文章は？";
+
+/* What would you like rewritten? */
+"placeholder_rewrite" = "書き直したい文章は？";
+
+/* What would you like summarized? */
+"placeholder_summarize" = "要約したい文章は？";
+
+/* What would you like translated? */
+"placeholder_translate" = "翻訳したい文章は？";
+
+/* Preparing narration… */
+"preparing_narration" = "ナレーションを準備中…";
+
+/* Privacy Policy… */
+"privacy_policy" = "プライバシーポリシー…";
+
+/* Family Sharing included. */
+"pro_family_caption" = "ファミリー共有に対応。";
+
+/* OpenAI, Anthropic, Gemini, Grok, DeepSeek, and custom endpoints */
+"pro_feature_cloud" = "OpenAI、Anthropic、Gemini、Grok、DeepSeek、カスタムエンドポイント";
+
+/* Library folders */
+"pro_feature_folders" = "ライブラリのフォルダ";
+
+/* Web research for current facts and sources */
+"pro_feature_research" = "最新の事実と情報源を得るためのウェブ検索";
+
+/* OpenAI and Grok voices */
+"pro_feature_voices" = "OpenAI と Grok の音声";
+
+/* Apple Intelligence, Apple voices, and the Library stay free. */
+"pro_free_note" = "Apple Intelligence、Apple の音声、ライブラリはずっと無料です。";
+
+/* Buy once for %@ */
+"pro_lifetime_button" = "%@ で買い切り";
+
+/* Contacting the App Store… */
+"pro_loading" = "App Store に接続中…";
+
+/* Manage Subscription… */
+"pro_manage_subscription" = "サブスクリプションを管理…";
+
+/* %@ Pro… */
+"pro_menu" = "%@ Pro…";
+
+/* This purchase is still pending. %@ Pro unlocks when the App Store confirms it. */
+"pro_pending_body" = "この購入はまだ保留中です。App Storeが確認すると、%@ Proが有効になります。";
+
+/* Purchase pending */
+"pro_pending_title" = "購入は保留中です";
+
+/* Privacy Policy */
+"pro_privacy_policy" = "プライバシーポリシー";
+
+/* The purchase didn't complete: %@ */
+"pro_purchase_failed" = "購入を完了できませんでした：%@";
+
+/* Cloud models are part of %@ Pro. */
+"pro_reason_cloud" = "クラウドモデルは %@ Pro の機能です。";
+
+/* Library folders are part of %@ Pro. */
+"pro_reason_folders" = "ライブラリのフォルダは %@ Pro の機能です。";
+
+/* Get more with %@ Pro. */
+"pro_reason_general" = "%@ Proで機能を追加。";
+
+/* OpenAI and Grok voices are part of %@ Pro. */
+"pro_reason_voices" = "OpenAI と Grok の音声は %@ Pro の機能です。";
+
+/* Couldn't restore purchases */
+
+/* No %@ Pro purchase was found for this Apple Account. */
+"pro_restore_none_body" = "この Apple アカウントには %@ Pro の購入が見つかりませんでした。";
+
+/* Nothing to restore */
+"pro_restore_none_title" = "復元するものがありません";
+
+/* Restore Purchases */
+"pro_restore_purchases" = "購入を復元";
+
+/* Pro */
+"pro_status_active" = "Pro";
+
+/* Pro · ends %@ */
+"pro_status_ends" = "Pro · %@ に終了";
+
+/* Pro · shared with your family */
+"pro_status_family" = "Pro · ファミリーと共有中";
+
+/* Free */
+"pro_status_free" = "無料";
+
+/* Pro · lifetime */
+"pro_status_lifetime" = "Pro · 買い切り";
+
+/* Pro · renews %@ */
+"pro_status_renews" = "Pro · %@ に更新";
+
+/* Pro trial · ends %@ */
+"pro_status_trial_ends" = "Pro トライアル · %@ に終了";
+
+/* Pro trial · first payment %@ */
+"pro_status_trial_renews" = "Pro トライアル · %@ に初回請求";
+
+/* Pro trial · until %@ */
+"pro_status_trial_until" = "Pro トライアル · %@ まで";
+
+/* Pro · until %@ */
+"pro_status_until" = "Pro · %@ まで";
+
+/* Pro purchases are unavailable right now. Please try again later. */
+"pro_store_unavailable" = "現在Proを購入できません。後でもう一度お試しください。";
+
+/* Payment goes to your Apple Account. A subscription renews automatically each year unless it is cancelled in your App Store settings at least a day before the period ends. */
+"pro_terms" = "お支払いは Apple アカウントに請求されます。サブスクリプションは、期間終了の少なくとも1日前までに App Store の設定で解約しない限り、毎年自動更新されます。";
+
+/* Terms of Use */
+"pro_terms_of_use" = "利用規約";
+
+/* Cancel at least a day before the free trial ends to avoid being charged. */
+
+/* %@ Pro */
+"pro_title" = "%@ Pro";
+
+/* Start free trial */
+
+/* Try free for a month */
+
+/* then %@ a year · cancel anytime */
+
+/* The App Store could not verify this purchase. */
+"pro_unverified" = "App Store がこの購入を確認できませんでした。";
+
+/* Upgrade… */
+"pro_upgrade_button" = "アップグレード…";
+
+/* Subscribe for %@ a year */
+"pro_yearly_button" = "年額 %@ で登録";
+
+/* Renews automatically each year · cancel anytime */
+"pro_yearly_caption" = "毎年自動更新 · いつでも解約可能";
+
+/* You have %@ Pro. */
+"pro_you_have" = "%@ Pro をご利用中です。";
+
+/* Pronounce — click to choose a voice first */
+"pronounce_setup_tooltip" = "発音 — 先にクリックして声を選んでください";
+
+/* Pronunciation voice */
+"pronunciation_voice" = "発音の声";
+
+/* Proofread */
+"proofread" = "校正";
+
+/* Proofread Clipboard */
+"proofread_clipboard" = "クリップボードを校正";
+
+/* Proofreading… */
+"proofreading" = "校正中…";
+
+/* Quit %@ */
+"quit_app" = "%@を終了";
+
+/* Quit Now */
+"quit_now" = "今すぐ終了";
+
+/* Redo */
+"redo" = "やり直す";
+
+/* Remember choices */
+"remember_choices" = "選択を記憶";
+
+/* Rename */
+"rename" = "名前を変更";
+
+/* Rename Folder */
+"rename_folder_menu" = "フォルダ名を変更";
+
+/* Rephrasing… */
+"rephrasing" = "言い換え中…";
+
+/* Reset Defaults */
+"reset_defaults" = "デフォルトに戻す";
+
+/* Press Save to restore defaults, or open Setup Assistant to choose new settings. */
+"reset_wizard_body" = "「保存」を押すとデフォルトに戻ります。新しい設定を選ぶには、設定アシスタントを開いてください。";
+
+/* Start over with the Setup Assistant? */
+"reset_wizard_title" = "設定アシスタントで最初からやり直しますか？";
+
+/* Empty and loading results */
+"results_empty_title" = "いつでも始められます";
+"results_empty_hint" = "左側にテキストを入力し、⌘↵を押すと、ここに結果が表示されます。";
+"results_loading_title" = "結果を作成しています";
+"retry" = "再試行";
+
+/* Rewrite */
+"rewrite" = "書き換え";
+
+/* Rewrite Clipboard */
+"rewrite_clipboard" = "クリップボードを書き換え";
+
+/* App Language */
+"row_app_language" = "アプリの言語";
+
+/* Launcher Window */
+"row_launcher_window" = "ランチャーウインドウ";
+
+/* Online Research */
+"row_online_research" = "オンライン検索";
+
+/* Secret Protection */
+"row_secret_protection" = "機密情報の保護";
+
+/* Run */
+"run" = "実行";
+
+/* look up */
+"run_verb_dictionary" = "辞書で調べる";
+
+/* explain */
+"run_verb_explain" = "説明";
+
+/* proofread */
+"run_verb_proofread" = "校正";
+
+/* rewrite */
+"run_verb_rewrite" = "書き換え";
+
+/* summarize */
+"run_verb_summarize" = "要約";
+
+/* translate */
+"run_verb_translate" = "翻訳";
+
+/* Save */
+"save" = "保存";
+
+/* Save Audio… */
+"save_audio" = "オーディオを保存…";
+
+/* Save Text… */
+"save_text" = "テキストを保存…";
+
+/* Search actions */
+"search_actions" = "アクションを検索";
+
+/* ⌘K search */
+"search_actions_hint" = "⌘K 検索";
+
+/* Search languages */
+"search_languages" = "言語を検索";
+
+/* Search Library */
+"search_library" = "ライブラリを検索";
+
+/* Search models */
+"search_models" = "モデルを検索";
+
+/* titles */
+"search_scope_titles" = "タイトル";
+
+/* titles or contents */
+"search_scope_titles_contents" = "タイトルまたは内容";
+
+/* Search voices */
+"search_voices" = "声を検索";
+
+/* Services */
+"services" = "サービス";
+
+/* Settings… */
+"settings" = "設定…";
+
+/* Settings */
+"settings_window" = "設定";
+
+/* Setup Assistant… */
+"setup_assistant" = "設定アシスタント…";
+
+/* Show All */
+"show_all" = "すべてを表示";
+
+/* Show Langmin in the menu bar */
+"show_langmin_in_the_menu_bar" = "メニューバーにLangminを表示";
+
+/* %@ with %@… */
+"status_with_model" = "%@（%@）…";
+
+/* Style */
+"style" = "スタイル";
+
+/* Summarize */
+"summarize" = "要約";
+
+/* Summarize Clipboard */
+"summarize_clipboard" = "クリップボードを要約";
+
+/* Summarizing… */
+"summarizing" = "要約中…";
+
+/* System Default */
+"system_default" = "システムのデフォルト";
+
+/* Advanced */
+"tab_advanced" = "詳細";
+
+/* General */
+"tab_general" = "一般";
+
+/* Models */
+"tab_models" = "モデル";
+
+/* Reading */
+"tab_reading" = "読み上げ";
+
+/* Shortcuts */
+"tab_shortcuts" = "ショートカット";
+
+/* Window */
+"tab_window" = "ウインドウ";
+
+/* Tightening… */
+"tightening" = "簡潔化中…";
+
+/* Translate */
+"translate" = "翻訳";
+
+/* Translate Clipboard */
+"translate_clipboard" = "クリップボードを翻訳";
+
+/* Translating… */
+"translating" = "翻訳中…";
+
+/* Undo */
+"undo" = "取り消す";
+
+/* Untitled */
+"untitled" = "名称未設定";
+
+/* Another app asked Langmin to process this text:\n\n“%@”\n\nRunning sends it to your configured model. */
+"url_run_confirm_body" = "別のAppがLangminにこのテキストの処理を要求しています：\n\n「%@」\n\n実行すると設定済みのモデルに送信されます。";
+
+/* Run “%@” from a link? */
+"url_run_confirm_title" = "リンクから「%@」を実行しますか？";
+
+/* Use web research when available */
+"use_web_research" = "利用可能なときはウェブ検索を使用";
+
+/* Warn before sending secrets */
+"warn_before_secrets" = "機密情報を送信する前に警告";
+
+/* Window */
+"window" = "ウインドウ";
+
+/* Runs on your Mac. Free, with no account needed. */
+"wizard_apple_available" = "Mac上で動作します。無料で、アカウントは不要です。";
+
+/* Apple Intelligence (on this Mac, private and free) */
+"wizard_apple_row" = "Apple Intelligence（この Mac 上、プライベートで無料）";
+
+/* Apple Intelligence (not available on this Mac) */
+"wizard_apple_row_unavailable" = "Apple Intelligence（この Mac では利用不可）";
+
+/* Not available on this Mac (requires Apple Intelligence). Choose a cloud provider below. */
+"wizard_apple_unavailable" = "この Mac では利用できません（Apple Intelligence が必要です）。下からクラウドプロバイダを選んでください。";
+
+/* Read results aloud or hear Dictionary words and examples. Choose a voice that supports the language.\n\nApple voices run on your Mac for free. OpenAI and Grok voices require Pro and a provider API key. */
+"wizard_audio_body" = "結果や辞書の単語・例文を読み上げます。言語に対応した音声を選んでください。\n\nAppleの音声はMac上で無料で使えます。OpenAIとGrokの音声にはProとプロバイダーのAPIキーが必要です。";
+
+/* Hear your words */
+"wizard_audio_title" = "言葉を耳で確かめる";
+
+/* Back */
+"wizard_back" = "戻る";
+
+/* macOS may ask for clipboard access when you first use a shortcut. */
+"wizard_clipboard_note" = "ショートカットを初めて使うとき、macOSがクリップボードへのアクセス許可を求める場合があります。";
+
+/* Continue */
+"wizard_continue" = "続ける";
+
+/* Also answer in */
+"wizard_extra_languages" = "次の言語でも回答";
+
+/* Finish */
+"wizard_finish" = "完了";
+
+/* Keys stay in macOS Keychain. Requests go directly to your provider. Add keys or a local model later in Settings → Models. */
+"wizard_key_note_local" = "キーはmacOSのキーチェーンに保存され、リクエストはプロバイダーに直接送られます。キーやローカルモデルは後から「設定 → モデル」で追加できます。";
+
+/* API key (optional, add any time) */
+"wizard_key_optional" = "API キー（任意、いつでも追加できます）";
+
+/* Choose translation languages. Extra languages add versions to Dictionary, Explain, and Summarize results. Change either list in the launcher's mode menus. */
+"wizard_language_body_single_source" = "翻訳先の言語を選びます。追加言語は、辞書・説明・要約の結果に別の言語版を追加します。どちらの一覧もランチャーのモードメニューで変更できます。";
+
+/* Your languages */
+"wizard_language_title" = "使用する言語";
+
+/* Set Up Later */
+"wizard_later" = "後で設定";
+
+/* Cloud providers, web research, Library folders, and cloud voices require %@ Pro. Apple Intelligence is free. Eligible subscriptions include a trial. */
+"wizard_pro_note" = "Your first 30 days include %@ Pro. Apple Intelligence stays free afterward.";
+
+/* Dictionary pronunciation voice */
+"wizard_pronunciation_voice" = "辞書の発音の声";
+
+/* Claude models with web research. */
+"wizard_provider_anthropic" = "ウェブ検索に対応したClaudeモデル。";
+
+/* Switch models in the launcher, or open All models to enable more. */
+"wizard_provider_body_multi" = "ランチャーでモデルを切り替え、「すべてのモデル」で追加できます。";
+
+/* DeepSeek chat and reasoning models. */
+"wizard_provider_deepseek" = "チャットと推論用のDeepSeekモデル。";
+
+/* Gemini models with web research. */
+"wizard_provider_gemini" = "ウェブ検索に対応したGeminiモデル。";
+
+/* Grok text models and optional voices. */
+"wizard_provider_grok" = "Grokのテキストモデルとオプションの音声。";
+
+/* GPT models with web research. */
+"wizard_provider_openai" = "ウェブ検索に対応したGPTモデル。";
+
+/* Choose your providers */
+"wizard_provider_title_multi" = "プロバイダーを選択";
+
+/* Copy text and use a shortcut, or open the launcher and start typing.\n\nChange your choices in the launcher's menus or Settings. */
+"wizard_ready_body_simple" = "Langmin starts a free 30-day trial when you first open it. No subscription starts, and you will not be charged.";
+
+/* You're all set */
+"wizard_ready_title" = "30 days of full access";
+
+/* Use these shortcuts from another app after copying text. Proofread and Rewrite copy the result. The other four modes show it in the HUD. Open opens a result window; Dismiss closes the HUD.\n\nIn Langmin's main window, these shortcuts select a mode. Press ⌘Return to run it. */
+"wizard_shortcuts_body" = "別のアプリでテキストをコピーしてから、これらのショートカットを使います。校正と書き換えは結果をコピーします。他の4つのモードは結果をHUDに表示します。「開く」で結果ウインドウが開き、「閉じる」でHUDが閉じます。\n\nLangminのメインウインドウでは、これらのショートカットでモードを選びます。⌘Returnで実行します。";
+
+/* Step %d of %d */
+"wizard_step_n_of_m" = "ステップ %d / %d";
+
+/* Translate to */
+"wizard_translate_to" = "翻訳先";
+
+/* Proofread, rewrite, explain, summarize, translate, and look up words. Listen to results and Dictionary examples.\n\nChoose your settings now or change them later. */
+"wizard_welcome_body_short" = "校正、書き換え、説明、要約、翻訳、単語の検索ができます。結果や辞書の例文を読み上げることもできます。\n\n設定は今選ぶことも、後で変更することもできます。";
+
+/* Welcome to %@ */
+"wizard_welcome_title" = "%@ へようこそ";
+
+/* Langmin Setup */
+"wizard_window" = "Langmin の設定";
+
+/* Open Langmin at login to keep its menu-bar actions and shortcuts available. */
+"wizard_workflow_body" = "ログイン時にLangminを開くと、メニューバーの操作とショートカットがすぐに使えます。";
+
+/* Always at hand */
+"wizard_workflow_title" = "いつでも手元に";
+
+/* Your providers */
+"your_providers" = "利用中のプロバイダ";
+
+/* Dictionary illustrations */
+"illustration" = "イラスト";
+"illustration_apple_note" = "Macで画像を作成して選択";
+"illustration_apple_unavailable" = "macOS 15.4以降とImage Playgroundが必要です";
+"illustration_cloud_note" = "別途課金 · お使いのOpenAI APIキーを使用";
+"illustration_generated" = "AIで生成されたイラスト";
+"illustration_generating" = "イラストを作成中…";
+"illustration_failed" = "イラストを作成できませんでした";
+"illustration_missing_key" = "設定 → モデルでOpenAI APIキーを追加してください。";
+"illustration_save" = "画像を保存…";
+"illustration_remove" = "イラストを削除";
+
+"reading_webpage" = "ページを読み取り中…";
+
+"loading_page_images" = "ページの画像を読み込み中…";
+
+/* Follow-up */
+"followup_title" = "追加の質問";
+
+/* Ask a follow-up or request changes… */
+"followup_placeholder" = "追加の質問や変更の依頼を入力…";
+
+/* Send follow-up */
+"followup_send" = "質問を送信";
+
+/* Replying… */
+"followup_working" = "回答を作成中…";
+
+/* You */
+"followup_you" = "あなた";
+
+/* Copy reply */
+"followup_copy" = "回答をコピー";
+
+/* Delete reply */
+"followup_delete_reply" = "返信を削除";
+
+/* The message could not be deleted: %@ */
+"followup_delete_failed" = "メッセージを削除できませんでした：%@";
+
+/* Print… */
+"print" = "プリント…";
+
+/* Quick HUD playback */
+"hud_read_paragraph" = "この段落を読み上げる";
+"hud_stop_playback" = "読み上げを停止";
+"hud_playback_failed" = "このテキストを読み上げられませんでした";
+"hud_voice_api_key" = "この音声を使うには、設定で%@のAPIキーを追加してください。";
+
+"request_failed" = "リクエストに失敗しました";
+
+/* Translation skipped */
+"translation_skipped" = "翻訳をスキップしました";
+
+/* Already in this language. */
+"translation_already_in_language" = "テキストはすでに選択した言語です。";
+
+/* Library window placement */
+"detach_library" = "ライブラリを別のウインドウで開く";
+"attach_library" = "ライブラリをメインウインドウに移動";
+
+/* Result text editing */
+"apply" = "適用";
+"discard_changes" = "変更を破棄";
+"done" = "完了";
+"edit_link" = "リンクを編集";
+"edit_text" = "テキストを編集";
+"format_text" = "テキストの書式設定";
+"remove_link" = "リンクを削除";
+"save_text_changes" = "テキストの変更を保存しますか？";
+"text_style" = "テキストスタイル";
+"save_edits_remove_audio" = "変更を保存して音声を削除しますか？";
+"save_edits_remove_audio_detail" = "変更を保存すると、添付されている読み上げ音声と発音音声がすべて削除されます。後で新しい音声を生成できます。";
+
+/* iCloud Library sync */
+"pro_feature_icloud" = "iCloudでライブラリを同期";
+"pro_reason_icloud" = "iCloudでのライブラリ同期は%@ Proの機能です。";
+
+/* Automatically illustrate new lookups */
+"illustration_automatic" = "新しい検索結果に自動でイラストを追加";
+
+/* Automatic images are off by default. To add an image yourself, use the picture button on a Dictionary result. */
+"illustration_manual_note" = "自動画像はデフォルトでオフです。自分で画像を追加するには、辞書の結果にある画像ボタンを使ってください。";
+
+/* Image Provider */
+"illustration_provider" = "画像プロバイダー";
+
+/* Choose in result */
+"illustration_choose_in_result" = "結果で選択";
+
+/* Choose a provider before turning on automatic images. You can also add an image from a Dictionary result's picture button. */
+"illustration_choose_provider_note" = "自動画像をオンにする前にプロバイダーを選んでください。辞書の結果にある画像ボタンからも画像を追加できます。";
+
+/* Create and choose images on your Mac. Automatic mode opens Image Playground after each Dictionary lookup. */
+"illustration_apple_settings_note" = "Macで画像を作成して選択します。自動モードでは、辞書で検索するたびにImage Playgroundが開きます。";
+
+/* Requires Pro and an OpenAI API key in Settings → Models. Each image is billed separately. Creates one landscape image at medium quality. */
+"illustration_openai_settings_note" = "Proと、設定 → モデルでのOpenAI APIキーの登録が必要です。画像ごとに別途料金がかかります。中品質の横長画像を1枚作成します。";
+
+/* Illustrations */
+"tab_illustrations" = "イラスト";
+
+/* Empty launcher input */
+"input_start_hint" = "ここに入力、ペースト、またはファイルをドロップ";
+"input_documents" = "書類";
+"input_images" = "画像";
+"input_audio" = "音声";
+"input_drop_title" = "ドロップしてテキストを追加";
+
+/* Source-build purchase footer */
+"source_build_title" = "Trial ended";
+"source_build_support" = "Apple Intelligence stays free, while other Pro features require purchase.";
+"source_build_purchase" = "購入";
+"source_build_dismiss" = "Dismiss";
+"pro_app_trial_one_day" = "Pro trial · 1 day remaining";
+"pro_app_trial_days" = "Pro trial · %d days remaining";
+"wizard_trial_during_title" = "Your first 30 days";
+"wizard_trial_during_langmin" = "Use every Langmin feature without app limits. Provider charges may still apply.";
+"wizard_trial_after_title" = "After the trial";
+"wizard_trial_after_langmin" = "Apple Intelligence, Apple voices, Apple transcription, text editing, and the Library stay free. Other Pro features require a purchase.";
+"wizard_trial_plans_title" = "Keep Pro";
+"wizard_trial_plans_body" = "Choose a yearly plan or lifetime access at any time.";
