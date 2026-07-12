@@ -1,0 +1,983 @@
+/* Langmin — pt localization. Comments give English text or name a related group. */
+
+/* About %@ */
+"about_app" = "Sobre o %@";
+
+/* All */
+"all_chip" = "Tudo";
+
+/* All models */
+"all_models" = "Todos os modelos";
+
+/* Answer language */
+"answer_language" = "Idioma da resposta";
+
+/* %@ Help */
+"app_help" = "Ajuda do %@";
+
+/* Back */
+"back" = "Anterior";
+
+/* Bring All to Front */
+"bring_all_to_front" = "Trazer tudo para a frente";
+
+/* Delete %d items from %@? */
+"bulk_delete_confirm_many" = "Apagar %d itens de “%@”?";
+
+/* Delete 1 item from %@? */
+"bulk_delete_confirm_one" = "Apagar 1 item de “%@”?";
+
+/* Only the items matching the current search are deleted. */
+"bulk_delete_search_note" = "Somente os itens correspondentes à busca atual são apagados.";
+
+/* Use Undo to restore an item before it disappears. */
+"bulk_delete_undo_note" = "Use Desfazer para restaurar um item antes que ele desapareça.";
+
+/* Cancel */
+"cancel" = "Cancelar";
+
+/* Cancel Current Action */
+"cancel_current_action" = "Cancelar ação atual";
+
+/* Cancel this request (Esc) */
+"cancel_this_request_esc" = "Cancelar este pedido (Esc)";
+
+/* Cancelled */
+"cancelled" = "Cancelado";
+
+/* Cancelling… */
+"cancelling" = "Cancelando…";
+
+/* Cancelling */
+"cancelling_a11y" = "Cancelando";
+
+/* Clear after submit */
+"clear_after_submit" = "Limpar depois de enviar";
+
+/* You copied something else while Langmin was working. Replace it with the transformed text? */
+"clipboard_changed_body" = "Você copiou outra coisa enquanto o Langmin trabalhava. Substituir pelo resultado?";
+
+/* The clipboard changed */
+"clipboard_changed_title" = "A área de transferência mudou";
+
+/* Clipboard unchanged */
+"clipboard_unchanged" = "Área de transferência inalterada";
+
+/* macOS did not accept the transformed text. The previous clipboard contents were restored. */
+"clipboard_write_failed_restored" = "O macOS não aceitou o resultado. O conteúdo anterior da área de transferência foi restaurado.";
+
+/* macOS did not accept the transformed text, and the previous clipboard contents could not be restored. */
+"clipboard_write_failed_unrestored" = "O macOS não aceitou o resultado e não foi possível restaurar o conteúdo anterior da área de transferência.";
+
+/* Close */
+"close" = "Fechar";
+
+/* ⌘V to paste */
+"cmd_v_to_paste" = "⌘V para colar";
+
+/* Compose with Clipboard */
+"compose_with_clipboard" = "Compor com a área de transferência";
+
+/* Copied */
+"copied" = "Copiado";
+
+/* Copy */
+"copy" = "Copiar";
+
+/* Copy this paragraph */
+"copy_paragraph" = "Copiar este parágrafo";
+
+/* Copy Result */
+"copy_result" = "Copiar resultado";
+
+/* Copying… */
+"copying" = "Copiando…";
+
+/* Could not delete one saved item */
+"could_not_delete_one_saved_item" = "Não foi possível apagar um item salvo";
+
+/* Could not delete some saved items */
+"could_not_delete_some_saved_items" = "Não foi possível apagar alguns itens salvos";
+
+/* Could not delete this saved item */
+"could_not_delete_this_saved_item" = "Não foi possível apagar este item salvo";
+
+/* Could not export this saved item */
+"could_not_export_this_saved_item" = "Não foi possível exportar este item salvo";
+
+/* Could not open the result */
+"could_not_open_result" = "Não foi possível abrir o resultado";
+
+/* Could not rename this saved item */
+"could_not_rename_this_saved_item" = "Não foi possível renomear este item salvo";
+
+/* Could not restore this saved item */
+"could_not_restore_this_saved_item" = "Não foi possível restaurar este item salvo";
+
+/* Could not save audio */
+"could_not_save_audio" = "Não foi possível salvar o áudio";
+
+/* Could not update the clipboard */
+"could_not_update_clipboard" = "Não foi possível atualizar a área de transferência";
+
+/* Could not update the login item */
+"could_not_update_the_login_item" = "Não foi possível atualizar o item de início";
+
+/* Cut */
+"cut" = "Cortar";
+
+/* Cycle Through Windows */
+"cycle_through_windows" = "Alternar entre janelas";
+
+/* Delete */
+"delete" = "Apagar";
+
+/* Delete All %d… */
+"delete_all_n" = "Apagar todos (%d)…";
+
+/* Delete Folder */
+"delete_folder_menu" = "Apagar pasta";
+
+/* All entries stay in the Library */
+"delete_folder_subtitle" = "Todas as entradas ficam na Biblioteca";
+
+/* Delete %d Shown… */
+"delete_n_shown" = "Apagar %d exibidos…";
+
+/* Deleted “%@” */
+"deleted_item" = "“%@” apagado";
+
+/* Dictionary */
+"dictionary" = "Dicionário";
+
+/* Dictionary Lookup */
+"dictionary_lookup" = "Consulta no dicionário";
+
+/* Dismiss */
+"dismiss" = "Fechar";
+
+/* Drop or paste documents, images, or audio */
+"drop_hint" = "Arraste ou cole documentos, imagens ou áudio";
+
+/* Edit */
+"edit" = "Edição";
+
+/* Deeper essay */
+"effort_detailed" = "Ensaio mais profundo";
+
+/* Short and clear */
+"effort_simple" = "Curto e claro";
+
+/* Balanced depth */
+"effort_standard" = "Profundidade equilibrada";
+
+/* Elaborating… */
+"elaborating" = "Elaborando…";
+
+/* Explain */
+"explain" = "Explicação";
+
+/* Explain Clipboard */
+"explain_clipboard" = "Explicar área de transferência";
+
+/* Explaining… */
+"explaining" = "Explicando…";
+
+/* Export Audio… */
+"export_audio_menu" = "Exportar áudio…";
+
+/* Export Audio */
+"export_audio_panel" = "Exportar áudio";
+
+/* Export Text… */
+"export_text_menu" = "Exportar texto…";
+
+/* Export Text */
+"export_text_panel" = "Exportar texto";
+
+/* Extra languages */
+"extra_languages" = "Idiomas adicionais";
+
+/* File */
+"file" = "Arquivo";
+
+/* File In */
+"file_in_submenu" = "Arquivar em";
+
+/* Filter folders */
+"filter_folders" = "Filtrar pastas";
+
+/* Find… */
+"find_item" = "Buscar…";
+
+/* Find */
+"find_menu" = "Buscar";
+
+/* ↵ create · esc cancel */
+"folder_create_hint" = "↵ criar · esc cancelar";
+
+/* Nothing in this folder yet */
+"folder_empty_title" = "Esta pasta ainda está vazia";
+
+/* Drag results onto a folder chip, or right-click one and file it here. */
+"folder_empty_subtitle" = "Arraste resultados para uma pasta ou clique com o botão direito para arquivá-los aqui.";
+
+/* already exists */
+"folder_exists_hint" = "já existe";
+
+/* already exists · ↵ opens it */
+"folder_exists_opens_hint" = "já existe · ↵ abre a pasta";
+
+/* Folder name */
+"folder_name_placeholder" = "Nome da pasta";
+
+/* ↵ rename · esc cancel */
+"folder_rename_hint" = "↵ renomear · esc cancelar";
+
+/* Help */
+"help" = "Ajuda";
+
+/* Hide %@ */
+"hide_app" = "Ocultar %@";
+
+/* Hide Others */
+"hide_others" = "Ocultar outros";
+
+/* Explaining */
+"hud_explaining" = "Explicando";
+
+/* Looking up */
+"hud_looking_up" = "Consultando";
+
+/* 1 word */
+"hud_one_word" = "1 palavra";
+
+/* Proofreading */
+"hud_proofreading" = "Revisando";
+
+/* Rewriting */
+"hud_rewriting" = "Reescrevendo";
+
+/* Summarizing */
+"hud_summarizing" = "Resumindo";
+
+/* Translating */
+"hud_translating" = "Traduzindo";
+
+/* %d words */
+"hud_word_count" = "%d palavras";
+
+/* Keep Current Clipboard */
+"keep_current_clipboard" = "Manter a área de transferência atual";
+
+/* Language level */
+"language_level" = "Nível de idioma";
+
+/* The new language takes effect the next time Langmin opens. */
+"language_restart_notice" = "O novo idioma entra em vigor na próxima vez que o Langmin abrir.";
+
+/* Later */
+"later" = "Mais tarde";
+
+/* Library */
+"library" = "Biblioteca";
+
+/* No saved items yet */
+"library_empty_title" = "Ainda não há itens salvos";
+
+/* Click a result's bookmark button to save it here. */
+"library_empty_subtitle" = "Clique no botão de marcador de um resultado para salvá-lo aqui.";
+
+/* Look Up Clipboard in Dictionary */
+"look_up_clipboard_in_dictionary" = "Consultar área de transferência no dicionário";
+
+/* Looking up… */
+"looking_up" = "Consultando…";
+
+/* Match question */
+"match_question" = "Igual à pergunta";
+
+/* Minimize */
+"minimize" = "Minimizar";
+
+/* More folders */
+"more_folders" = "Mais pastas";
+
+/* More languages */
+"more_languages" = "Mais idiomas";
+
+/* %d saved */
+"n_saved" = "%d salvos";
+
+/* New Explanation */
+"new_explanation" = "Nova explicação";
+
+/* New Folder… */
+"new_folder_menu" = "Nova pasta…";
+
+/* Copy some text, then try the Langmin action again. */
+"no_clipboard_text_body" = "Copie algum texto e tente novamente a ação do Langmin.";
+
+/* No clipboard text */
+"no_clipboard_text_title" = "Sem texto na área de transferência";
+
+/* No Folder */
+"no_folder" = "Sem pasta";
+
+/* No results */
+"library_search_empty_title" = "Nenhum resultado";
+
+/* No %@ match “%@”. */
+"no_search_matches" = "Nenhum resultado em %@ para “%@”.";
+
+/* None */
+"none" = "Nenhum";
+
+/* Not Now */
+"not_now" = "Agora não";
+
+/* OK */
+"ok" = "OK";
+
+/* On this Mac */
+"on_this_mac" = "Neste Mac";
+
+/* Open */
+"open" = "Abrir";
+
+/* Open */
+"open_in_window" = "Abrir";
+
+/* Open Langmin */
+"open_langmin" = "Abrir o Langmin";
+
+/* Open Langmin at login */
+"open_langmin_at_login" = "Abrir o Langmin ao iniciar a sessão";
+
+/* Open in a result window */
+"open_result_window" = "Abrir em uma janela de resultado";
+
+/* Open Settings */
+"open_settings" = "Abrir Ajustes";
+
+/* Open Setup Assistant */
+"open_setup_assistant" = "Abrir o Assistente de configuração";
+
+/* Opening… */
+"opening_hud" = "Abrindo…";
+
+/* Opening… */
+"opening_progress" = "Abrindo…";
+
+/* Other */
+"other" = "Outros";
+
+/* ↵ run    ⇥ pin chip    ⌘, options */
+"palette_legend_chip" = "↵ executar    ⇥ fixar etiqueta    ⌘, opções";
+
+/* Paste */
+"paste" = "Colar";
+
+/* Langmin can't access the pasted file */
+"pasted_file_denied" = "O Langmin não consegue acessar o arquivo colado";
+
+/* Langmin can't access the pasted files */
+"pasted_files_denied" = "O Langmin não consegue acessar os arquivos colados";
+
+/* macOS did not grant access to these files. Drag them into this window instead. */
+"pasted_files_denied_body" = "O macOS não permitiu o acesso a estes arquivos. Arraste-os para esta janela.";
+
+/* Look up a word… */
+"placeholder_dictionary" = "Procure uma palavra…";
+
+/* What would you like explained? */
+"placeholder_explain" = "O que quer que seja explicado?";
+
+/* What would you like proofread? */
+"placeholder_proofread" = "O que quer que seja revisto?";
+
+/* What would you like rewritten? */
+"placeholder_rewrite" = "O que quer que seja reescrito?";
+
+/* What would you like summarized? */
+"placeholder_summarize" = "O que quer que seja resumido?";
+
+/* What would you like translated? */
+"placeholder_translate" = "O que quer que seja traduzido?";
+
+/* Preparing narration… */
+"preparing_narration" = "Preparando narração…";
+
+/* Privacy Policy… */
+"privacy_policy" = "Política de Privacidade…";
+
+/* Family Sharing included. */
+"pro_family_caption" = "Compartilhamento Familiar incluído.";
+
+/* OpenAI, Anthropic, Gemini, Grok, DeepSeek, and custom endpoints */
+"pro_feature_cloud" = "OpenAI, Anthropic, Gemini, Grok, DeepSeek e endpoints personalizados";
+
+/* Library folders */
+"pro_feature_folders" = "Pastas na Biblioteca";
+
+/* Web research for current facts and sources */
+"pro_feature_research" = "Pesquisa na web para informações atuais e fontes";
+
+/* OpenAI and Grok voices */
+"pro_feature_voices" = "Vozes da OpenAI e da Grok";
+
+/* Apple Intelligence, Apple voices, and the Library stay free. */
+"pro_free_note" = "O Apple Intelligence, as vozes da Apple e a Biblioteca continuam gratuitos.";
+
+/* Buy once for %@ */
+"pro_lifetime_button" = "Comprar uma só vez por %@";
+
+/* Contacting the App Store… */
+"pro_loading" = "Conectando à App Store…";
+
+/* Manage Subscription… */
+"pro_manage_subscription" = "Gerenciar assinatura…";
+
+/* %@ Pro… */
+"pro_menu" = "%@ Pro…";
+
+/* This purchase is still pending. %@ Pro unlocks when the App Store confirms it. */
+"pro_pending_body" = "Esta compra ainda está pendente. O %@ Pro será liberado quando a App Store confirmar a compra.";
+
+/* Purchase pending */
+"pro_pending_title" = "Compra pendente";
+
+/* Privacy Policy */
+"pro_privacy_policy" = "Política de privacidade";
+
+/* The purchase didn't complete: %@ */
+"pro_purchase_failed" = "A compra não foi concluída: %@";
+
+/* Cloud models are part of %@ Pro. */
+"pro_reason_cloud" = "Os modelos na nuvem fazem parte do %@ Pro.";
+
+/* Library folders are part of %@ Pro. */
+"pro_reason_folders" = "As pastas da Biblioteca fazem parte do %@ Pro.";
+
+/* Get more with %@ Pro. */
+"pro_reason_general" = "Mais recursos com %@ Pro.";
+
+/* OpenAI and Grok voices are part of %@ Pro. */
+"pro_reason_voices" = "As vozes da OpenAI e da Grok fazem parte do %@ Pro.";
+
+/* Couldn't restore purchases */
+
+/* No %@ Pro purchase was found for this Apple Account. */
+"pro_restore_none_body" = "Não foi encontrada nenhuma compra do %@ Pro para esta Conta Apple.";
+
+/* Nothing to restore */
+"pro_restore_none_title" = "Nada para restaurar";
+
+/* Restore Purchases */
+"pro_restore_purchases" = "Restaurar compras";
+
+/* Pro */
+"pro_status_active" = "Pro";
+
+/* Pro · ends %@ */
+"pro_status_ends" = "Pro · termina em %@";
+
+/* Pro · shared with your family */
+"pro_status_family" = "Pro · compartilhado com a família";
+
+/* Free */
+"pro_status_free" = "Gratuito";
+
+/* Pro · lifetime */
+"pro_status_lifetime" = "Pro · vitalício";
+
+/* Pro · renews %@ */
+"pro_status_renews" = "Pro · renova em %@";
+
+/* Pro trial · ends %@ */
+"pro_status_trial_ends" = "Teste Pro · termina em %@";
+
+/* Pro trial · first payment %@ */
+"pro_status_trial_renews" = "Teste Pro · primeiro pagamento em %@";
+
+/* Pro trial · until %@ */
+"pro_status_trial_until" = "Teste do Pro · até %@";
+
+/* Pro · until %@ */
+"pro_status_until" = "Pro · até %@";
+
+/* Pro purchases are unavailable right now. Please try again later. */
+"pro_store_unavailable" = "As compras Pro estão indisponíveis no momento. Tente novamente mais tarde.";
+
+/* Payment goes to your Apple Account. A subscription renews automatically each year unless it is cancelled in your App Store settings at least a day before the period ends. */
+"pro_terms" = "O pagamento é cobrado na sua Conta Apple. A assinatura se renova automaticamente a cada ano, a menos que seja cancelada nos ajustes da App Store pelo menos um dia antes do fim do período.";
+
+/* Terms of Use */
+"pro_terms_of_use" = "Termos de uso";
+
+/* Cancel at least a day before the free trial ends to avoid being charged. */
+
+/* %@ Pro */
+"pro_title" = "%@ Pro";
+
+/* Start free trial */
+
+/* Try free for a month */
+
+/* then %@ a year · cancel anytime */
+
+/* The App Store could not verify this purchase. */
+"pro_unverified" = "A App Store não conseguiu verificar esta compra.";
+
+/* Upgrade… */
+"pro_upgrade_button" = "Atualizar…";
+
+/* Subscribe for %@ a year */
+"pro_yearly_button" = "Assinar por %@ ao ano";
+
+/* Renews automatically each year · cancel anytime */
+"pro_yearly_caption" = "Renovação automática anual · cancele quando quiser";
+
+/* You have %@ Pro. */
+"pro_you_have" = "Você tem %@ Pro.";
+
+/* Pronounce — click to choose a voice first */
+"pronounce_setup_tooltip" = "Pronunciar — clique primeiro para escolher uma voz";
+
+/* Pronunciation voice */
+"pronunciation_voice" = "Voz de pronúncia";
+
+/* Proofread */
+"proofread" = "Correção";
+
+/* Proofread Clipboard */
+"proofread_clipboard" = "Corrigir área de transferência";
+
+/* Proofreading… */
+"proofreading" = "Corrigindo…";
+
+/* Quit %@ */
+"quit_app" = "Encerrar %@";
+
+/* Quit Now */
+"quit_now" = "Encerrar agora";
+
+/* Redo */
+"redo" = "Refazer";
+
+/* Remember choices */
+"remember_choices" = "Lembrar escolhas";
+
+/* Rename */
+"rename" = "Renomear";
+
+/* Rename Folder */
+"rename_folder_menu" = "Renomear pasta";
+
+/* Rephrasing… */
+"rephrasing" = "Reformulando…";
+
+/* Reset Defaults */
+"reset_defaults" = "Restaurar padrões";
+
+/* Press Save to restore defaults, or open Setup Assistant to choose new settings. */
+"reset_wizard_body" = "Clique em Salvar para restaurar os padrões ou abra o Assistente de configuração para escolher novos ajustes.";
+
+/* Start over with the Setup Assistant? */
+"reset_wizard_title" = "Recomeçar com o Assistente de configuração?";
+
+/* Empty and loading results */
+"results_empty_title" = "Tudo pronto para começar";
+"results_empty_hint" = "Digite texto à esquerda e pressione ⌘↵ para ver o resultado aqui.";
+"results_loading_title" = "Criando seu resultado";
+"retry" = "Tentar novamente";
+
+/* Rewrite */
+"rewrite" = "Reescrita";
+
+/* Rewrite Clipboard */
+"rewrite_clipboard" = "Reescrever área de transferência";
+
+/* App Language */
+"row_app_language" = "Idioma da app";
+
+/* Launcher Window */
+"row_launcher_window" = "Janela do iniciador";
+
+/* Online Research */
+"row_online_research" = "Pesquisa online";
+
+/* Secret Protection */
+"row_secret_protection" = "Proteção de segredos";
+
+/* Run */
+"run" = "Executar";
+
+/* look up */
+"run_verb_dictionary" = "consultar";
+
+/* explain */
+"run_verb_explain" = "explicar";
+
+/* proofread */
+"run_verb_proofread" = "rever";
+
+/* rewrite */
+"run_verb_rewrite" = "reescrever";
+
+/* summarize */
+"run_verb_summarize" = "resumir";
+
+/* translate */
+"run_verb_translate" = "traduzir";
+
+/* Save */
+"save" = "Salvar";
+
+/* Save Audio… */
+"save_audio" = "Salvar áudio…";
+
+/* Save Text… */
+"save_text" = "Salvar texto…";
+
+/* Search actions */
+"search_actions" = "Pesquisar ações";
+
+/* ⌘K search */
+"search_actions_hint" = "⌘K pesquisar";
+
+/* Search languages */
+"search_languages" = "Pesquisar idiomas";
+
+/* Search Library */
+"search_library" = "Buscar na biblioteca";
+
+/* Search models */
+"search_models" = "Pesquisar modelos";
+
+/* titles */
+"search_scope_titles" = "títulos";
+
+/* titles or contents */
+"search_scope_titles_contents" = "títulos ou conteúdos";
+
+/* Search voices */
+"search_voices" = "Pesquisar vozes";
+
+/* Services */
+"services" = "Serviços";
+
+/* Settings… */
+"settings" = "Ajustes…";
+
+/* Settings */
+"settings_window" = "Ajustes";
+
+/* Setup Assistant… */
+"setup_assistant" = "Assistente de configuração…";
+
+/* Show All */
+"show_all" = "Mostrar tudo";
+
+/* Show Langmin in the menu bar */
+"show_langmin_in_the_menu_bar" = "Mostrar o Langmin na barra de menus";
+
+/* %@ with %@… */
+"status_with_model" = "%@ com %@…";
+
+/* Style */
+"style" = "Estilo";
+
+/* Summarize */
+"summarize" = "Resumo";
+
+/* Summarize Clipboard */
+"summarize_clipboard" = "Resumir área de transferência";
+
+/* Summarizing… */
+"summarizing" = "Resumindo…";
+
+/* System Default */
+"system_default" = "Padrão do sistema";
+
+/* Advanced */
+"tab_advanced" = "Avançado";
+
+/* General */
+"tab_general" = "Geral";
+
+/* Models */
+"tab_models" = "Modelos";
+
+/* Reading */
+"tab_reading" = "Leitura";
+
+/* Shortcuts */
+"tab_shortcuts" = "Atalhos";
+
+/* Window */
+"tab_window" = "Janela";
+
+/* Tightening… */
+"tightening" = "Condensando…";
+
+/* Translate */
+"translate" = "Tradução";
+
+/* Translate Clipboard */
+"translate_clipboard" = "Traduzir área de transferência";
+
+/* Translating… */
+"translating" = "Traduzindo…";
+
+/* Undo */
+"undo" = "Desfazer";
+
+/* Untitled */
+"untitled" = "Sem título";
+
+/* Another app asked Langmin to process this text:\n\n“%@”\n\nRunning sends it to your configured model. */
+"url_run_confirm_body" = "Outro app pediu ao Langmin para processar este texto:\n\n“%@”\n\nAo executar, ele será enviado ao modelo configurado.";
+
+/* Run “%@” from a link? */
+"url_run_confirm_title" = "Executar “%@” a partir de um link?";
+
+/* Use web research when available */
+"use_web_research" = "Usar pesquisa na web quando disponível";
+
+/* Warn before sending secrets */
+"warn_before_secrets" = "Avisar antes de enviar segredos";
+
+/* Window */
+"window" = "Janela";
+
+/* Runs on your Mac. Free, with no account needed. */
+"wizard_apple_available" = "Funciona no seu Mac. Grátis, sem conta.";
+
+/* Apple Intelligence (on this Mac, private and free) */
+"wizard_apple_row" = "Apple Intelligence (neste Mac, privado e gratuito)";
+
+/* Apple Intelligence (not available on this Mac) */
+"wizard_apple_row_unavailable" = "Apple Intelligence (não disponível neste Mac)";
+
+/* Not available on this Mac (requires Apple Intelligence). Choose a cloud provider below. */
+"wizard_apple_unavailable" = "Não disponível neste Mac (requer Apple Intelligence). Escolha um provedor na nuvem abaixo.";
+
+/* Read results aloud or hear Dictionary words and examples. Choose a voice that supports the language.\n\nApple voices run on your Mac for free. OpenAI and Grok voices require Pro and a provider API key. */
+"wizard_audio_body" = "Ouça resultados, palavras e exemplos do Dicionário. Escolha uma voz que ofereça suporte ao idioma.\n\nAs vozes da Apple funcionam gratuitamente no Mac. As vozes OpenAI e Grok exigem Pro e uma chave de API do provedor.";
+
+/* Hear your words */
+"wizard_audio_title" = "Ouça suas palavras";
+
+/* Back */
+"wizard_back" = "Anterior";
+
+/* macOS may ask for clipboard access when you first use a shortcut. */
+"wizard_clipboard_note" = "O macOS pode pedir acesso à área de transferência ao usar um atalho pela primeira vez.";
+
+/* Continue */
+"wizard_continue" = "Continuar";
+
+/* Also answer in */
+"wizard_extra_languages" = "Responder também em";
+
+/* Finish */
+"wizard_finish" = "Concluir";
+
+/* Keys stay in macOS Keychain. Requests go directly to your provider. Add keys or a local model later in Settings → Models. */
+"wizard_key_note_local" = "As chaves ficam no chaveiro do macOS. Os pedidos vão diretamente ao provedor. Adicione chaves ou um modelo local depois em Ajustes → Modelos.";
+
+/* API key (optional, add any time) */
+"wizard_key_optional" = "Chave de API (opcional, adicione quando quiser)";
+
+/* Choose translation languages. Extra languages add versions to Dictionary, Explain, and Summarize results. Change either list in the launcher's mode menus. */
+"wizard_language_body_single_source" = "Escolha os idiomas de tradução. Idiomas adicionais acrescentam versões aos resultados de Dicionário, Explicação e Resumo. Altere as listas nos menus de modo do iniciador.";
+
+/* Your languages */
+"wizard_language_title" = "Seus idiomas";
+
+/* Set Up Later */
+"wizard_later" = "Configurar mais tarde";
+
+/* Cloud providers, web research, Library folders, and cloud voices require %@ Pro. Apple Intelligence is free. Eligible subscriptions include a trial. */
+"wizard_pro_note" = "Your first 30 days include %@ Pro. Apple Intelligence stays free afterward.";
+
+/* Dictionary pronunciation voice */
+"wizard_pronunciation_voice" = "Voz de pronúncia do dicionário";
+
+/* Claude models with web research. */
+"wizard_provider_anthropic" = "Modelos Claude com pesquisa web.";
+
+/* Switch models in the launcher, or open All models to enable more. */
+"wizard_provider_body_multi" = "Troque de modelo no iniciador ou ative mais em Todos os modelos.";
+
+/* DeepSeek chat and reasoning models. */
+"wizard_provider_deepseek" = "Modelos DeepSeek de conversa e raciocínio.";
+
+/* Gemini models with web research. */
+"wizard_provider_gemini" = "Modelos Gemini com pesquisa web.";
+
+/* Grok text models and optional voices. */
+"wizard_provider_grok" = "Modelos de texto Grok e vozes opcionais.";
+
+/* GPT models with web research. */
+"wizard_provider_openai" = "Modelos GPT com pesquisa web.";
+
+/* Choose your providers */
+"wizard_provider_title_multi" = "Escolha seus provedores";
+
+/* Copy text and use a shortcut, or open the launcher and start typing.\n\nChange your choices in the launcher's menus or Settings. */
+"wizard_ready_body_simple" = "Langmin starts a free 30-day trial when you first open it. No subscription starts, and you will not be charged.";
+
+/* You're all set */
+"wizard_ready_title" = "30 days of full access";
+
+/* Use these shortcuts from another app after copying text. Proofread and Rewrite copy the result. The other four modes show it in the HUD. Open opens a result window; Dismiss closes the HUD.\n\nIn Langmin's main window, these shortcuts select a mode. Press ⌘Return to run it. */
+"wizard_shortcuts_body" = "Copie texto em outro app e use estes atalhos. Correção e Reescrita copiam o resultado. Os outros quatro modos o mostram no HUD. Abrir abre uma janela de resultado; Fechar fecha o HUD.\n\nNa janela principal do Langmin, estes atalhos selecionam um modo. Pressione ⌘Return para executá-lo.";
+
+/* Step %d of %d */
+"wizard_step_n_of_m" = "Passo %d de %d";
+
+/* Translate to */
+"wizard_translate_to" = "Traduzir para";
+
+/* Proofread, rewrite, explain, summarize, translate, and look up words. Listen to results and Dictionary examples.\n\nChoose your settings now or change them later. */
+"wizard_welcome_body_short" = "Revise, reescreva, explique, resuma, traduza e pesquise palavras. Ouça resultados e exemplos do Dicionário.\n\nEscolha os ajustes agora ou altere-os depois.";
+
+/* Welcome to %@ */
+"wizard_welcome_title" = "Bem-vindo ao %@";
+
+/* Langmin Setup */
+"wizard_window" = "Configuração do Langmin";
+
+/* Open Langmin at login to keep its menu-bar actions and shortcuts available. */
+"wizard_workflow_body" = "Abra o Langmin ao iniciar sessão para manter suas ações e atalhos disponíveis.";
+
+/* Always at hand */
+"wizard_workflow_title" = "Sempre à mão";
+
+/* Your providers */
+"your_providers" = "Seus provedores";
+
+/* Dictionary illustrations */
+"illustration" = "Ilustração";
+"illustration_apple_note" = "Crie e escolha uma imagem no seu Mac";
+"illustration_apple_unavailable" = "Requer macOS 15.4 ou posterior e Image Playground";
+"illustration_cloud_note" = "Cobrança separada · usa a sua chave API OpenAI";
+"illustration_generated" = "Ilustração gerada por IA";
+"illustration_generating" = "Criando ilustração…";
+"illustration_failed" = "Não foi possível criar a ilustração";
+"illustration_missing_key" = "Adicione uma chave API da OpenAI em Ajustes → Modelos.";
+"illustration_save" = "Salvar imagem…";
+"illustration_remove" = "Remover ilustração";
+
+"reading_webpage" = "Lendo a página…";
+
+"loading_page_images" = "Carregando imagens da página…";
+
+/* Follow-up */
+"followup_title" = "Pergunta adicional";
+
+/* Ask a follow-up or request changes… */
+"followup_placeholder" = "Faça outra pergunta ou peça alterações…";
+
+/* Send follow-up */
+"followup_send" = "Enviar pergunta";
+
+/* Replying… */
+"followup_working" = "Respondendo…";
+
+/* You */
+"followup_you" = "Você";
+
+/* Copy reply */
+"followup_copy" = "Copiar resposta";
+
+/* Delete reply */
+"followup_delete_reply" = "Apagar resposta";
+
+/* The message could not be deleted: %@ */
+"followup_delete_failed" = "Não foi possível apagar a mensagem: %@";
+
+/* Print… */
+"print" = "Imprimir…";
+
+/* Quick HUD playback */
+"hud_read_paragraph" = "Ler este parágrafo em voz alta";
+"hud_stop_playback" = "Parar leitura";
+"hud_playback_failed" = "Não foi possível ler este texto em voz alta";
+"hud_voice_api_key" = "Para usar esta voz, adicione uma chave API de %@ em Ajustes.";
+
+"request_failed" = "Falha na solicitação";
+
+/* Translation skipped */
+"translation_skipped" = "Tradução ignorada";
+
+/* Already in this language. */
+"translation_already_in_language" = "O texto já está no idioma selecionado.";
+
+/* Library window placement */
+"detach_library" = "Abrir a biblioteca numa janela separada";
+"attach_library" = "Mover a biblioteca para a janela principal";
+
+/* Result text editing */
+"apply" = "Aplicar";
+"discard_changes" = "Descartar alterações";
+"done" = "Concluído";
+"edit_link" = "Editar link";
+"edit_text" = "Editar texto";
+"format_text" = "Formatar texto";
+"remove_link" = "Remover link";
+"save_text_changes" = "Salvar as alterações do texto?";
+"text_style" = "Estilo de texto";
+"save_edits_remove_audio" = "Salvar alterações e remover o áudio?";
+"save_edits_remove_audio_detail" = "Salvar estas alterações removerá todo o áudio de narração e pronúncia anexado. Você poderá gerar um novo áudio depois.";
+
+/* iCloud Library sync */
+"pro_feature_icloud" = "Sincronização da biblioteca com o iCloud";
+"pro_reason_icloud" = "A sincronização da biblioteca com o iCloud faz parte do %@ Pro.";
+
+/* Automatically illustrate new lookups */
+"illustration_automatic" = "Ilustrar novas consultas automaticamente";
+
+/* Automatic images are off by default. To add an image yourself, use the picture button on a Dictionary result. */
+"illustration_manual_note" = "As imagens automáticas estão desativadas por padrão. Para adicionar uma imagem, use o botão de imagem de um resultado do Dicionário.";
+
+/* Image Provider */
+"illustration_provider" = "Provedor de imagens";
+
+/* Choose in result */
+"illustration_choose_in_result" = "Escolher no resultado";
+
+/* Choose a provider before turning on automatic images. You can also add an image from a Dictionary result's picture button. */
+"illustration_choose_provider_note" = "Escolha um provedor antes de ativar as imagens automáticas. Você também pode adicionar uma imagem pelo botão de imagem de um resultado do Dicionário.";
+
+/* Create and choose images on your Mac. Automatic mode opens Image Playground after each Dictionary lookup. */
+"illustration_apple_settings_note" = "Crie e escolha imagens no Mac. No modo automático, o Image Playground abre após cada consulta no Dicionário.";
+
+/* Requires Pro and an OpenAI API key in Settings → Models. Each image is billed separately. Creates one landscape image at medium quality. */
+"illustration_openai_settings_note" = "Requer Pro e uma chave API da OpenAI em Ajustes → Modelos. Cada imagem é cobrada separadamente. Cria uma imagem horizontal de qualidade média.";
+
+/* Illustrations */
+"tab_illustrations" = "Ilustrações";
+
+/* Empty launcher input */
+"input_start_hint" = "Digite ou cole aqui, ou arraste um arquivo";
+"input_documents" = "Documentos";
+"input_images" = "Imagens";
+"input_audio" = "Áudio";
+"input_drop_title" = "Solte para adicionar texto";
+
+/* Source-build purchase footer */
+"source_build_title" = "Trial ended";
+"source_build_support" = "Apple Intelligence stays free, while other Pro features require purchase.";
+"source_build_purchase" = "Comprar";
+"source_build_dismiss" = "Dismiss";
+"pro_app_trial_one_day" = "Pro trial · 1 day remaining";
+"pro_app_trial_days" = "Pro trial · %d days remaining";
+"wizard_trial_during_title" = "Your first 30 days";
+"wizard_trial_during_langmin" = "Use every Langmin feature without app limits. Provider charges may still apply.";
+"wizard_trial_after_title" = "After the trial";
+"wizard_trial_after_langmin" = "Apple Intelligence, Apple voices, Apple transcription, text editing, and the Library stay free. Other Pro features require a purchase.";
+"wizard_trial_plans_title" = "Keep Pro";
+"wizard_trial_plans_body" = "Choose a yearly plan or lifetime access at any time.";
