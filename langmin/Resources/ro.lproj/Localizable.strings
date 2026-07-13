@@ -1,0 +1,983 @@
+/* Langmin — ro localization. Comments give English text or name a related group. */
+
+/* About %@ */
+"about_app" = "Despre %@";
+
+/* All */
+"all_chip" = "Toate";
+
+/* All models */
+"all_models" = "Toate modelele";
+
+/* Answer language */
+"answer_language" = "Limba răspunsului";
+
+/* %@ Help */
+"app_help" = "Ajutor %@";
+
+/* Back */
+"back" = "Înapoi";
+
+/* Bring All to Front */
+"bring_all_to_front" = "Aduceți-le pe toate în față";
+
+/* Delete %d items from %@? */
+"bulk_delete_confirm_many" = "Ștergeți %d articole din „%@”?";
+
+/* Delete 1 item from %@? */
+"bulk_delete_confirm_one" = "Ștergeți 1 articol din „%@”?";
+
+/* Only the items matching the current search are deleted. */
+"bulk_delete_search_note" = "Se șterg doar articolele care corespund căutării curente.";
+
+/* Use Undo to restore an item before it disappears. */
+"bulk_delete_undo_note" = "Folosiți butonul Anulați pentru a restaura un element înainte să dispară.";
+
+/* Cancel */
+"cancel" = "Anulați";
+
+/* Cancel Current Action */
+"cancel_current_action" = "Anulați acțiunea curentă";
+
+/* Cancel this request (Esc) */
+"cancel_this_request_esc" = "Anulează această cerere (Esc)";
+
+/* Cancelled */
+"cancelled" = "Anulat";
+
+/* Cancelling… */
+"cancelling" = "Se anulează…";
+
+/* Cancelling */
+"cancelling_a11y" = "Se anulează";
+
+/* Clear after submit */
+"clear_after_submit" = "Golește după trimitere";
+
+/* You copied something else while Langmin was working. Replace it with the transformed text? */
+"clipboard_changed_body" = "Ați copiat altceva în timp ce Langmin lucra. Înlocuiți cu rezultatul?";
+
+/* The clipboard changed */
+"clipboard_changed_title" = "Clipboardul s-a schimbat";
+
+/* Clipboard unchanged */
+"clipboard_unchanged" = "Clipboard neschimbat";
+
+/* macOS did not accept the transformed text. The previous clipboard contents were restored. */
+"clipboard_write_failed_restored" = "macOS nu a acceptat textul transformat. Conținutul anterior al clipboardului a fost restaurat.";
+
+/* macOS did not accept the transformed text, and the previous clipboard contents could not be restored. */
+"clipboard_write_failed_unrestored" = "macOS nu a acceptat textul transformat, iar conținutul anterior al clipboardului nu a putut fi restaurat.";
+
+/* Close */
+"close" = "Închideți";
+
+/* ⌘V to paste */
+"cmd_v_to_paste" = "⌘V pentru lipire";
+
+/* Compose with Clipboard */
+"compose_with_clipboard" = "Compuneți din clipboard";
+
+/* Copied */
+"copied" = "Copiat";
+
+/* Copy */
+"copy" = "Copiați";
+
+/* Copy this paragraph */
+"copy_paragraph" = "Copiază acest paragraf";
+
+/* Copy Result */
+"copy_result" = "Copiază rezultatul";
+
+/* Copying… */
+"copying" = "Se copiază…";
+
+/* Could not delete one saved item */
+"could_not_delete_one_saved_item" = "Un articol salvat nu a putut fi șters";
+
+/* Could not delete some saved items */
+"could_not_delete_some_saved_items" = "Unele articole salvate nu au putut fi șterse";
+
+/* Could not delete this saved item */
+"could_not_delete_this_saved_item" = "Acest articol salvat nu a putut fi șters";
+
+/* Could not export this saved item */
+"could_not_export_this_saved_item" = "Acest articol salvat nu a putut fi exportat";
+
+/* Could not open the result */
+"could_not_open_result" = "Rezultatul nu a putut fi deschis";
+
+/* Could not rename this saved item */
+"could_not_rename_this_saved_item" = "Acest articol salvat nu a putut fi redenumit";
+
+/* Could not restore this saved item */
+"could_not_restore_this_saved_item" = "Acest articol salvat nu a putut fi restaurat";
+
+/* Could not save audio */
+"could_not_save_audio" = "Sunetul nu a putut fi salvat";
+
+/* Could not update the clipboard */
+"could_not_update_clipboard" = "Clipboardul nu a putut fi actualizat";
+
+/* Could not update the login item */
+"could_not_update_the_login_item" = "Articolul de autentificare nu a putut fi actualizat";
+
+/* Cut */
+"cut" = "Tăiați";
+
+/* Cycle Through Windows */
+"cycle_through_windows" = "Comutați între ferestre";
+
+/* Delete */
+"delete" = "Ștergeți";
+
+/* Delete All %d… */
+"delete_all_n" = "Ștergeți toate cele %d…";
+
+/* Delete Folder */
+"delete_folder_menu" = "Șterge dosarul";
+
+/* All entries stay in the Library */
+"delete_folder_subtitle" = "Toate intrările rămân în Bibliotecă";
+
+/* Delete %d Shown… */
+"delete_n_shown" = "Ștergeți %d afișate…";
+
+/* Deleted “%@” */
+"deleted_item" = "„%@” a fost șters";
+
+/* Dictionary */
+"dictionary" = "Dicționar";
+
+/* Dictionary Lookup */
+"dictionary_lookup" = "Căutare în dicționar";
+
+/* Dismiss */
+"dismiss" = "Închide";
+
+/* Drop or paste documents, images, or audio */
+"drop_hint" = "Trageți sau lipiți documente, imagini ori fișiere audio";
+
+/* Edit */
+"edit" = "Editare";
+
+/* Deeper essay */
+"effort_detailed" = "Eseu mai aprofundat";
+
+/* Short and clear */
+"effort_simple" = "Scurt și clar";
+
+/* Balanced depth */
+"effort_standard" = "Profunzime echilibrată";
+
+/* Elaborating… */
+"elaborating" = "Se dezvoltă…";
+
+/* Explain */
+"explain" = "Explicație";
+
+/* Explain Clipboard */
+"explain_clipboard" = "Explicați clipboardul";
+
+/* Explaining… */
+"explaining" = "Se explică…";
+
+/* Export Audio… */
+"export_audio_menu" = "Exportați sunetul…";
+
+/* Export Audio */
+"export_audio_panel" = "Exportați sunetul";
+
+/* Export Text… */
+"export_text_menu" = "Exportați textul…";
+
+/* Export Text */
+"export_text_panel" = "Exportați textul";
+
+/* Extra languages */
+"extra_languages" = "Limbi suplimentare";
+
+/* File */
+"file" = "Fișier";
+
+/* File In */
+"file_in_submenu" = "Arhivează în";
+
+/* Filter folders */
+"filter_folders" = "Filtrează dosarele";
+
+/* Find… */
+"find_item" = "Căutați…";
+
+/* Find */
+"find_menu" = "Căutare";
+
+/* ↵ create · esc cancel */
+"folder_create_hint" = "↵ creează · esc anulează";
+
+/* Nothing in this folder yet */
+"folder_empty_title" = "Acest dosar este încă gol";
+
+/* Drag results onto a folder chip, or right-click one and file it here. */
+"folder_empty_subtitle" = "Trageți rezultate pe un dosar sau folosiți clic dreapta pentru a le arhiva aici.";
+
+/* already exists */
+"folder_exists_hint" = "există deja";
+
+/* already exists · ↵ opens it */
+"folder_exists_opens_hint" = "există deja · ↵ îl deschide";
+
+/* Folder name */
+"folder_name_placeholder" = "Numele dosarului";
+
+/* ↵ rename · esc cancel */
+"folder_rename_hint" = "↵ redenumește · esc anulează";
+
+/* Help */
+"help" = "Ajutor";
+
+/* Hide %@ */
+"hide_app" = "Ascundeți %@";
+
+/* Hide Others */
+"hide_others" = "Ascundeți-le pe celelalte";
+
+/* Explaining */
+"hud_explaining" = "Explicare";
+
+/* Looking up */
+"hud_looking_up" = "Căutare";
+
+/* 1 word */
+"hud_one_word" = "1 cuvânt";
+
+/* Proofreading */
+"hud_proofreading" = "Corectare";
+
+/* Rewriting */
+"hud_rewriting" = "Rescriere";
+
+/* Summarizing */
+"hud_summarizing" = "Rezumare";
+
+/* Translating */
+"hud_translating" = "Traducere";
+
+/* %d words */
+"hud_word_count" = "%d cuvinte";
+
+/* Keep Current Clipboard */
+"keep_current_clipboard" = "Păstrează clipboardul actual";
+
+/* Language level */
+"language_level" = "Nivel de limbă";
+
+/* The new language takes effect the next time Langmin opens. */
+"language_restart_notice" = "Noua limbă se aplică la următoarea deschidere a Langmin.";
+
+/* Later */
+"later" = "Mai târziu";
+
+/* Library */
+"library" = "Bibliotecă";
+
+/* No saved items yet */
+"library_empty_title" = "Nu există încă elemente salvate";
+
+/* Click a result's bookmark button to save it here. */
+"library_empty_subtitle" = "Apăsați butonul de marcaj de lângă un rezultat pentru a-l salva aici.";
+
+/* Look Up Clipboard in Dictionary */
+"look_up_clipboard_in_dictionary" = "Căutați clipboardul în dicționar";
+
+/* Looking up… */
+"looking_up" = "Se caută…";
+
+/* Match question */
+"match_question" = "Ca întrebarea";
+
+/* Minimize */
+"minimize" = "Minimizați";
+
+/* More folders */
+"more_folders" = "Mai multe dosare";
+
+/* More languages */
+"more_languages" = "Mai multe limbi";
+
+/* %d saved */
+"n_saved" = "%d salvate";
+
+/* New Explanation */
+"new_explanation" = "Explicație nouă";
+
+/* New Folder… */
+"new_folder_menu" = "Dosar nou…";
+
+/* Copy some text, then try the Langmin action again. */
+"no_clipboard_text_body" = "Copiați text și încercați din nou acțiunea Langmin.";
+
+/* No clipboard text */
+"no_clipboard_text_title" = "Niciun text în clipboard";
+
+/* No Folder */
+"no_folder" = "Fără dosar";
+
+/* No results */
+"library_search_empty_title" = "Niciun rezultat";
+
+/* No %@ match “%@”. */
+"no_search_matches" = "Niciun rezultat în %@ pentru „%@”.";
+
+/* None */
+"none" = "Niciuna";
+
+/* Not Now */
+"not_now" = "Nu acum";
+
+/* OK */
+"ok" = "OK";
+
+/* On this Mac */
+"on_this_mac" = "Pe acest Mac";
+
+/* Open */
+"open" = "Deschideți";
+
+/* Open */
+"open_in_window" = "Deschide";
+
+/* Open Langmin */
+"open_langmin" = "Deschideți Langmin";
+
+/* Open Langmin at login */
+"open_langmin_at_login" = "Deschideți Langmin la autentificare";
+
+/* Open in a result window */
+"open_result_window" = "Deschide într-o fereastră de rezultat";
+
+/* Open Settings */
+"open_settings" = "Deschideți Configurările";
+
+/* Open Setup Assistant */
+"open_setup_assistant" = "Deschide Asistentul de configurare";
+
+/* Opening… */
+"opening_hud" = "Se deschide…";
+
+/* Opening… */
+"opening_progress" = "Se deschide…";
+
+/* Other */
+"other" = "Altele";
+
+/* ↵ run    ⇥ pin chip    ⌘, options */
+"palette_legend_chip" = "↵ rulează    ⇥ fixează eticheta    ⌘, opțiuni";
+
+/* Paste */
+"paste" = "Lipiți";
+
+/* Langmin can't access the pasted file */
+"pasted_file_denied" = "Langmin nu poate accesa fișierul lipit";
+
+/* Langmin can't access the pasted files */
+"pasted_files_denied" = "Langmin nu poate accesa fișierele lipite";
+
+/* macOS did not grant access to these files. Drag them into this window instead. */
+"pasted_files_denied_body" = "macOS nu a permis accesul la aceste fișiere. Trageți-le în această fereastră.";
+
+/* Look up a word… */
+"placeholder_dictionary" = "Caută un cuvânt…";
+
+/* What would you like explained? */
+"placeholder_explain" = "Ce doriți să explicați?";
+
+/* What would you like proofread? */
+"placeholder_proofread" = "Ce doriți să corectați?";
+
+/* What would you like rewritten? */
+"placeholder_rewrite" = "Ce doriți să rescrieți?";
+
+/* What would you like summarized? */
+"placeholder_summarize" = "Ce doriți să rezumați?";
+
+/* What would you like translated? */
+"placeholder_translate" = "Ce doriți să traduceți?";
+
+/* Preparing narration… */
+"preparing_narration" = "Se pregătește narațiunea…";
+
+/* Privacy Policy… */
+"privacy_policy" = "Politica de confidențialitate…";
+
+/* Family Sharing included. */
+"pro_family_caption" = "Partajarea în familie este inclusă.";
+
+/* OpenAI, Anthropic, Gemini, Grok, DeepSeek, and custom endpoints */
+"pro_feature_cloud" = "OpenAI, Anthropic, Gemini, Grok, DeepSeek și puncte finale personalizate";
+
+/* Library folders */
+"pro_feature_folders" = "Dosare în Bibliotecă";
+
+/* Web research for current facts and sources */
+"pro_feature_research" = "Căutare pe web pentru informații actuale și surse";
+
+/* OpenAI and Grok voices */
+"pro_feature_voices" = "Voci OpenAI și Grok";
+
+/* Apple Intelligence, Apple voices, and the Library stay free. */
+"pro_free_note" = "Apple Intelligence, vocile Apple și Biblioteca rămân gratuite.";
+
+/* Buy once for %@ */
+"pro_lifetime_button" = "Cumpără o singură dată cu %@";
+
+/* Contacting the App Store… */
+"pro_loading" = "Se contactează App Store…";
+
+/* Manage Subscription… */
+"pro_manage_subscription" = "Gestionează abonamentul…";
+
+/* %@ Pro… */
+"pro_menu" = "%@ Pro…";
+
+/* This purchase is still pending. %@ Pro unlocks when the App Store confirms it. */
+"pro_pending_body" = "Această achiziție este încă în așteptare. %@ Pro se deblochează când App Store o confirmă.";
+
+/* Purchase pending */
+"pro_pending_title" = "Achiziție în așteptare";
+
+/* Privacy Policy */
+"pro_privacy_policy" = "Politica de confidențialitate";
+
+/* The purchase didn't complete: %@ */
+"pro_purchase_failed" = "Achiziția nu s-a finalizat: %@";
+
+/* Cloud models are part of %@ Pro. */
+"pro_reason_cloud" = "Modelele cloud fac parte din %@ Pro.";
+
+/* Library folders are part of %@ Pro. */
+"pro_reason_folders" = "Dosarele din Bibliotecă fac parte din %@ Pro.";
+
+/* Get more with %@ Pro. */
+"pro_reason_general" = "Mai multe funcții cu %@ Pro.";
+
+/* OpenAI and Grok voices are part of %@ Pro. */
+"pro_reason_voices" = "Vocile OpenAI și Grok fac parte din %@ Pro.";
+
+/* Couldn't restore purchases */
+
+/* No %@ Pro purchase was found for this Apple Account. */
+"pro_restore_none_body" = "Nu s-a găsit nicio achiziție %@ Pro pentru acest cont Apple.";
+
+/* Nothing to restore */
+"pro_restore_none_title" = "Nimic de restaurat";
+
+/* Restore Purchases */
+"pro_restore_purchases" = "Restaurează achizițiile";
+
+/* Pro */
+"pro_status_active" = "Pro";
+
+/* Pro · ends %@ */
+"pro_status_ends" = "Pro · se încheie pe %@";
+
+/* Pro · shared with your family */
+"pro_status_family" = "Pro · partajat cu familia";
+
+/* Free */
+"pro_status_free" = "Gratuit";
+
+/* Pro · lifetime */
+"pro_status_lifetime" = "Pro · pe viață";
+
+/* Pro · renews %@ */
+"pro_status_renews" = "Pro · se reînnoiește pe %@";
+
+/* Pro trial · ends %@ */
+"pro_status_trial_ends" = "Perioadă de probă Pro · se încheie pe %@";
+
+/* Pro trial · first payment %@ */
+"pro_status_trial_renews" = "Perioadă de probă Pro · prima plată pe %@";
+
+/* Pro trial · until %@ */
+"pro_status_trial_until" = "Perioadă de probă Pro · până pe %@";
+
+/* Pro · until %@ */
+"pro_status_until" = "Pro · până pe %@";
+
+/* Pro purchases are unavailable right now. Please try again later. */
+"pro_store_unavailable" = "Achizițiile Pro nu sunt disponibile acum. Încercați din nou mai târziu.";
+
+/* Payment goes to your Apple Account. A subscription renews automatically each year unless it is cancelled in your App Store settings at least a day before the period ends. */
+"pro_terms" = "Plata se face prin contul dvs. Apple. Abonamentul se reînnoiește automat anual, dacă nu este anulat din configurările App Store cu cel puțin o zi înainte de sfârșitul perioadei.";
+
+/* Terms of Use */
+"pro_terms_of_use" = "Condiții de utilizare";
+
+/* Cancel at least a day before the free trial ends to avoid being charged. */
+
+/* %@ Pro */
+"pro_title" = "%@ Pro";
+
+/* Start free trial */
+
+/* Try free for a month */
+
+/* then %@ a year · cancel anytime */
+
+/* The App Store could not verify this purchase. */
+"pro_unverified" = "App Store nu a putut verifica această achiziție.";
+
+/* Upgrade… */
+"pro_upgrade_button" = "Treci la Pro…";
+
+/* Subscribe for %@ a year */
+"pro_yearly_button" = "Abonează-te cu %@ pe an";
+
+/* Renews automatically each year · cancel anytime */
+"pro_yearly_caption" = "Reînnoire automată anuală · anulați oricând";
+
+/* You have %@ Pro. */
+"pro_you_have" = "Aveți %@ Pro.";
+
+/* Pronounce — click to choose a voice first */
+"pronounce_setup_tooltip" = "Pronunție — apăsați pentru a alege o voce";
+
+/* Pronunciation voice */
+"pronunciation_voice" = "Voce pentru pronunție";
+
+/* Proofread */
+"proofread" = "Corectură";
+
+/* Proofread Clipboard */
+"proofread_clipboard" = "Corectați clipboardul";
+
+/* Proofreading… */
+"proofreading" = "Se corectează…";
+
+/* Quit %@ */
+"quit_app" = "Închideți %@";
+
+/* Quit Now */
+"quit_now" = "Închideți acum";
+
+/* Redo */
+"redo" = "Refaceți";
+
+/* Remember choices */
+"remember_choices" = "Reține alegerile";
+
+/* Rename */
+"rename" = "Redenumiți";
+
+/* Rename Folder */
+"rename_folder_menu" = "Redenumește dosarul";
+
+/* Rephrasing… */
+"rephrasing" = "Se reformulează…";
+
+/* Reset Defaults */
+"reset_defaults" = "Restabilește valorile implicite";
+
+/* Press Save to restore defaults, or open Setup Assistant to choose new settings. */
+"reset_wizard_body" = "Apăsați Salvează pentru a restabili valorile implicite sau deschideți Asistentul de configurare pentru a alege alte configurări.";
+
+/* Start over with the Setup Assistant? */
+"reset_wizard_title" = "Reluați configurarea cu Asistentul?";
+
+/* Empty and loading results */
+"results_empty_title" = "Totul este gata";
+"results_empty_hint" = "Introduceți text în stânga, apoi apăsați ⌘↵ pentru a vedea rezultatul aici.";
+"results_loading_title" = "Se creează rezultatul";
+"retry" = "Reîncearcă";
+
+/* Rewrite */
+"rewrite" = "Rescriere";
+
+/* Rewrite Clipboard */
+"rewrite_clipboard" = "Rescrieți clipboardul";
+
+/* App Language */
+"row_app_language" = "Limba aplicației";
+
+/* Launcher Window */
+"row_launcher_window" = "Fereastra lansatorului";
+
+/* Online Research */
+"row_online_research" = "Căutare online";
+
+/* Secret Protection */
+"row_secret_protection" = "Protecția secretelor";
+
+/* Run */
+"run" = "Rulați";
+
+/* look up */
+"run_verb_dictionary" = "caută";
+
+/* explain */
+"run_verb_explain" = "explică";
+
+/* proofread */
+"run_verb_proofread" = "corectează";
+
+/* rewrite */
+"run_verb_rewrite" = "rescrie";
+
+/* summarize */
+"run_verb_summarize" = "rezumă";
+
+/* translate */
+"run_verb_translate" = "traduce";
+
+/* Save */
+"save" = "Salvează";
+
+/* Save Audio… */
+"save_audio" = "Salvați sunetul…";
+
+/* Save Text… */
+"save_text" = "Salvați textul…";
+
+/* Search actions */
+"search_actions" = "Caută acțiuni";
+
+/* ⌘K search */
+"search_actions_hint" = "⌘K caută";
+
+/* Search languages */
+"search_languages" = "Caută limbi";
+
+/* Search Library */
+"search_library" = "Căutați în bibliotecă";
+
+/* Search models */
+"search_models" = "Caută modele";
+
+/* titles */
+"search_scope_titles" = "titluri";
+
+/* titles or contents */
+"search_scope_titles_contents" = "titluri sau conținut";
+
+/* Search voices */
+"search_voices" = "Caută voci";
+
+/* Services */
+"services" = "Servicii";
+
+/* Settings… */
+"settings" = "Configurări…";
+
+/* Settings */
+"settings_window" = "Configurări";
+
+/* Setup Assistant… */
+"setup_assistant" = "Asistent de configurare…";
+
+/* Show All */
+"show_all" = "Afișați tot";
+
+/* Show Langmin in the menu bar */
+"show_langmin_in_the_menu_bar" = "Afișați Langmin în bara de meniu";
+
+/* %@ with %@… */
+"status_with_model" = "%@ cu %@…";
+
+/* Style */
+"style" = "Stil";
+
+/* Summarize */
+"summarize" = "Rezumat";
+
+/* Summarize Clipboard */
+"summarize_clipboard" = "Rezumați clipboardul";
+
+/* Summarizing… */
+"summarizing" = "Se rezumă…";
+
+/* System Default */
+"system_default" = "Implicit din sistem";
+
+/* Advanced */
+"tab_advanced" = "Avansat";
+
+/* General */
+"tab_general" = "General";
+
+/* Models */
+"tab_models" = "Modele";
+
+/* Reading */
+"tab_reading" = "Citire";
+
+/* Shortcuts */
+"tab_shortcuts" = "Scurtături";
+
+/* Window */
+"tab_window" = "Fereastră";
+
+/* Tightening… */
+"tightening" = "Se scurtează…";
+
+/* Translate */
+"translate" = "Traducere";
+
+/* Translate Clipboard */
+"translate_clipboard" = "Traduceți clipboardul";
+
+/* Translating… */
+"translating" = "Se traduce…";
+
+/* Undo */
+"undo" = "Anulați";
+
+/* Untitled */
+"untitled" = "Fără titlu";
+
+/* Another app asked Langmin to process this text:\n\n“%@”\n\nRunning sends it to your configured model. */
+"url_run_confirm_body" = "O altă aplicație a cerut ca Langmin să proceseze acest text:\n\n„%@”\n\nLa rulare, va fi trimis modelului configurat.";
+
+/* Run “%@” from a link? */
+"url_run_confirm_title" = "Rulați „%@” dintr-un link?";
+
+/* Use web research when available */
+"use_web_research" = "Folosește căutarea pe web când este disponibilă";
+
+/* Warn before sending secrets */
+"warn_before_secrets" = "Avertizează înainte de a trimite secrete";
+
+/* Window */
+"window" = "Fereastră";
+
+/* Runs on your Mac. Free, with no account needed. */
+"wizard_apple_available" = "Rulează pe Mac. Gratuit, fără cont.";
+
+/* Apple Intelligence (on this Mac, private and free) */
+"wizard_apple_row" = "Apple Intelligence (pe acest Mac, privat și gratuit)";
+
+/* Apple Intelligence (not available on this Mac) */
+"wizard_apple_row_unavailable" = "Apple Intelligence (indisponibil pe acest Mac)";
+
+/* Not available on this Mac (requires Apple Intelligence). Choose a cloud provider below. */
+"wizard_apple_unavailable" = "Indisponibil pe acest Mac (necesită Apple Intelligence). Alegeți un furnizor cloud mai jos.";
+
+/* Read results aloud or hear Dictionary words and examples. Choose a voice that supports the language.\n\nApple voices run on your Mac for free. OpenAI and Grok voices require Pro and a provider API key. */
+"wizard_audio_body" = "Ascultați rezultate, cuvinte și exemple din Dicționar. Alegeți o voce care acceptă limba respectivă.\n\nVocile Apple rulează gratuit pe Mac. Vocile OpenAI și Grok necesită Pro și o cheie API de la furnizor.";
+
+/* Hear your words */
+"wizard_audio_title" = "Ascultați cuvintele";
+
+/* Back */
+"wizard_back" = "Înapoi";
+
+/* macOS may ask for clipboard access when you first use a shortcut. */
+"wizard_clipboard_note" = "macOS poate cere acces la clipboard când folosiți prima dată o scurtătură.";
+
+/* Continue */
+"wizard_continue" = "Continuă";
+
+/* Also answer in */
+"wizard_extra_languages" = "Răspunde și în";
+
+/* Finish */
+"wizard_finish" = "Finalizează";
+
+/* Keys stay in macOS Keychain. Requests go directly to your provider. Add keys or a local model later in Settings → Models. */
+"wizard_key_note_local" = "Cheile rămân în Portchei macOS. Cererile merg direct la furnizor. Adăugați chei sau un model local mai târziu în Configurări → Modele.";
+
+/* API key (optional, add any time) */
+"wizard_key_optional" = "Cheie API (opțională, se poate adăuga oricând)";
+
+/* Choose translation languages. Extra languages add versions to Dictionary, Explain, and Summarize results. Change either list in the launcher's mode menus. */
+"wizard_language_body_single_source" = "Alegeți limbile de traducere. Limbile suplimentare adaugă versiuni la rezultatele din Dicționar, Explicație și Rezumat. Schimbați listele în meniurile modurilor din lansator.";
+
+/* Your languages */
+"wizard_language_title" = "Limbile dvs.";
+
+/* Set Up Later */
+"wizard_later" = "Configurează mai târziu";
+
+/* Cloud providers, web research, Library folders, and cloud voices require %@ Pro. Apple Intelligence is free. Eligible subscriptions include a trial. */
+"wizard_pro_note" = "Your first 30 days include %@ Pro. Apple Intelligence stays free afterward.";
+
+/* Dictionary pronunciation voice */
+"wizard_pronunciation_voice" = "Voce de pronunție pentru dicționar";
+
+/* Claude models with web research. */
+"wizard_provider_anthropic" = "Modele Claude cu căutare web.";
+
+/* Switch models in the launcher, or open All models to enable more. */
+"wizard_provider_body_multi" = "Schimbați modelul în lansator sau activați altele în Toate modelele.";
+
+/* DeepSeek chat and reasoning models. */
+"wizard_provider_deepseek" = "Modele DeepSeek pentru conversație și raționament.";
+
+/* Gemini models with web research. */
+"wizard_provider_gemini" = "Modele Gemini cu căutare web.";
+
+/* Grok text models and optional voices. */
+"wizard_provider_grok" = "Modele de text Grok și voci opționale.";
+
+/* GPT models with web research. */
+"wizard_provider_openai" = "Modele GPT cu căutare web.";
+
+/* Choose your providers */
+"wizard_provider_title_multi" = "Alegeți furnizorii";
+
+/* Copy text and use a shortcut, or open the launcher and start typing.\n\nChange your choices in the launcher's menus or Settings. */
+"wizard_ready_body_simple" = "Langmin starts a free 30-day trial when you first open it. No subscription starts, and you will not be charged.";
+
+/* You're all set */
+"wizard_ready_title" = "30 days of full access";
+
+/* Use these shortcuts from another app after copying text. Proofread and Rewrite copy the result. The other four modes show it in the HUD. Open opens a result window; Dismiss closes the HUD.\n\nIn Langmin's main window, these shortcuts select a mode. Press ⌘Return to run it. */
+"wizard_shortcuts_body" = "Copiați text într-o altă aplicație și folosiți aceste scurtături. Corectură și Rescriere copiază rezultatul. Celelalte patru moduri îl afișează în HUD. Deschide deschide o fereastră cu rezultatul; Închide închide HUD-ul.\n\nÎn fereastra principală Langmin, scurtăturile aleg un mod. Apăsați ⌘Return pentru a-l rula.";
+
+/* Step %d of %d */
+"wizard_step_n_of_m" = "Pasul %d din %d";
+
+/* Translate to */
+"wizard_translate_to" = "Tradu în";
+
+/* Proofread, rewrite, explain, summarize, translate, and look up words. Listen to results and Dictionary examples.\n\nChoose your settings now or change them later. */
+"wizard_welcome_body_short" = "Corectați, rescrieți, explicați, rezumați, traduceți și căutați cuvinte. Ascultați rezultate și exemple din Dicționar.\n\nAlegeți configurările acum sau schimbați-le mai târziu.";
+
+/* Welcome to %@ */
+"wizard_welcome_title" = "Bun venit la %@";
+
+/* Langmin Setup */
+"wizard_window" = "Configurarea Langmin";
+
+/* Open Langmin at login to keep its menu-bar actions and shortcuts available. */
+"wizard_workflow_body" = "Deschideți Langmin la autentificare pentru a avea disponibile acțiunile și scurtăturile sale.";
+
+/* Always at hand */
+"wizard_workflow_title" = "Mereu la îndemână";
+
+/* Your providers */
+"your_providers" = "Furnizorii dvs.";
+
+/* Dictionary illustrations */
+"illustration" = "Ilustrație";
+"illustration_apple_note" = "Creați și alegeți o imagine pe Mac";
+"illustration_apple_unavailable" = "Necesită macOS 15.4 sau ulterior și Image Playground";
+"illustration_cloud_note" = "Facturare separată · folosește cheia dvs. API OpenAI";
+"illustration_generated" = "Ilustrație generată de IA";
+"illustration_generating" = "Se creează ilustrația…";
+"illustration_failed" = "Ilustrația nu a putut fi creată";
+"illustration_missing_key" = "Adăugați o cheie API OpenAI în Configurări → Modele.";
+"illustration_save" = "Salvați imaginea…";
+"illustration_remove" = "Eliminați ilustrația";
+
+"reading_webpage" = "Se citește pagina…";
+
+"loading_page_images" = "Se încarcă imaginile paginii…";
+
+/* Follow-up */
+"followup_title" = "Întrebare suplimentară";
+
+/* Ask a follow-up or request changes… */
+"followup_placeholder" = "Puneți o altă întrebare sau solicitați modificări…";
+
+/* Send follow-up */
+"followup_send" = "Trimite întrebarea";
+
+/* Replying… */
+"followup_working" = "Se răspunde…";
+
+/* You */
+"followup_you" = "Dvs.";
+
+/* Copy reply */
+"followup_copy" = "Copiază răspunsul";
+
+/* Delete reply */
+"followup_delete_reply" = "Șterge răspunsul";
+
+/* The message could not be deleted: %@ */
+"followup_delete_failed" = "Mesajul nu a putut fi șters: %@";
+
+/* Print… */
+"print" = "Tipărire…";
+
+/* Quick HUD playback */
+"hud_read_paragraph" = "Citește acest paragraf cu voce tare";
+"hud_stop_playback" = "Oprește citirea";
+"hud_playback_failed" = "Acest text nu a putut fi citit cu voce tare";
+"hud_voice_api_key" = "Adaugă o cheie API pentru %@ în Configurări pentru a folosi această voce.";
+
+"request_failed" = "Solicitarea a eșuat";
+
+/* Translation skipped */
+"translation_skipped" = "Traducere omisă";
+
+/* Already in this language. */
+"translation_already_in_language" = "Textul este deja în limba selectată.";
+
+/* Library window placement */
+"detach_library" = "Deschide biblioteca într-o fereastră separată";
+"attach_library" = "Mută biblioteca în fereastra principală";
+
+/* Result text editing */
+"apply" = "Aplică";
+"discard_changes" = "Renunță la modificări";
+"done" = "Gata";
+"edit_link" = "Editează linkul";
+"edit_text" = "Editează textul";
+"format_text" = "Formatează textul";
+"remove_link" = "Elimină linkul";
+"save_text_changes" = "Salvați modificările textului?";
+"text_style" = "Stil de text";
+"save_edits_remove_audio" = "Salvați modificările și eliminați sunetul?";
+"save_edits_remove_audio_detail" = "Salvarea acestor modificări va elimina toate înregistrările de narațiune și pronunție atașate. Puteți genera sunet nou după aceea.";
+
+/* iCloud Library sync */
+"pro_feature_icloud" = "Sincronizarea bibliotecii prin iCloud";
+"pro_reason_icloud" = "Sincronizarea bibliotecii prin iCloud face parte din %@ Pro.";
+
+/* Automatically illustrate new lookups */
+"illustration_automatic" = "Ilustrează automat căutările noi";
+
+/* Automatic images are off by default. To add an image yourself, use the picture button on a Dictionary result. */
+"illustration_manual_note" = "Imaginile automate sunt dezactivate implicit. Pentru a adăuga o imagine, folosiți butonul de imagine dintr-un rezultat al Dicționarului.";
+
+/* Image Provider */
+"illustration_provider" = "Furnizor de imagini";
+
+/* Choose in result */
+"illustration_choose_in_result" = "Alege în rezultat";
+
+/* Choose a provider before turning on automatic images. You can also add an image from a Dictionary result's picture button. */
+"illustration_choose_provider_note" = "Alegeți un furnizor înainte de a activa imaginile automate. Puteți adăuga o imagine și cu butonul de imagine dintr-un rezultat al Dicționarului.";
+
+/* Create and choose images on your Mac. Automatic mode opens Image Playground after each Dictionary lookup. */
+"illustration_apple_settings_note" = "Creați și alegeți imagini pe Mac. În modul automat, Image Playground se deschide după fiecare căutare în Dicționar.";
+
+/* Requires Pro and an OpenAI API key in Settings → Models. Each image is billed separately. Creates one landscape image at medium quality. */
+"illustration_openai_settings_note" = "Necesită Pro și o cheie API OpenAI în Configurări → Modele. Fiecare imagine este facturată separat. Creează o imagine orizontală de calitate medie.";
+
+/* Illustrations */
+"tab_illustrations" = "Ilustrații";
+
+/* Empty launcher input */
+"input_start_hint" = "Scrieți sau lipiți aici ori trageți un fișier";
+"input_documents" = "Documente";
+"input_images" = "Imagini";
+"input_audio" = "Audio";
+"input_drop_title" = "Eliberați pentru a adăuga text";
+
+/* Source-build purchase footer */
+"source_build_title" = "Trial ended";
+"source_build_support" = "Apple Intelligence stays free, while other Pro features require purchase.";
+"source_build_purchase" = "Cumpără";
+"source_build_dismiss" = "Dismiss";
+"pro_app_trial_one_day" = "Pro trial · 1 day remaining";
+"pro_app_trial_days" = "Pro trial · %d days remaining";
+"wizard_trial_during_title" = "Your first 30 days";
+"wizard_trial_during_langmin" = "Use every Langmin feature without app limits. Provider charges may still apply.";
+"wizard_trial_after_title" = "After the trial";
+"wizard_trial_after_langmin" = "Apple Intelligence, Apple voices, Apple transcription, text editing, and the Library stay free. Other Pro features require a purchase.";
+"wizard_trial_plans_title" = "Keep Pro";
+"wizard_trial_plans_body" = "Choose a yearly plan or lifetime access at any time.";
