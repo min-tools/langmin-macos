@@ -1,0 +1,983 @@
+/* Langmin — ru localization. Comments give English text or name a related group. */
+
+/* About %@ */
+"about_app" = "О приложении %@";
+
+/* All */
+"all_chip" = "Все";
+
+/* All models */
+"all_models" = "Все модели";
+
+/* Answer language */
+"answer_language" = "Язык ответа";
+
+/* %@ Help */
+"app_help" = "Справка %@";
+
+/* Back */
+"back" = "Назад";
+
+/* Bring All to Front */
+"bring_all_to_front" = "Все окна — на передний план";
+
+/* Delete %d items from %@? */
+"bulk_delete_confirm_many" = "Удалить элементы (%d) из раздела «%@»?";
+
+/* Delete 1 item from %@? */
+"bulk_delete_confirm_one" = "Удалить 1 элемент из раздела «%@»?";
+
+/* Only the items matching the current search are deleted. */
+"bulk_delete_search_note" = "Удаляются только элементы, соответствующие текущему поиску.";
+
+/* Use Undo to restore an item before it disappears. */
+"bulk_delete_undo_note" = "Нажмите «Отменить», чтобы вернуть элемент, пока он не исчез.";
+
+/* Cancel */
+"cancel" = "Отменить";
+
+/* Cancel Current Action */
+"cancel_current_action" = "Отменить текущее действие";
+
+/* Cancel this request (Esc) */
+"cancel_this_request_esc" = "Отменить этот запрос (Esc)";
+
+/* Cancelled */
+"cancelled" = "Отменено";
+
+/* Cancelling… */
+"cancelling" = "Отмена…";
+
+/* Cancelling */
+"cancelling_a11y" = "Отмена";
+
+/* Clear after submit */
+"clear_after_submit" = "Очищать после отправки";
+
+/* You copied something else while Langmin was working. Replace it with the transformed text? */
+"clipboard_changed_body" = "Пока Langmin работал, вы скопировали что-то другое. Заменить это преобразованным текстом?";
+
+/* The clipboard changed */
+"clipboard_changed_title" = "Буфер обмена изменился";
+
+/* Clipboard unchanged */
+"clipboard_unchanged" = "Буфер обмена не изменён";
+
+/* macOS did not accept the transformed text. The previous clipboard contents were restored. */
+"clipboard_write_failed_restored" = "macOS не принял преобразованный текст. Прежнее содержимое буфера обмена восстановлено.";
+
+/* macOS did not accept the transformed text, and the previous clipboard contents could not be restored. */
+"clipboard_write_failed_unrestored" = "macOS не принял преобразованный текст, и прежнее содержимое буфера обмена не удалось восстановить.";
+
+/* Close */
+"close" = "Закрыть";
+
+/* ⌘V to paste */
+"cmd_v_to_paste" = "⌘V — вставить";
+
+/* Compose with Clipboard */
+"compose_with_clipboard" = "Составить из буфера обмена";
+
+/* Copied */
+"copied" = "Скопировано";
+
+/* Copy */
+"copy" = "Скопировать";
+
+/* Copy this paragraph */
+"copy_paragraph" = "Скопировать этот абзац";
+
+/* Copy Result */
+"copy_result" = "Скопировать результат";
+
+/* Copying… */
+"copying" = "Копирование…";
+
+/* Could not delete one saved item */
+"could_not_delete_one_saved_item" = "Не удалось удалить один сохранённый элемент";
+
+/* Could not delete some saved items */
+"could_not_delete_some_saved_items" = "Не удалось удалить некоторые сохранённые элементы";
+
+/* Could not delete this saved item */
+"could_not_delete_this_saved_item" = "Не удалось удалить этот сохранённый элемент";
+
+/* Could not export this saved item */
+"could_not_export_this_saved_item" = "Не удалось экспортировать этот сохранённый элемент";
+
+/* Could not open the result */
+"could_not_open_result" = "Не удалось открыть результат";
+
+/* Could not rename this saved item */
+"could_not_rename_this_saved_item" = "Не удалось переименовать этот сохранённый элемент";
+
+/* Could not restore this saved item */
+"could_not_restore_this_saved_item" = "Не удалось восстановить этот сохранённый элемент";
+
+/* Could not save audio */
+"could_not_save_audio" = "Не удалось сохранить аудио";
+
+/* Could not update the clipboard */
+"could_not_update_clipboard" = "Не удалось обновить буфер обмена";
+
+/* Could not update the login item */
+"could_not_update_the_login_item" = "Не удалось изменить объект входа";
+
+/* Cut */
+"cut" = "Вырезать";
+
+/* Cycle Through Windows */
+"cycle_through_windows" = "Переключение окон";
+
+/* Delete */
+"delete" = "Удалить";
+
+/* Delete All %d… */
+"delete_all_n" = "Удалить все (%d)…";
+
+/* Delete Folder */
+"delete_folder_menu" = "Удалить папку";
+
+/* All entries stay in the Library */
+"delete_folder_subtitle" = "Все записи останутся в Библиотеке";
+
+/* Delete %d Shown… */
+"delete_n_shown" = "Удалить показанные (%d)…";
+
+/* Deleted “%@” */
+"deleted_item" = "Удалено «%@»";
+
+/* Dictionary */
+"dictionary" = "Словарь";
+
+/* Dictionary Lookup */
+"dictionary_lookup" = "Поиск в словаре";
+
+/* Dismiss */
+"dismiss" = "Закрыть";
+
+/* Drop or paste documents, images, or audio */
+"drop_hint" = "Перетащите или вставьте документы, изображения или аудио";
+
+/* Edit */
+"edit" = "Правка";
+
+/* Deeper essay */
+"effort_detailed" = "Подробное эссе";
+
+/* Short and clear */
+"effort_simple" = "Коротко и ясно";
+
+/* Balanced depth */
+"effort_standard" = "Сбалансированно";
+
+/* Elaborating… */
+"elaborating" = "Дополнение…";
+
+/* Explain */
+"explain" = "Разбор";
+
+/* Explain Clipboard */
+"explain_clipboard" = "Объяснить буфер обмена";
+
+/* Explaining… */
+"explaining" = "Объяснение…";
+
+/* Export Audio… */
+"export_audio_menu" = "Экспортировать аудио…";
+
+/* Export Audio */
+"export_audio_panel" = "Экспорт аудио";
+
+/* Export Text… */
+"export_text_menu" = "Экспортировать текст…";
+
+/* Export Text */
+"export_text_panel" = "Экспорт текста";
+
+/* Extra languages */
+"extra_languages" = "Дополнительные языки";
+
+/* File */
+"file" = "Файл";
+
+/* File In */
+"file_in_submenu" = "В папку";
+
+/* Filter folders */
+"filter_folders" = "Фильтр папок";
+
+/* Find… */
+"find_item" = "Найти…";
+
+/* Find */
+"find_menu" = "Поиск";
+
+/* ↵ create · esc cancel */
+"folder_create_hint" = "↵ создать · esc отмена";
+
+/* Nothing in this folder yet */
+"folder_empty_title" = "В этой папке пока пусто";
+
+/* Drag results onto a folder chip, or right-click one and file it here. */
+"folder_empty_subtitle" = "Перетащите результат на папку или выберите её через правый клик.";
+
+/* already exists */
+"folder_exists_hint" = "уже существует";
+
+/* already exists · ↵ opens it */
+"folder_exists_opens_hint" = "уже существует · ↵ открыть";
+
+/* Folder name */
+"folder_name_placeholder" = "Название папки";
+
+/* ↵ rename · esc cancel */
+"folder_rename_hint" = "↵ переименовать · esc отмена";
+
+/* Help */
+"help" = "Справка";
+
+/* Hide %@ */
+"hide_app" = "Скрыть %@";
+
+/* Hide Others */
+"hide_others" = "Скрыть остальные";
+
+/* Explaining */
+"hud_explaining" = "Объяснение";
+
+/* Looking up */
+"hud_looking_up" = "Поиск в словаре";
+
+/* 1 word */
+"hud_one_word" = "1 слово";
+
+/* Proofreading */
+"hud_proofreading" = "Проверка";
+
+/* Rewriting */
+"hud_rewriting" = "Переписывание";
+
+/* Summarizing */
+"hud_summarizing" = "Резюмирование";
+
+/* Translating */
+"hud_translating" = "Перевод";
+
+/* %d words */
+"hud_word_count" = "Слов: %d";
+
+/* Keep Current Clipboard */
+"keep_current_clipboard" = "Оставить текущий буфер";
+
+/* Language level */
+"language_level" = "Уровень языка";
+
+/* The new language takes effect the next time Langmin opens. */
+"language_restart_notice" = "Новый язык вступит в силу при следующем запуске Langmin.";
+
+/* Later */
+"later" = "Позже";
+
+/* Library */
+"library" = "Библиотека";
+
+/* No saved items yet */
+"library_empty_title" = "Пока нет сохранённых результатов";
+
+/* Click a result's bookmark button to save it here. */
+"library_empty_subtitle" = "Нажмите кнопку закладки рядом с результатом, чтобы сохранить его здесь.";
+
+/* Look Up Clipboard in Dictionary */
+"look_up_clipboard_in_dictionary" = "Найти текст из буфера в словаре";
+
+/* Looking up… */
+"looking_up" = "Поиск…";
+
+/* Match question */
+"match_question" = "Как в вопросе";
+
+/* Minimize */
+"minimize" = "Свернуть";
+
+/* More folders */
+"more_folders" = "Ещё папки";
+
+/* More languages */
+"more_languages" = "Другие языки";
+
+/* %d saved */
+"n_saved" = "%d сохранено";
+
+/* New Explanation */
+"new_explanation" = "Новое объяснение";
+
+/* New Folder… */
+"new_folder_menu" = "Новая папка…";
+
+/* Copy some text, then try the Langmin action again. */
+"no_clipboard_text_body" = "Скопируйте текст и повторите действие Langmin.";
+
+/* No clipboard text */
+"no_clipboard_text_title" = "Буфер обмена пуст";
+
+/* No Folder */
+"no_folder" = "Без папки";
+
+/* No results */
+"library_search_empty_title" = "Нет результатов";
+
+/* No %@ match “%@”. */
+"no_search_matches" = "Нет %@, содержащих «%@».";
+
+/* None */
+"none" = "Нет";
+
+/* Not Now */
+"not_now" = "Не сейчас";
+
+/* OK */
+"ok" = "OK";
+
+/* On this Mac */
+"on_this_mac" = "На этом Mac";
+
+/* Open */
+"open" = "Открыть";
+
+/* Open */
+"open_in_window" = "Открыть";
+
+/* Open Langmin */
+"open_langmin" = "Открыть Langmin";
+
+/* Open Langmin at login */
+"open_langmin_at_login" = "Открывать Langmin при входе в систему";
+
+/* Open in a result window */
+"open_result_window" = "Открыть в окне результата";
+
+/* Open Settings */
+"open_settings" = "Открыть настройки";
+
+/* Open Setup Assistant */
+"open_setup_assistant" = "Открыть Ассистент настройки";
+
+/* Opening… */
+"opening_hud" = "Открытие…";
+
+/* Opening… */
+"opening_progress" = "Открытие…";
+
+/* Other */
+"other" = "Другое";
+
+/* ↵ run    ⇥ pin chip    ⌘, options */
+"palette_legend_chip" = "↵ запуск    ⇥ закрепить чип    ⌘, параметры";
+
+/* Paste */
+"paste" = "Вставить";
+
+/* Langmin can't access the pasted file */
+"pasted_file_denied" = "Langmin не может открыть вставленный файл";
+
+/* Langmin can't access the pasted files */
+"pasted_files_denied" = "Langmin не может открыть вставленные файлы";
+
+/* macOS did not grant access to these files. Drag them into this window instead. */
+"pasted_files_denied_body" = "macOS не предоставила доступ к этим файлам. Перетащите их в это окно.";
+
+/* Look up a word… */
+"placeholder_dictionary" = "Найти слово…";
+
+/* What would you like explained? */
+"placeholder_explain" = "Что разобрать?";
+
+/* What would you like proofread? */
+"placeholder_proofread" = "Что проверить?";
+
+/* What would you like rewritten? */
+"placeholder_rewrite" = "Что изложить иначе?";
+
+/* What would you like summarized? */
+"placeholder_summarize" = "Что резюмировать?";
+
+/* What would you like translated? */
+"placeholder_translate" = "Что перевести?";
+
+/* Preparing narration… */
+"preparing_narration" = "Подготовка озвучки…";
+
+/* Privacy Policy… */
+"privacy_policy" = "Политика конфиденциальности…";
+
+/* Family Sharing included. */
+"pro_family_caption" = "Семейный доступ включён.";
+
+/* OpenAI, Anthropic, Gemini, Grok, DeepSeek, and custom endpoints */
+"pro_feature_cloud" = "OpenAI, Anthropic, Gemini, Grok, DeepSeek и собственные эндпоинты";
+
+/* Library folders */
+"pro_feature_folders" = "Папки в Библиотеке";
+
+/* Web research for current facts and sources */
+"pro_feature_research" = "Поиск в интернете для актуальных фактов и источников";
+
+/* OpenAI and Grok voices */
+"pro_feature_voices" = "Голоса OpenAI и Grok";
+
+/* Apple Intelligence, Apple voices, and the Library stay free. */
+"pro_free_note" = "Apple Intelligence, голоса Apple и Библиотека остаются бесплатными.";
+
+/* Buy once for %@ */
+"pro_lifetime_button" = "Купить навсегда за %@";
+
+/* Contacting the App Store… */
+"pro_loading" = "Связываемся с App Store…";
+
+/* Manage Subscription… */
+"pro_manage_subscription" = "Управлять подпиской…";
+
+/* %@ Pro… */
+"pro_menu" = "%@ Pro…";
+
+/* This purchase is still pending. %@ Pro unlocks when the App Store confirms it. */
+"pro_pending_body" = "Эта покупка ещё не завершена. %@ Pro откроется, когда App Store её подтвердит.";
+
+/* Purchase pending */
+"pro_pending_title" = "Покупка ожидает подтверждения";
+
+/* Privacy Policy */
+"pro_privacy_policy" = "Политика конфиденциальности";
+
+/* The purchase didn't complete: %@ */
+"pro_purchase_failed" = "Покупка не завершена: %@";
+
+/* Cloud models are part of %@ Pro. */
+"pro_reason_cloud" = "Облачные модели входят в %@ Pro.";
+
+/* Library folders are part of %@ Pro. */
+"pro_reason_folders" = "Папки в Библиотеке входят в %@ Pro.";
+
+/* Get more with %@ Pro. */
+"pro_reason_general" = "Больше возможностей с %@ Pro.";
+
+/* OpenAI and Grok voices are part of %@ Pro. */
+"pro_reason_voices" = "Голоса OpenAI и Grok входят в %@ Pro.";
+
+/* Couldn't restore purchases */
+
+/* No %@ Pro purchase was found for this Apple Account. */
+"pro_restore_none_body" = "Для этого Apple Account покупка %@ Pro не найдена.";
+
+/* Nothing to restore */
+"pro_restore_none_title" = "Нечего восстанавливать";
+
+/* Restore Purchases */
+"pro_restore_purchases" = "Восстановить покупки";
+
+/* Pro */
+"pro_status_active" = "Pro";
+
+/* Pro · ends %@ */
+"pro_status_ends" = "Pro · до %@";
+
+/* Pro · shared with your family */
+"pro_status_family" = "Pro · семейный доступ";
+
+/* Free */
+"pro_status_free" = "Бесплатно";
+
+/* Pro · lifetime */
+"pro_status_lifetime" = "Pro · навсегда";
+
+/* Pro · renews %@ */
+"pro_status_renews" = "Pro · продлится %@";
+
+/* Pro trial · ends %@ */
+"pro_status_trial_ends" = "Пробный Pro · закончится %@";
+
+/* Pro trial · first payment %@ */
+"pro_status_trial_renews" = "Пробный Pro · первый платёж %@";
+
+/* Pro trial · until %@ */
+"pro_status_trial_until" = "Пробный Pro · до %@";
+
+/* Pro · until %@ */
+"pro_status_until" = "Pro · действует до %@";
+
+/* Pro purchases are unavailable right now. Please try again later. */
+"pro_store_unavailable" = "Покупки Pro сейчас недоступны. Попробуйте позже.";
+
+/* Payment goes to your Apple Account. A subscription renews automatically each year unless it is cancelled in your App Store settings at least a day before the period ends. */
+"pro_terms" = "Оплата списывается с вашего Apple Account. Подписка продлевается автоматически каждый год, если не отменить её в настройках App Store минимум за сутки до окончания периода.";
+
+/* Terms of Use */
+"pro_terms_of_use" = "Условия использования";
+
+/* Cancel at least a day before the free trial ends to avoid being charged. */
+
+/* %@ Pro */
+"pro_title" = "%@ Pro";
+
+/* Start free trial */
+
+/* Try free for a month */
+
+/* then %@ a year · cancel anytime */
+
+/* The App Store could not verify this purchase. */
+"pro_unverified" = "App Store не смог подтвердить эту покупку.";
+
+/* Upgrade… */
+"pro_upgrade_button" = "Перейти на Pro…";
+
+/* Subscribe for %@ a year */
+"pro_yearly_button" = "Подписаться за %@ в год";
+
+/* Renews automatically each year · cancel anytime */
+"pro_yearly_caption" = "Продлевается автоматически каждый год · отмена в любой момент";
+
+/* You have %@ Pro. */
+"pro_you_have" = "У вас есть %@ Pro.";
+
+/* Pronounce — click to choose a voice first */
+"pronounce_setup_tooltip" = "Произнести — сначала нажмите, чтобы выбрать голос";
+
+/* Pronunciation voice */
+"pronunciation_voice" = "Голос произношения";
+
+/* Proofread */
+"proofread" = "Проверка";
+
+/* Proofread Clipboard */
+"proofread_clipboard" = "Проверить буфер обмена";
+
+/* Proofreading… */
+"proofreading" = "Проверка…";
+
+/* Quit %@ */
+"quit_app" = "Завершить %@";
+
+/* Quit Now */
+"quit_now" = "Завершить сейчас";
+
+/* Redo */
+"redo" = "Повторить";
+
+/* Remember choices */
+"remember_choices" = "Запоминать выбор";
+
+/* Rename */
+"rename" = "Переименовать";
+
+/* Rename Folder */
+"rename_folder_menu" = "Переименовать папку";
+
+/* Rephrasing… */
+"rephrasing" = "Перефразирование…";
+
+/* Reset Defaults */
+"reset_defaults" = "Сбросить настройки";
+
+/* Press Save to restore defaults, or open Setup Assistant to choose new settings. */
+"reset_wizard_body" = "Нажмите «Сохранить», чтобы восстановить настройки по умолчанию, или откройте Ассистент настройки, чтобы выбрать новые.";
+
+/* Start over with the Setup Assistant? */
+"reset_wizard_title" = "Начать заново с Ассистентом настройки?";
+
+/* Empty and loading results */
+"results_empty_title" = "Можно начинать";
+"results_empty_hint" = "Введите текст слева и нажмите ⌘↵, чтобы увидеть результат здесь.";
+"results_loading_title" = "Готовим ваш результат";
+"retry" = "Повторить";
+
+/* Rewrite */
+"rewrite" = "Изложение";
+
+/* Rewrite Clipboard */
+"rewrite_clipboard" = "Переписать буфер обмена";
+
+/* App Language */
+"row_app_language" = "Язык приложения";
+
+/* Launcher Window */
+"row_launcher_window" = "Главное окно";
+
+/* Online Research */
+"row_online_research" = "Веб-поиск";
+
+/* Secret Protection */
+"row_secret_protection" = "Защита секретов";
+
+/* Run */
+"run" = "Выполнить";
+
+/* look up */
+"run_verb_dictionary" = "найти в словаре";
+
+/* explain */
+"run_verb_explain" = "объяснить";
+
+/* proofread */
+"run_verb_proofread" = "проверить";
+
+/* rewrite */
+"run_verb_rewrite" = "переписать";
+
+/* summarize */
+"run_verb_summarize" = "кратко изложить";
+
+/* translate */
+"run_verb_translate" = "перевести";
+
+/* Save */
+"save" = "Сохранить";
+
+/* Save Audio… */
+"save_audio" = "Сохранить аудио…";
+
+/* Save Text… */
+"save_text" = "Сохранить текст…";
+
+/* Search actions */
+"search_actions" = "Поиск действий";
+
+/* ⌘K search */
+"search_actions_hint" = "⌘K поиск";
+
+/* Search languages */
+"search_languages" = "Поиск языков";
+
+/* Search Library */
+"search_library" = "Поиск в библиотеке";
+
+/* Search models */
+"search_models" = "Поиск моделей";
+
+/* titles */
+"search_scope_titles" = "заголовков";
+
+/* titles or contents */
+"search_scope_titles_contents" = "заголовков или содержимого";
+
+/* Search voices */
+"search_voices" = "Поиск голосов";
+
+/* Services */
+"services" = "Службы";
+
+/* Settings… */
+"settings" = "Настройки…";
+
+/* Settings */
+"settings_window" = "Настройки";
+
+/* Setup Assistant… */
+"setup_assistant" = "Ассистент настройки…";
+
+/* Show All */
+"show_all" = "Показать все";
+
+/* Show Langmin in the menu bar */
+"show_langmin_in_the_menu_bar" = "Показывать Langmin в строке меню";
+
+/* %@ with %@… */
+"status_with_model" = "%@ через %@…";
+
+/* Style */
+"style" = "Стиль";
+
+/* Summarize */
+"summarize" = "Резюме";
+
+/* Summarize Clipboard */
+"summarize_clipboard" = "Резюмировать буфер обмена";
+
+/* Summarizing… */
+"summarizing" = "Резюмирование…";
+
+/* System Default */
+"system_default" = "Системный по умолчанию";
+
+/* Advanced */
+"tab_advanced" = "Дополнительно";
+
+/* General */
+"tab_general" = "Основные";
+
+/* Models */
+"tab_models" = "Модели";
+
+/* Reading */
+"tab_reading" = "Чтение";
+
+/* Shortcuts */
+"tab_shortcuts" = "Сочетания";
+
+/* Window */
+"tab_window" = "Окно";
+
+/* Tightening… */
+"tightening" = "Сокращение…";
+
+/* Translate */
+"translate" = "Перевод";
+
+/* Translate Clipboard */
+"translate_clipboard" = "Перевести буфер обмена";
+
+/* Translating… */
+"translating" = "Перевод…";
+
+/* Undo */
+"undo" = "Отменить";
+
+/* Untitled */
+"untitled" = "Без названия";
+
+/* Another app asked Langmin to process this text:\n\n“%@”\n\nRunning sends it to your configured model. */
+"url_run_confirm_body" = "Другое приложение просит Langmin обработать этот текст:\n\n«%@»\n\nЗапуск отправит его выбранной модели.";
+
+/* Run “%@” from a link? */
+"url_run_confirm_title" = "Выполнить «%@» по ссылке?";
+
+/* Use web research when available */
+"use_web_research" = "Использовать веб-поиск, когда доступен";
+
+/* Warn before sending secrets */
+"warn_before_secrets" = "Предупреждать перед отправкой секретов";
+
+/* Window */
+"window" = "Окно";
+
+/* Runs on your Mac. Free, with no account needed. */
+"wizard_apple_available" = "Работает на вашем Mac. Бесплатно и без аккаунта.";
+
+/* Apple Intelligence (on this Mac, private and free) */
+"wizard_apple_row" = "Apple Intelligence (на этом Mac, приватно и бесплатно)";
+
+/* Apple Intelligence (not available on this Mac) */
+"wizard_apple_row_unavailable" = "Apple Intelligence (недоступно на этом Mac)";
+
+/* Not available on this Mac (requires Apple Intelligence). Choose a cloud provider below. */
+"wizard_apple_unavailable" = "Недоступен на этом Mac (требуется Apple Intelligence). Выберите облачного провайдера ниже.";
+
+/* Read results aloud or hear Dictionary words and examples. Choose a voice that supports the language.\n\nApple voices run on your Mac for free. OpenAI and Grok voices require Pro and a provider API key. */
+"wizard_audio_body" = "Слушайте результаты, слова и примеры из Словаря. Выберите голос, который поддерживает нужный язык.\n\nГолоса Apple работают на Mac бесплатно. Для голосов OpenAI и Grok нужны Pro и API-ключ провайдера.";
+
+/* Hear your words */
+"wizard_audio_title" = "Слушайте слова";
+
+/* Back */
+"wizard_back" = "Назад";
+
+/* macOS may ask for clipboard access when you first use a shortcut. */
+"wizard_clipboard_note" = "При первом использовании сочетания клавиш macOS может запросить доступ к буферу обмена.";
+
+/* Continue */
+"wizard_continue" = "Продолжить";
+
+/* Also answer in */
+"wizard_extra_languages" = "Также отвечать на";
+
+/* Finish */
+"wizard_finish" = "Готово";
+
+/* Keys stay in macOS Keychain. Requests go directly to your provider. Add keys or a local model later in Settings → Models. */
+"wizard_key_note_local" = "Ключи хранятся в Связке ключей macOS. Запросы идут напрямую провайдеру. Ключи или локальную модель можно добавить позже в Настройки → Модели.";
+
+/* API key (optional, add any time) */
+"wizard_key_optional" = "API-ключ (необязательно, можно добавить позже)";
+
+/* Choose translation languages. Extra languages add versions to Dictionary, Explain, and Summarize results. Change either list in the launcher's mode menus. */
+"wizard_language_body_single_source" = "Выберите языки перевода. Дополнительные языки добавляют версии результатов Словаря, Разбора и Резюме. Оба списка можно изменить в меню режимов главного окна.";
+
+/* Your languages */
+"wizard_language_title" = "Ваши языки";
+
+/* Set Up Later */
+"wizard_later" = "Настроить позже";
+
+/* Cloud providers, web research, Library folders, and cloud voices require %@ Pro. Apple Intelligence is free. Eligible subscriptions include a trial. */
+"wizard_pro_note" = "Your first 30 days include %@ Pro. Apple Intelligence stays free afterward.";
+
+/* Dictionary pronunciation voice */
+"wizard_pronunciation_voice" = "Голос произношения в словаре";
+
+/* Claude models with web research. */
+"wizard_provider_anthropic" = "Модели Claude с веб-поиском.";
+
+/* Switch models in the launcher, or open All models to enable more. */
+"wizard_provider_body_multi" = "Переключайте модели в главном окне или добавляйте их в меню «Все модели».";
+
+/* DeepSeek chat and reasoning models. */
+"wizard_provider_deepseek" = "Модели DeepSeek для диалога и рассуждений.";
+
+/* Gemini models with web research. */
+"wizard_provider_gemini" = "Модели Gemini с веб-поиском.";
+
+/* Grok text models and optional voices. */
+"wizard_provider_grok" = "Модели Grok и дополнительные голоса.";
+
+/* GPT models with web research. */
+"wizard_provider_openai" = "Модели GPT с веб-поиском.";
+
+/* Choose your providers */
+"wizard_provider_title_multi" = "Выберите провайдеров";
+
+/* Copy text and use a shortcut, or open the launcher and start typing.\n\nChange your choices in the launcher's menus or Settings. */
+"wizard_ready_body_simple" = "Langmin starts a free 30-day trial when you first open it. No subscription starts, and you will not be charged.";
+
+/* You're all set */
+"wizard_ready_title" = "30 days of full access";
+
+/* Use these shortcuts from another app after copying text. Proofread and Rewrite copy the result. The other four modes show it in the HUD. Open opens a result window; Dismiss closes the HUD.\n\nIn Langmin's main window, these shortcuts select a mode. Press ⌘Return to run it. */
+"wizard_shortcuts_body" = "Скопируйте текст в другом приложении и используйте эти сочетания клавиш. Проверка и Изложение копируют результат. Остальные четыре режима показывают его в HUD. «Открыть» открывает окно с результатом; «Закрыть» закрывает HUD.\n\nВ главном окне Langmin эти сочетания выбирают режим. Нажмите ⌘Return, чтобы запустить его.";
+
+/* Step %d of %d */
+"wizard_step_n_of_m" = "Шаг %d из %d";
+
+/* Translate to */
+"wizard_translate_to" = "Переводить на";
+
+/* Proofread, rewrite, explain, summarize, translate, and look up words. Listen to results and Dictionary examples.\n\nChoose your settings now or change them later. */
+"wizard_welcome_body_short" = "Проверяйте и переписывайте текст, получайте объяснения и резюме, переводите и ищите слова. Слушайте результаты и примеры из Словаря.\n\nВыберите настройки сейчас или измените их позже.";
+
+/* Welcome to %@ */
+"wizard_welcome_title" = "Добро пожаловать в %@";
+
+/* Langmin Setup */
+"wizard_window" = "Настройка Langmin";
+
+/* Open Langmin at login to keep its menu-bar actions and shortcuts available. */
+"wizard_workflow_body" = "Открывайте Langmin при входе в систему, чтобы его действия и сочетания клавиш были доступны.";
+
+/* Always at hand */
+"wizard_workflow_title" = "Всегда под рукой";
+
+/* Your providers */
+"your_providers" = "Ваши провайдеры";
+
+/* Dictionary illustrations */
+"illustration" = "Иллюстрация";
+"illustration_apple_note" = "Создайте и выберите изображение на своём Mac";
+"illustration_apple_unavailable" = "Требуются macOS 15.4 или новее и Image Playground";
+"illustration_cloud_note" = "Оплачивается отдельно · использует ваш ключ API OpenAI";
+"illustration_generated" = "Иллюстрация, созданная ИИ";
+"illustration_generating" = "Создание иллюстрации…";
+"illustration_failed" = "Не удалось создать иллюстрацию";
+"illustration_missing_key" = "Добавьте ключ API OpenAI в Настройки → Модели.";
+"illustration_save" = "Сохранить изображение…";
+"illustration_remove" = "Удалить иллюстрацию";
+
+"reading_webpage" = "Чтение страницы…";
+
+"loading_page_images" = "Загрузка изображений со страницы…";
+
+/* Follow-up */
+"followup_title" = "Уточнение";
+
+/* Ask a follow-up or request changes… */
+"followup_placeholder" = "Задайте следующий вопрос или попросите внести изменения…";
+
+/* Send follow-up */
+"followup_send" = "Отправить вопрос";
+
+/* Replying… */
+"followup_working" = "Подготовка ответа…";
+
+/* You */
+"followup_you" = "Вы";
+
+/* Copy reply */
+"followup_copy" = "Скопировать ответ";
+
+/* Delete reply */
+"followup_delete_reply" = "Удалить ответ";
+
+/* The message could not be deleted: %@ */
+"followup_delete_failed" = "Не удалось удалить сообщение: %@";
+
+/* Print… */
+"print" = "Печать…";
+
+/* Quick HUD playback */
+"hud_read_paragraph" = "Прочитать этот абзац вслух";
+"hud_stop_playback" = "Остановить чтение";
+"hud_playback_failed" = "Не удалось прочитать этот текст";
+"hud_voice_api_key" = "Чтобы использовать этот голос, добавьте API-ключ %@ в Настройках.";
+
+"request_failed" = "Не удалось выполнить запрос";
+
+/* Translation skipped */
+"translation_skipped" = "Перевод пропущен";
+
+/* Already in this language. */
+"translation_already_in_language" = "Текст уже на выбранном языке.";
+
+/* Library window placement */
+"detach_library" = "Открыть библиотеку в отдельном окне";
+"attach_library" = "Переместить библиотеку в главное окно";
+
+/* Result text editing */
+"apply" = "Применить";
+"discard_changes" = "Отменить изменения";
+"done" = "Готово";
+"edit_link" = "Изменить ссылку";
+"edit_text" = "Редактировать текст";
+"format_text" = "Форматировать текст";
+"remove_link" = "Удалить ссылку";
+"save_text_changes" = "Сохранить изменения текста?";
+"text_style" = "Стиль текста";
+"save_edits_remove_audio" = "Сохранить изменения и удалить аудио?";
+"save_edits_remove_audio_detail" = "При сохранении этих изменений будут удалены все прикреплённые записи озвучки и произношения. После этого можно создать новое аудио.";
+
+/* iCloud Library sync */
+"pro_feature_icloud" = "Синхронизация библиотеки через iCloud";
+"pro_reason_icloud" = "Синхронизация библиотеки через iCloud входит в %@ Pro.";
+
+/* Automatically illustrate new lookups */
+"illustration_automatic" = "Автоматически добавлять иллюстрации к новым запросам";
+
+/* Automatic images are off by default. To add an image yourself, use the picture button on a Dictionary result. */
+"illustration_manual_note" = "Автоматические иллюстрации по умолчанию выключены. Чтобы добавить изображение вручную, нажмите кнопку изображения в результате Словаря.";
+
+/* Image Provider */
+"illustration_provider" = "Провайдер изображений";
+
+/* Choose in result */
+"illustration_choose_in_result" = "Выбрать в результате";
+
+/* Choose a provider before turning on automatic images. You can also add an image from a Dictionary result's picture button. */
+"illustration_choose_provider_note" = "Выберите провайдера, прежде чем включать автоматические иллюстрации. Изображение можно добавить и кнопкой в результате Словаря.";
+
+/* Create and choose images on your Mac. Automatic mode opens Image Playground after each Dictionary lookup. */
+"illustration_apple_settings_note" = "Создавайте и выбирайте изображения на Mac. В автоматическом режиме Image Playground открывается после каждого запроса к Словарю.";
+
+/* Requires Pro and an OpenAI API key in Settings → Models. Each image is billed separately. Creates one landscape image at medium quality. */
+"illustration_openai_settings_note" = "Нужны Pro и API-ключ OpenAI в разделе Настройки → Модели. Каждое изображение оплачивается отдельно. Создаётся одно горизонтальное изображение среднего качества.";
+
+/* Illustrations */
+"tab_illustrations" = "Иллюстрации";
+
+/* Empty launcher input */
+"input_start_hint" = "Введите или вставьте текст, или перетащите файл";
+"input_documents" = "Документы";
+"input_images" = "Изображения";
+"input_audio" = "Аудио";
+"input_drop_title" = "Отпустите, чтобы добавить текст";
+
+/* Source-build purchase footer */
+"source_build_title" = "Trial ended";
+"source_build_support" = "Apple Intelligence stays free, while other Pro features require purchase.";
+"source_build_purchase" = "Купить";
+"source_build_dismiss" = "Dismiss";
+"pro_app_trial_one_day" = "Pro trial · 1 day remaining";
+"pro_app_trial_days" = "Pro trial · %d days remaining";
+"wizard_trial_during_title" = "Your first 30 days";
+"wizard_trial_during_langmin" = "Use every Langmin feature without app limits. Provider charges may still apply.";
+"wizard_trial_after_title" = "After the trial";
+"wizard_trial_after_langmin" = "Apple Intelligence, Apple voices, Apple transcription, text editing, and the Library stay free. Other Pro features require a purchase.";
+"wizard_trial_plans_title" = "Keep Pro";
+"wizard_trial_plans_body" = "Choose a yearly plan or lifetime access at any time.";
