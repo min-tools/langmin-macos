@@ -1,0 +1,983 @@
+/* Langmin — sr localization. Comments give English text or name a related group. */
+
+/* About %@ */
+"about_app" = "О апликацији %@";
+
+/* All */
+"all_chip" = "Све";
+
+/* All models */
+"all_models" = "Сви модели";
+
+/* Answer language */
+"answer_language" = "Језик одговора";
+
+/* %@ Help */
+"app_help" = "%@ помоћ";
+
+/* Back */
+"back" = "Назад";
+
+/* Bring All to Front */
+"bring_all_to_front" = "Пребаци све напред";
+
+/* Delete %d items from %@? */
+"bulk_delete_confirm_many" = "Избрисати %d ставки из „%@”?";
+
+/* Delete 1 item from %@? */
+"bulk_delete_confirm_one" = "Избрисати 1 ставку из „%@”?";
+
+/* Only the items matching the current search are deleted. */
+"bulk_delete_search_note" = "Бришу се само ставке које одговарају тренутној претрази.";
+
+/* Use Undo to restore an item before it disappears. */
+"bulk_delete_undo_note" = "Вратите ставку дугметом Опозови пре него што нестане.";
+
+/* Cancel */
+"cancel" = "Откажи";
+
+/* Cancel Current Action */
+"cancel_current_action" = "Откажи тренутну радњу";
+
+/* Cancel this request (Esc) */
+"cancel_this_request_esc" = "Откажи овај захтев (Esc)";
+
+/* Cancelled */
+"cancelled" = "Отказано";
+
+/* Cancelling… */
+"cancelling" = "Отказивање…";
+
+/* Cancelling */
+"cancelling_a11y" = "Отказивање";
+
+/* Clear after submit */
+"clear_after_submit" = "Обриши после слања";
+
+/* You copied something else while Langmin was working. Replace it with the transformed text? */
+"clipboard_changed_body" = "Копирали сте нешто друго док је Langmin радио. Заменити то претвореним текстом?";
+
+/* The clipboard changed */
+"clipboard_changed_title" = "Клипборд је промењен";
+
+/* Clipboard unchanged */
+"clipboard_unchanged" = "Клипборд непромењен";
+
+/* macOS did not accept the transformed text. The previous clipboard contents were restored. */
+"clipboard_write_failed_restored" = "macOS није прихватио претворени текст. Претходни садржај клипборда је враћен.";
+
+/* macOS did not accept the transformed text, and the previous clipboard contents could not be restored. */
+"clipboard_write_failed_unrestored" = "macOS није прихватио претворени текст, а претходни садржај клипборда није могао да се врати.";
+
+/* Close */
+"close" = "Затвори";
+
+/* ⌘V to paste */
+"cmd_v_to_paste" = "⌘V за налепљивање";
+
+/* Compose with Clipboard */
+"compose_with_clipboard" = "Састави из клипборда";
+
+/* Copied */
+"copied" = "Копирано";
+
+/* Copy */
+"copy" = "Копирај";
+
+/* Copy this paragraph */
+"copy_paragraph" = "Копирај овај пасус";
+
+/* Copy Result */
+"copy_result" = "Копирај резултат";
+
+/* Copying… */
+"copying" = "Копирање…";
+
+/* Could not delete one saved item */
+"could_not_delete_one_saved_item" = "Није могуће избрисати једну сачувану ставку";
+
+/* Could not delete some saved items */
+"could_not_delete_some_saved_items" = "Није могуће избрисати неке сачуване ставке";
+
+/* Could not delete this saved item */
+"could_not_delete_this_saved_item" = "Није могуће избрисати ову сачувану ставку";
+
+/* Could not export this saved item */
+"could_not_export_this_saved_item" = "Није могуће извести ову сачувану ставку";
+
+/* Could not open the result */
+"could_not_open_result" = "Резултат није могао да се отвори";
+
+/* Could not rename this saved item */
+"could_not_rename_this_saved_item" = "Није могуће преименовати ову сачувану ставку";
+
+/* Could not restore this saved item */
+"could_not_restore_this_saved_item" = "Није могуће вратити ову сачувану ставку";
+
+/* Could not save audio */
+"could_not_save_audio" = "Није могуће сачувати звук";
+
+/* Could not update the clipboard */
+"could_not_update_clipboard" = "Клипборд није могао да се ажурира";
+
+/* Could not update the login item */
+"could_not_update_the_login_item" = "Није могуће ажурирати ставку пријаве";
+
+/* Cut */
+"cut" = "Исеци";
+
+/* Cycle Through Windows */
+"cycle_through_windows" = "Кружи кроз прозоре";
+
+/* Delete */
+"delete" = "Избриши";
+
+/* Delete All %d… */
+"delete_all_n" = "Избриши свих %d…";
+
+/* Delete Folder */
+"delete_folder_menu" = "Обриши фасциклу";
+
+/* All entries stay in the Library */
+"delete_folder_subtitle" = "Сви уноси остају у Библиотеци";
+
+/* Delete %d Shown… */
+"delete_n_shown" = "Избриши %d приказаних…";
+
+/* Deleted “%@” */
+"deleted_item" = "„%@” избрисано";
+
+/* Dictionary */
+"dictionary" = "Речник";
+
+/* Dictionary Lookup */
+"dictionary_lookup" = "Претрага речника";
+
+/* Dismiss */
+"dismiss" = "Затвори";
+
+/* Drop or paste documents, images, or audio */
+"drop_hint" = "Превуците или налепите документе, слике или аудио-снимке";
+
+/* Edit */
+"edit" = "Уређивање";
+
+/* Deeper essay */
+"effort_detailed" = "Дубљи есеј";
+
+/* Short and clear */
+"effort_simple" = "Кратко и јасно";
+
+/* Balanced depth */
+"effort_standard" = "Уравнотежена дубина";
+
+/* Elaborating… */
+"elaborating" = "Разрада…";
+
+/* Explain */
+"explain" = "Објашњење";
+
+/* Explain Clipboard */
+"explain_clipboard" = "Објасни клипборд";
+
+/* Explaining… */
+"explaining" = "Објашњавање…";
+
+/* Export Audio… */
+"export_audio_menu" = "Извези звук…";
+
+/* Export Audio */
+"export_audio_panel" = "Извези звук";
+
+/* Export Text… */
+"export_text_menu" = "Извези текст…";
+
+/* Export Text */
+"export_text_panel" = "Извези текст";
+
+/* Extra languages */
+"extra_languages" = "Додатни језици";
+
+/* File */
+"file" = "Датотека";
+
+/* File In */
+"file_in_submenu" = "Сместити у";
+
+/* Filter folders */
+"filter_folders" = "Филтрирај фасцикле";
+
+/* Find… */
+"find_item" = "Тражи…";
+
+/* Find */
+"find_menu" = "Тражи";
+
+/* ↵ create · esc cancel */
+"folder_create_hint" = "↵ направи · esc откажи";
+
+/* Nothing in this folder yet */
+"folder_empty_title" = "У овој фасцикли још нема ничега";
+
+/* Drag results onto a folder chip, or right-click one and file it here. */
+"folder_empty_subtitle" = "Превуците резултат на чип фасцикле или кликните десним тастером и сместите га овде.";
+
+/* already exists */
+"folder_exists_hint" = "већ постоји";
+
+/* already exists · ↵ opens it */
+"folder_exists_opens_hint" = "већ постоји · ↵ отвара је";
+
+/* Folder name */
+"folder_name_placeholder" = "Назив фасцикле";
+
+/* ↵ rename · esc cancel */
+"folder_rename_hint" = "↵ преименуј · esc откажи";
+
+/* Help */
+"help" = "Помоћ";
+
+/* Hide %@ */
+"hide_app" = "Сакриј %@";
+
+/* Hide Others */
+"hide_others" = "Сакриј остале";
+
+/* Explaining */
+"hud_explaining" = "Објашњавање";
+
+/* Looking up */
+"hud_looking_up" = "Тражење";
+
+/* 1 word */
+"hud_one_word" = "1 реч";
+
+/* Proofreading */
+"hud_proofreading" = "Лекторисање";
+
+/* Rewriting */
+"hud_rewriting" = "Преформулисање";
+
+/* Summarizing */
+"hud_summarizing" = "Сажимање";
+
+/* Translating */
+"hud_translating" = "Превођење";
+
+/* %d words */
+"hud_word_count" = "Речи: %d";
+
+/* Keep Current Clipboard */
+"keep_current_clipboard" = "Задржи тренутни клипборд";
+
+/* Language level */
+"language_level" = "Ниво језика";
+
+/* The new language takes effect the next time Langmin opens. */
+"language_restart_notice" = "Нови језик важи од следећег покретања Langmin-а.";
+
+/* Later */
+"later" = "Касније";
+
+/* Library */
+"library" = "Библиотека";
+
+/* No saved items yet */
+"library_empty_title" = "Још нема сачуваних ставки";
+
+/* Click a result's bookmark button to save it here. */
+"library_empty_subtitle" = "Кликните на дугме обележивача уз резултат да бисте га сачували овде.";
+
+/* Look Up Clipboard in Dictionary */
+"look_up_clipboard_in_dictionary" = "Потражи текст из клипборда у речнику";
+
+/* Looking up… */
+"looking_up" = "Тражење…";
+
+/* Match question */
+"match_question" = "Као питање";
+
+/* Minimize */
+"minimize" = "Умањи";
+
+/* More folders */
+"more_folders" = "Још фасцикли";
+
+/* More languages */
+"more_languages" = "Још језика";
+
+/* %d saved */
+"n_saved" = "%d сачувано";
+
+/* New Explanation */
+"new_explanation" = "Ново објашњење";
+
+/* New Folder… */
+"new_folder_menu" = "Нова фасцикла…";
+
+/* Copy some text, then try the Langmin action again. */
+"no_clipboard_text_body" = "Копирајте текст, па поново покушајте радњу Langmin-а.";
+
+/* No clipboard text */
+"no_clipboard_text_title" = "Нема текста у клипборду";
+
+/* No Folder */
+"no_folder" = "Без фасцикле";
+
+/* No results */
+"library_search_empty_title" = "Нема резултата";
+
+/* No %@ match “%@”. */
+"no_search_matches" = "Нема %@ који одговарају „%@”.";
+
+/* None */
+"none" = "Ниједан";
+
+/* Not Now */
+"not_now" = "Не сада";
+
+/* OK */
+"ok" = "У реду";
+
+/* On this Mac */
+"on_this_mac" = "На овом Mac-у";
+
+/* Open */
+"open" = "Отвори";
+
+/* Open */
+"open_in_window" = "Отвори";
+
+/* Open Langmin */
+"open_langmin" = "Отвори Langmin";
+
+/* Open Langmin at login */
+"open_langmin_at_login" = "Отварај Langmin при пријави";
+
+/* Open in a result window */
+"open_result_window" = "Отвори у прозору резултата";
+
+/* Open Settings */
+"open_settings" = "Отвори Подешавања";
+
+/* Open Setup Assistant */
+"open_setup_assistant" = "Отвори Помоћник за подешавање";
+
+/* Opening… */
+"opening_hud" = "Отварање…";
+
+/* Opening… */
+"opening_progress" = "Отварање…";
+
+/* Other */
+"other" = "Остало";
+
+/* ↵ run    ⇥ pin chip    ⌘, options */
+"palette_legend_chip" = "↵ покрени    ⇥ закачи чип    ⌘, опције";
+
+/* Paste */
+"paste" = "Налепи";
+
+/* Langmin can't access the pasted file */
+"pasted_file_denied" = "Langmin не може да приступи налепљеној датотеци";
+
+/* Langmin can't access the pasted files */
+"pasted_files_denied" = "Langmin не може да приступи налепљеним датотекама";
+
+/* macOS did not grant access to these files. Drag them into this window instead. */
+"pasted_files_denied_body" = "macOS није дозволио приступ овим датотекама. Превуците их у овај прозор.";
+
+/* Look up a word… */
+"placeholder_dictionary" = "Потражите реч…";
+
+/* What would you like explained? */
+"placeholder_explain" = "Шта желите да објаснимо?";
+
+/* What would you like proofread? */
+"placeholder_proofread" = "Шта желите да лекторишемо?";
+
+/* What would you like rewritten? */
+"placeholder_rewrite" = "Шта желите да преформулишемо?";
+
+/* What would you like summarized? */
+"placeholder_summarize" = "Шта желите да сажмемо?";
+
+/* What would you like translated? */
+"placeholder_translate" = "Шта желите да преведемо?";
+
+/* Preparing narration… */
+"preparing_narration" = "Припрема читања…";
+
+/* Privacy Policy… */
+"privacy_policy" = "Политика приватности…";
+
+/* Family Sharing included. */
+"pro_family_caption" = "Породично дељење је укључено.";
+
+/* OpenAI, Anthropic, Gemini, Grok, DeepSeek, and custom endpoints */
+"pro_feature_cloud" = "OpenAI, Anthropic, Gemini, Grok, DeepSeek и прилагођене крајње тачке";
+
+/* Library folders */
+"pro_feature_folders" = "Фасцикле у Библиотеци";
+
+/* Web research for current facts and sources */
+"pro_feature_research" = "Претрага веба за актуелне чињенице и изворе";
+
+/* OpenAI and Grok voices */
+"pro_feature_voices" = "OpenAI и Grok гласови";
+
+/* Apple Intelligence, Apple voices, and the Library stay free. */
+"pro_free_note" = "Apple Intelligence, Apple гласови и Библиотека остају бесплатни.";
+
+/* Buy once for %@ */
+"pro_lifetime_button" = "Купи једном за %@";
+
+/* Contacting the App Store… */
+"pro_loading" = "Повезивање са App Store-ом…";
+
+/* Manage Subscription… */
+"pro_manage_subscription" = "Управљај претплатом…";
+
+/* %@ Pro… */
+"pro_menu" = "%@ Pro…";
+
+/* This purchase is still pending. %@ Pro unlocks when the App Store confirms it. */
+"pro_pending_body" = "Ова куповина још чека потврду. %@ Pro се откључава када је App Store потврди.";
+
+/* Purchase pending */
+"pro_pending_title" = "Куповина на чекању";
+
+/* Privacy Policy */
+"pro_privacy_policy" = "Политика приватности";
+
+/* The purchase didn't complete: %@ */
+"pro_purchase_failed" = "Куповина није довршена: %@";
+
+/* Cloud models are part of %@ Pro. */
+"pro_reason_cloud" = "Модели у облаку су део %@ Pro-а.";
+
+/* Library folders are part of %@ Pro. */
+"pro_reason_folders" = "Фасцикле у Библиотеци су део %@ Pro-а.";
+
+/* Get more with %@ Pro. */
+"pro_reason_general" = "Више могућности уз %@ Pro.";
+
+/* OpenAI and Grok voices are part of %@ Pro. */
+"pro_reason_voices" = "OpenAI и Grok гласови су део %@ Pro-а.";
+
+/* Couldn't restore purchases */
+
+/* No %@ Pro purchase was found for this Apple Account. */
+"pro_restore_none_body" = "За овај Apple Account није пронађена куповина %@ Pro-а.";
+
+/* Nothing to restore */
+"pro_restore_none_title" = "Нема шта да се врати";
+
+/* Restore Purchases */
+"pro_restore_purchases" = "Врати куповине";
+
+/* Pro */
+"pro_status_active" = "Pro";
+
+/* Pro · ends %@ */
+"pro_status_ends" = "Pro · истиче %@";
+
+/* Pro · shared with your family */
+"pro_status_family" = "Pro · дељено са породицом";
+
+/* Free */
+"pro_status_free" = "Бесплатно";
+
+/* Pro · lifetime */
+"pro_status_lifetime" = "Pro · доживотно";
+
+/* Pro · renews %@ */
+"pro_status_renews" = "Pro · обнавља се %@";
+
+/* Pro trial · ends %@ */
+"pro_status_trial_ends" = "Pro проба · истиче %@";
+
+/* Pro trial · first payment %@ */
+"pro_status_trial_renews" = "Pro проба · прва уплата %@";
+
+/* Pro trial · until %@ */
+"pro_status_trial_until" = "Pro проба · до %@";
+
+/* Pro · until %@ */
+"pro_status_until" = "Pro · до %@";
+
+/* Pro purchases are unavailable right now. Please try again later. */
+"pro_store_unavailable" = "Pro куповине тренутно нису доступне. Покушајте касније.";
+
+/* Payment goes to your Apple Account. A subscription renews automatically each year unless it is cancelled in your App Store settings at least a day before the period ends. */
+"pro_terms" = "Плаћање иде преко вашег Apple Account-а. Претплата се обнавља аутоматски сваке године осим ако је не откажете у подешавањима App Store-а најмање дан пре краја периода.";
+
+/* Terms of Use */
+"pro_terms_of_use" = "Услови коришћења";
+
+/* Cancel at least a day before the free trial ends to avoid being charged. */
+
+/* %@ Pro */
+"pro_title" = "%@ Pro";
+
+/* Start free trial */
+
+/* Try free for a month */
+
+/* then %@ a year · cancel anytime */
+
+/* The App Store could not verify this purchase. */
+"pro_unverified" = "App Store није могао да потврди ову куповину.";
+
+/* Upgrade… */
+"pro_upgrade_button" = "Надогради…";
+
+/* Subscribe for %@ a year */
+"pro_yearly_button" = "Претплати се за %@ годишње";
+
+/* Renews automatically each year · cancel anytime */
+"pro_yearly_caption" = "Обнавља се аутоматски сваке године · откажите било када";
+
+/* You have %@ Pro. */
+"pro_you_have" = "Имате %@ Pro.";
+
+/* Pronounce — click to choose a voice first */
+"pronounce_setup_tooltip" = "Изговори — прво кликните да изаберете глас";
+
+/* Pronunciation voice */
+"pronunciation_voice" = "Глас за изговор";
+
+/* Proofread */
+"proofread" = "Лектура";
+
+/* Proofread Clipboard */
+"proofread_clipboard" = "Лекторирај клипборд";
+
+/* Proofreading… */
+"proofreading" = "Лекторисање…";
+
+/* Quit %@ */
+"quit_app" = "Изађи из апликације %@";
+
+/* Quit Now */
+"quit_now" = "Изађи одмах";
+
+/* Redo */
+"redo" = "Понови";
+
+/* Remember choices */
+"remember_choices" = "Запамти изборе";
+
+/* Rename */
+"rename" = "Преименуј";
+
+/* Rename Folder */
+"rename_folder_menu" = "Преименуј фасциклу";
+
+/* Rephrasing… */
+"rephrasing" = "Преформулисање…";
+
+/* Reset Defaults */
+"reset_defaults" = "Врати подразумевано";
+
+/* Press Save to restore defaults, or open Setup Assistant to choose new settings. */
+"reset_wizard_body" = "Притисните Сачувај да вратите подразумевана подешавања или отворите Помоћник за подешавање да изаберете нова.";
+
+/* Start over with the Setup Assistant? */
+"reset_wizard_title" = "Почети изнова са Помоћником за подешавање?";
+
+/* Empty and loading results */
+"results_empty_title" = "Све је спремно";
+"results_empty_hint" = "Унесите текст са леве стране, па притисните ⌘↵ да бисте овде видели резултат.";
+"results_loading_title" = "Припремамо ваш резултат";
+"retry" = "Покушај поново";
+
+/* Rewrite */
+"rewrite" = "Прерада";
+
+/* Rewrite Clipboard */
+"rewrite_clipboard" = "Препиши клипборд";
+
+/* App Language */
+"row_app_language" = "Језик апликације";
+
+/* Launcher Window */
+"row_launcher_window" = "Прозор покретача";
+
+/* Online Research */
+"row_online_research" = "Претрага на мрежи";
+
+/* Secret Protection */
+"row_secret_protection" = "Заштита тајни";
+
+/* Run */
+"run" = "Покрени";
+
+/* look up */
+"run_verb_dictionary" = "потражити у речнику";
+
+/* explain */
+"run_verb_explain" = "објаснити";
+
+/* proofread */
+"run_verb_proofread" = "проверити";
+
+/* rewrite */
+"run_verb_rewrite" = "преписати";
+
+/* summarize */
+"run_verb_summarize" = "сажети";
+
+/* translate */
+"run_verb_translate" = "превести";
+
+/* Save */
+"save" = "Сачувај";
+
+/* Save Audio… */
+"save_audio" = "Сачувај звук…";
+
+/* Save Text… */
+"save_text" = "Сачувај текст…";
+
+/* Search actions */
+"search_actions" = "Претражи радње";
+
+/* ⌘K search */
+"search_actions_hint" = "⌘K претрага";
+
+/* Search languages */
+"search_languages" = "Претражи језике";
+
+/* Search Library */
+"search_library" = "Претражи библиотеку";
+
+/* Search models */
+"search_models" = "Претражи моделе";
+
+/* titles */
+"search_scope_titles" = "наслова";
+
+/* titles or contents */
+"search_scope_titles_contents" = "наслова или садржаја";
+
+/* Search voices */
+"search_voices" = "Претражи гласове";
+
+/* Services */
+"services" = "Услуге";
+
+/* Settings… */
+"settings" = "Подешавања…";
+
+/* Settings */
+"settings_window" = "Подешавања";
+
+/* Setup Assistant… */
+"setup_assistant" = "Помоћник за подешавање…";
+
+/* Show All */
+"show_all" = "Прикажи све";
+
+/* Show Langmin in the menu bar */
+"show_langmin_in_the_menu_bar" = "Прикажи Langmin у траци менија";
+
+/* %@ with %@… */
+"status_with_model" = "%@ преко %@…";
+
+/* Style */
+"style" = "Стил";
+
+/* Summarize */
+"summarize" = "Сажетак";
+
+/* Summarize Clipboard */
+"summarize_clipboard" = "Сажми клипборд";
+
+/* Summarizing… */
+"summarizing" = "Сажимање…";
+
+/* System Default */
+"system_default" = "Системски подразумевано";
+
+/* Advanced */
+"tab_advanced" = "Напредно";
+
+/* General */
+"tab_general" = "Опште";
+
+/* Models */
+"tab_models" = "Модели";
+
+/* Reading */
+"tab_reading" = "Читање";
+
+/* Shortcuts */
+"tab_shortcuts" = "Пречице";
+
+/* Window */
+"tab_window" = "Прозор";
+
+/* Tightening… */
+"tightening" = "Скраћивање…";
+
+/* Translate */
+"translate" = "Превод";
+
+/* Translate Clipboard */
+"translate_clipboard" = "Преведи клипборд";
+
+/* Translating… */
+"translating" = "Превођење…";
+
+/* Undo */
+"undo" = "Опозови";
+
+/* Untitled */
+"untitled" = "Без наслова";
+
+/* Another app asked Langmin to process this text:\n\n“%@”\n\nRunning sends it to your configured model. */
+"url_run_confirm_body" = "Друга апликација је затражила да Langmin обради овај текст:\n\n„%@”\n\nПокретањем се шаље подешеном моделу.";
+
+/* Run “%@” from a link? */
+"url_run_confirm_title" = "Покренути „%@” са везе?";
+
+/* Use web research when available */
+"use_web_research" = "Користи претрагу веба када је доступна";
+
+/* Warn before sending secrets */
+"warn_before_secrets" = "Упозори пре слања тајни";
+
+/* Window */
+"window" = "Прозор";
+
+/* Runs on your Mac. Free, with no account needed. */
+"wizard_apple_available" = "Ради на вашем Mac-у. Бесплатно и без налога.";
+
+/* Apple Intelligence (on this Mac, private and free) */
+"wizard_apple_row" = "Apple Intelligence (на овом Mac-у, приватно и бесплатно)";
+
+/* Apple Intelligence (not available on this Mac) */
+"wizard_apple_row_unavailable" = "Apple Intelligence (није доступно на овом Mac-у)";
+
+/* Not available on this Mac (requires Apple Intelligence). Choose a cloud provider below. */
+"wizard_apple_unavailable" = "Није доступно на овом Mac-у (захтева Apple Intelligence). Изаберите провајдера у облаку испод.";
+
+/* Read results aloud or hear Dictionary words and examples. Choose a voice that supports the language.\n\nApple voices run on your Mac for free. OpenAI and Grok voices require Pro and a provider API key. */
+"wizard_audio_body" = "Слушајте резултате, речи и примере из Речника. Изаберите глас који подржава језик.\n\nApple гласови раде на Mac-у бесплатно. OpenAI и Grok гласови захтевају Pro и API кључ провајдера.";
+
+/* Hear your words */
+"wizard_audio_title" = "Чујте своје речи";
+
+/* Back */
+"wizard_back" = "Назад";
+
+/* macOS may ask for clipboard access when you first use a shortcut. */
+"wizard_clipboard_note" = "macOS може да затражи приступ клипборду при првој употреби пречице.";
+
+/* Continue */
+"wizard_continue" = "Настави";
+
+/* Also answer in */
+"wizard_extra_languages" = "Одговори и на";
+
+/* Finish */
+"wizard_finish" = "Заврши";
+
+/* Keys stay in macOS Keychain. Requests go directly to your provider. Add keys or a local model later in Settings → Models. */
+"wizard_key_note_local" = "Кључеви остају у macOS привеску за кључеве. Захтеви иду директно провајдеру. Кључеве или локални модел додајте касније у Подешавања → Модели.";
+
+/* API key (optional, add any time) */
+"wizard_key_optional" = "API кључ (опционо, додајте било када)";
+
+/* Choose translation languages. Extra languages add versions to Dictionary, Explain, and Summarize results. Change either list in the launcher's mode menus. */
+"wizard_language_body_single_source" = "Изаберите језике превода. Додатни језици додају језичке верзије резултатима Речника, Објашњења и Сажетка. Обе листе мењате у менијима режима покретача.";
+
+/* Your languages */
+"wizard_language_title" = "Ваши језици";
+
+/* Set Up Later */
+"wizard_later" = "Подеси касније";
+
+/* Cloud providers, web research, Library folders, and cloud voices require %@ Pro. Apple Intelligence is free. Eligible subscriptions include a trial. */
+"wizard_pro_note" = "Your first 30 days include %@ Pro. Apple Intelligence stays free afterward.";
+
+/* Dictionary pronunciation voice */
+"wizard_pronunciation_voice" = "Глас за изговор у речнику";
+
+/* Claude models with web research. */
+"wizard_provider_anthropic" = "Claude модели са претрагом веба.";
+
+/* Switch models in the launcher, or open All models to enable more. */
+"wizard_provider_body_multi" = "Модел промените у покретачу или укључите додатне у менију Сви модели.";
+
+/* DeepSeek chat and reasoning models. */
+"wizard_provider_deepseek" = "DeepSeek модели за разговор и закључивање.";
+
+/* Gemini models with web research. */
+"wizard_provider_gemini" = "Gemini модели са претрагом веба.";
+
+/* Grok text models and optional voices. */
+"wizard_provider_grok" = "Grok текстуални модели и опциони гласови.";
+
+/* GPT models with web research. */
+"wizard_provider_openai" = "GPT модели са претрагом веба.";
+
+/* Choose your providers */
+"wizard_provider_title_multi" = "Изаберите провајдере";
+
+/* Copy text and use a shortcut, or open the launcher and start typing.\n\nChange your choices in the launcher's menus or Settings. */
+"wizard_ready_body_simple" = "Langmin starts a free 30-day trial when you first open it. No subscription starts, and you will not be charged.";
+
+/* You're all set */
+"wizard_ready_title" = "30 days of full access";
+
+/* Use these shortcuts from another app after copying text. Proofread and Rewrite copy the result. The other four modes show it in the HUD. Open opens a result window; Dismiss closes the HUD.\n\nIn Langmin's main window, these shortcuts select a mode. Press ⌘Return to run it. */
+"wizard_shortcuts_body" = "Копирајте текст у другој апликацији и користите ове пречице. Лектура и Прерада копирају резултат. Остала четири режима приказују га у HUD-у. Отвори отвара прозор са резултатом; Затвори затвара HUD.\n\nУ главном прозору Langmin-а ове пречице бирају режим. Притисните ⌘Return да га покренете.";
+
+/* Step %d of %d */
+"wizard_step_n_of_m" = "Корак %d од %d";
+
+/* Translate to */
+"wizard_translate_to" = "Преведи на";
+
+/* Proofread, rewrite, explain, summarize, translate, and look up words. Listen to results and Dictionary examples.\n\nChoose your settings now or change them later. */
+"wizard_welcome_body_short" = "Проверите и преформулишите текст, добијте објашњења и сажетке, преводите и тражите речи. Слушајте резултате и примере из Речника.\n\nИзаберите подешавања сада или их промените касније.";
+
+/* Welcome to %@ */
+"wizard_welcome_title" = "Добро дошли у %@";
+
+/* Langmin Setup */
+"wizard_window" = "Подешавање Langmin-а";
+
+/* Open Langmin at login to keep its menu-bar actions and shortcuts available. */
+"wizard_workflow_body" = "Отварајте Langmin при пријави како би његове радње и пречице биле доступне.";
+
+/* Always at hand */
+"wizard_workflow_title" = "Увек при руци";
+
+/* Your providers */
+"your_providers" = "Ваши провајдери";
+
+/* Dictionary illustrations */
+"illustration" = "Илустрација";
+"illustration_apple_note" = "Направите и изаберите слику на свом Mac-у";
+"illustration_apple_unavailable" = "Захтева macOS 15.4 или новији и Image Playground";
+"illustration_cloud_note" = "Наплаћује се засебно · користи ваш OpenAI API кључ";
+"illustration_generated" = "Илустрација направљена помоћу ВИ";
+"illustration_generating" = "Прављење илустрације…";
+"illustration_failed" = "Није могуће направити илустрацију";
+"illustration_missing_key" = "Додајте OpenAI API кључ у Подешавања → Модели.";
+"illustration_save" = "Сачувај слику…";
+"illustration_remove" = "Уклони илустрацију";
+
+"reading_webpage" = "Читање странице…";
+
+"loading_page_images" = "Учитавање слика са странице…";
+
+/* Follow-up */
+"followup_title" = "Додатно питање";
+
+/* Ask a follow-up or request changes… */
+"followup_placeholder" = "Поставите додатно питање или затражите измене…";
+
+/* Send follow-up */
+"followup_send" = "Пошаљи питање";
+
+/* Replying… */
+"followup_working" = "Припрема одговора…";
+
+/* You */
+"followup_you" = "Ви";
+
+/* Copy reply */
+"followup_copy" = "Копирај одговор";
+
+/* Delete reply */
+"followup_delete_reply" = "Обриши одговор";
+
+/* The message could not be deleted: %@ */
+"followup_delete_failed" = "Порука није могла да се обрише: %@";
+
+/* Print… */
+"print" = "Штампај…";
+
+/* Quick HUD playback */
+"hud_read_paragraph" = "Прочитај овај пасус наглас";
+"hud_stop_playback" = "Заустави читање";
+"hud_playback_failed" = "Овај текст није могуће прочитати наглас";
+"hud_voice_api_key" = "За овај глас додајте API кључ за %@ у Подешавањима.";
+
+"request_failed" = "Захтев није успео";
+
+/* Translation skipped */
+"translation_skipped" = "Превод прескочен";
+
+/* Already in this language. */
+"translation_already_in_language" = "Текст је већ на изабраном језику.";
+
+/* Library window placement */
+"detach_library" = "Отвори библиотеку у засебном прозору";
+"attach_library" = "Премести библиотеку у главни прозор";
+
+/* Result text editing */
+"apply" = "Примени";
+"discard_changes" = "Одбаци измене";
+"done" = "Готово";
+"edit_link" = "Уреди линк";
+"edit_text" = "Уреди текст";
+"format_text" = "Форматирај текст";
+"remove_link" = "Уклони линк";
+"save_text_changes" = "Сачувати измене текста?";
+"text_style" = "Стил текста";
+"save_edits_remove_audio" = "Сачувати измене и уклонити звук?";
+"save_edits_remove_audio_detail" = "Чувањем ових измена уклонићете све приложене снимке читања и изговора. Након тога можете генерисати нови звук.";
+
+/* iCloud Library sync */
+"pro_feature_icloud" = "Синхронизација библиотеке преко iCloud-а";
+"pro_reason_icloud" = "Синхронизација библиотеке преко iCloud-а је део пакета %@ Pro.";
+
+/* Automatically illustrate new lookups */
+"illustration_automatic" = "Аутоматски илуструј нове претраге";
+
+/* Automatic images are off by default. To add an image yourself, use the picture button on a Dictionary result. */
+"illustration_manual_note" = "Аутоматске слике су подразумевано искључене. Да бисте сами додали слику, користите дугме за слику у резултату Речника.";
+
+/* Image Provider */
+"illustration_provider" = "Добављач слика";
+
+/* Choose in result */
+"illustration_choose_in_result" = "Изабери у резултату";
+
+/* Choose a provider before turning on automatic images. You can also add an image from a Dictionary result's picture button. */
+"illustration_choose_provider_note" = "Изаберите добављача пре укључивања аутоматских слика. Слику можете додати и дугметом за слику у резултату Речника.";
+
+/* Create and choose images on your Mac. Automatic mode opens Image Playground after each Dictionary lookup. */
+"illustration_apple_settings_note" = "Правите и бирајте слике на свом Mac-у. У аутоматском режиму Image Playground се отвара после сваке претраге Речника.";
+
+/* Requires Pro and an OpenAI API key in Settings → Models. Each image is billed separately. Creates one landscape image at medium quality. */
+"illustration_openai_settings_note" = "Потребни су Pro и OpenAI API кључ у Подешавања → Модели. Свака слика се посебно наплаћује. Прави једну водоравну слику средњег квалитета.";
+
+/* Illustrations */
+"tab_illustrations" = "Илустрације";
+
+/* Empty launcher input */
+"input_start_hint" = "Унесите или налепите текст, или превуците датотеку";
+"input_documents" = "Документи";
+"input_images" = "Слике";
+"input_audio" = "Аудио";
+"input_drop_title" = "Отпустите да додате текст";
+
+/* Source-build purchase footer */
+"source_build_title" = "Trial ended";
+"source_build_support" = "Apple Intelligence stays free, while other Pro features require purchase.";
+"source_build_purchase" = "Купи";
+"source_build_dismiss" = "Dismiss";
+"pro_app_trial_one_day" = "Pro trial · 1 day remaining";
+"pro_app_trial_days" = "Pro trial · %d days remaining";
+"wizard_trial_during_title" = "Your first 30 days";
+"wizard_trial_during_langmin" = "Use every Langmin feature without app limits. Provider charges may still apply.";
+"wizard_trial_after_title" = "After the trial";
+"wizard_trial_after_langmin" = "Apple Intelligence, Apple voices, Apple transcription, text editing, and the Library stay free. Other Pro features require a purchase.";
+"wizard_trial_plans_title" = "Keep Pro";
+"wizard_trial_plans_body" = "Choose a yearly plan or lifetime access at any time.";
