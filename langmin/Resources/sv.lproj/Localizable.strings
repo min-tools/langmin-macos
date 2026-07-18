@@ -1,0 +1,983 @@
+/* Langmin — sv localization. Comments give English text or name a related group. */
+
+/* About %@ */
+"about_app" = "Om %@";
+
+/* All */
+"all_chip" = "Alla";
+
+/* All models */
+"all_models" = "Alla modeller";
+
+/* Answer language */
+"answer_language" = "Svarsspråk";
+
+/* %@ Help */
+"app_help" = "%@ Hjälp";
+
+/* Back */
+"back" = "Tillbaka";
+
+/* Bring All to Front */
+"bring_all_to_front" = "Lägg alla överst";
+
+/* Delete %d items from %@? */
+"bulk_delete_confirm_many" = "Radera %d objekt från ”%@”?";
+
+/* Delete 1 item from %@? */
+"bulk_delete_confirm_one" = "Radera 1 objekt från ”%@”?";
+
+/* Only the items matching the current search are deleted. */
+"bulk_delete_search_note" = "Endast objekt som matchar den aktuella sökningen raderas.";
+
+/* Use Undo to restore an item before it disappears. */
+"bulk_delete_undo_note" = "Använd Ångra för att återställa ett objekt innan det försvinner.";
+
+/* Cancel */
+"cancel" = "Avbryt";
+
+/* Cancel Current Action */
+"cancel_current_action" = "Avbryt aktuell åtgärd";
+
+/* Cancel this request (Esc) */
+"cancel_this_request_esc" = "Avbryt den här förfrågan (Esc)";
+
+/* Cancelled */
+"cancelled" = "Avbrutet";
+
+/* Cancelling… */
+"cancelling" = "Avbryter…";
+
+/* Cancelling */
+"cancelling_a11y" = "Avbryter";
+
+/* Clear after submit */
+"clear_after_submit" = "Rensa efter skickat";
+
+/* You copied something else while Langmin was working. Replace it with the transformed text? */
+"clipboard_changed_body" = "Du kopierade något annat medan Langmin arbetade. Ersätta det med den omvandlade texten?";
+
+/* The clipboard changed */
+"clipboard_changed_title" = "Urklipp har ändrats";
+
+/* Clipboard unchanged */
+"clipboard_unchanged" = "Urklipp oförändrat";
+
+/* macOS did not accept the transformed text. The previous clipboard contents were restored. */
+"clipboard_write_failed_restored" = "macOS accepterade inte den omvandlade texten. Det tidigare innehållet i urklipp återställdes.";
+
+/* macOS did not accept the transformed text, and the previous clipboard contents could not be restored. */
+"clipboard_write_failed_unrestored" = "macOS accepterade inte den omvandlade texten, och det tidigare innehållet i urklipp kunde inte återställas.";
+
+/* Close */
+"close" = "Stäng";
+
+/* ⌘V to paste */
+"cmd_v_to_paste" = "⌘V för att klistra in";
+
+/* Compose with Clipboard */
+"compose_with_clipboard" = "Skriv med urklipp";
+
+/* Copied */
+"copied" = "Kopierat";
+
+/* Copy */
+"copy" = "Kopiera";
+
+/* Copy this paragraph */
+"copy_paragraph" = "Kopiera det här stycket";
+
+/* Copy Result */
+"copy_result" = "Kopiera resultat";
+
+/* Copying… */
+"copying" = "Kopierar…";
+
+/* Could not delete one saved item */
+"could_not_delete_one_saved_item" = "Det gick inte att radera ett sparat objekt";
+
+/* Could not delete some saved items */
+"could_not_delete_some_saved_items" = "Det gick inte att radera vissa sparade objekt";
+
+/* Could not delete this saved item */
+"could_not_delete_this_saved_item" = "Det gick inte att radera det här sparade objektet";
+
+/* Could not export this saved item */
+"could_not_export_this_saved_item" = "Det gick inte att exportera det här sparade objektet";
+
+/* Could not open the result */
+"could_not_open_result" = "Kunde inte öppna resultatet";
+
+/* Could not rename this saved item */
+"could_not_rename_this_saved_item" = "Det gick inte att byta namn på det här sparade objektet";
+
+/* Could not restore this saved item */
+"could_not_restore_this_saved_item" = "Det gick inte att återställa det här sparade objektet";
+
+/* Could not save audio */
+"could_not_save_audio" = "Det gick inte att spara ljudet";
+
+/* Could not update the clipboard */
+"could_not_update_clipboard" = "Kunde inte uppdatera urklipp";
+
+/* Could not update the login item */
+"could_not_update_the_login_item" = "Det gick inte att uppdatera inloggningsobjektet";
+
+/* Cut */
+"cut" = "Klipp ut";
+
+/* Cycle Through Windows */
+"cycle_through_windows" = "Växla mellan fönster";
+
+/* Delete */
+"delete" = "Radera";
+
+/* Delete All %d… */
+"delete_all_n" = "Radera alla %d…";
+
+/* Delete Folder */
+"delete_folder_menu" = "Radera mapp";
+
+/* All entries stay in the Library */
+"delete_folder_subtitle" = "Alla poster stannar kvar i Biblioteket";
+
+/* Delete %d Shown… */
+"delete_n_shown" = "Radera %d visade…";
+
+/* Deleted “%@” */
+"deleted_item" = "”%@” raderades";
+
+/* Dictionary */
+"dictionary" = "Ordbok";
+
+/* Dictionary Lookup */
+"dictionary_lookup" = "Ordboksuppslag";
+
+/* Dismiss */
+"dismiss" = "Stäng";
+
+/* Drop or paste documents, images, or audio */
+"drop_hint" = "Dra eller klistra in dokument, bilder eller ljud";
+
+/* Edit */
+"edit" = "Redigera";
+
+/* Deeper essay */
+"effort_detailed" = "Djupare essä";
+
+/* Short and clear */
+"effort_simple" = "Kort och tydligt";
+
+/* Balanced depth */
+"effort_standard" = "Balanserat djup";
+
+/* Elaborating… */
+"elaborating" = "Utvecklar…";
+
+/* Explain */
+"explain" = "Förklaring";
+
+/* Explain Clipboard */
+"explain_clipboard" = "Förklara urklipp";
+
+/* Explaining… */
+"explaining" = "Förklarar…";
+
+/* Export Audio… */
+"export_audio_menu" = "Exportera ljud…";
+
+/* Export Audio */
+"export_audio_panel" = "Exportera ljud";
+
+/* Export Text… */
+"export_text_menu" = "Exportera text…";
+
+/* Export Text */
+"export_text_panel" = "Exportera text";
+
+/* Extra languages */
+"extra_languages" = "Extra språk";
+
+/* File */
+"file" = "Arkiv";
+
+/* File In */
+"file_in_submenu" = "Sortera in i";
+
+/* Filter folders */
+"filter_folders" = "Filtrera mappar";
+
+/* Find… */
+"find_item" = "Sök…";
+
+/* Find */
+"find_menu" = "Sök";
+
+/* ↵ create · esc cancel */
+"folder_create_hint" = "↵ skapa · esc avbryt";
+
+/* Nothing in this folder yet */
+"folder_empty_title" = "Den här mappen är tom än så länge";
+
+/* Drag results onto a folder chip, or right-click one and file it here. */
+"folder_empty_subtitle" = "Dra resultat till en mappbricka, eller högerklicka på ett och sortera in det här.";
+
+/* already exists */
+"folder_exists_hint" = "finns redan";
+
+/* already exists · ↵ opens it */
+"folder_exists_opens_hint" = "finns redan · ↵ öppnar den";
+
+/* Folder name */
+"folder_name_placeholder" = "Mappnamn";
+
+/* ↵ rename · esc cancel */
+"folder_rename_hint" = "↵ byt namn · esc avbryt";
+
+/* Help */
+"help" = "Hjälp";
+
+/* Hide %@ */
+"hide_app" = "Göm %@";
+
+/* Hide Others */
+"hide_others" = "Göm övriga";
+
+/* Explaining */
+"hud_explaining" = "Förklarar";
+
+/* Looking up */
+"hud_looking_up" = "Slår upp";
+
+/* 1 word */
+"hud_one_word" = "1 ord";
+
+/* Proofreading */
+"hud_proofreading" = "Korrekturläser";
+
+/* Rewriting */
+"hud_rewriting" = "Skriver om";
+
+/* Summarizing */
+"hud_summarizing" = "Sammanfattar";
+
+/* Translating */
+"hud_translating" = "Översätter";
+
+/* %d words */
+"hud_word_count" = "%d ord";
+
+/* Keep Current Clipboard */
+"keep_current_clipboard" = "Behåll nuvarande urklipp";
+
+/* Language level */
+"language_level" = "Språknivå";
+
+/* The new language takes effect the next time Langmin opens. */
+"language_restart_notice" = "Det nya språket börjar gälla nästa gång Langmin öppnas.";
+
+/* Later */
+"later" = "Senare";
+
+/* Library */
+"library" = "Bibliotek";
+
+/* No saved items yet */
+"library_empty_title" = "Inga sparade objekt ännu";
+
+/* Click a result's bookmark button to save it here. */
+"library_empty_subtitle" = "Klicka på bokmärkesknappen vid ett resultat för att spara det här.";
+
+/* Look Up Clipboard in Dictionary */
+"look_up_clipboard_in_dictionary" = "Slå upp urklipp i ordboken";
+
+/* Looking up… */
+"looking_up" = "Slår upp…";
+
+/* Match question */
+"match_question" = "Som frågan";
+
+/* Minimize */
+"minimize" = "Minimera";
+
+/* More folders */
+"more_folders" = "Fler mappar";
+
+/* More languages */
+"more_languages" = "Fler språk";
+
+/* %d saved */
+"n_saved" = "%d sparade";
+
+/* New Explanation */
+"new_explanation" = "Ny förklaring";
+
+/* New Folder… */
+"new_folder_menu" = "Ny mapp…";
+
+/* Copy some text, then try the Langmin action again. */
+"no_clipboard_text_body" = "Kopiera lite text och prova Langmin-åtgärden igen.";
+
+/* No clipboard text */
+"no_clipboard_text_title" = "Ingen text i urklipp";
+
+/* No Folder */
+"no_folder" = "Ingen mapp";
+
+/* No results */
+"library_search_empty_title" = "Inga resultat";
+
+/* No %@ match “%@”. */
+"no_search_matches" = "Inga %@ matchar ”%@”.";
+
+/* None */
+"none" = "Inget";
+
+/* Not Now */
+"not_now" = "Inte nu";
+
+/* OK */
+"ok" = "OK";
+
+/* On this Mac */
+"on_this_mac" = "På den här datorn";
+
+/* Open */
+"open" = "Öppna";
+
+/* Open */
+"open_in_window" = "Öppna";
+
+/* Open Langmin */
+"open_langmin" = "Öppna Langmin";
+
+/* Open Langmin at login */
+"open_langmin_at_login" = "Öppna Langmin vid inloggning";
+
+/* Open in a result window */
+"open_result_window" = "Öppna i ett resultatfönster";
+
+/* Open Settings */
+"open_settings" = "Öppna Inställningar";
+
+/* Open Setup Assistant */
+"open_setup_assistant" = "Öppna installationsassistenten";
+
+/* Opening… */
+"opening_hud" = "Öppnar…";
+
+/* Opening… */
+"opening_progress" = "Öppnar…";
+
+/* Other */
+"other" = "Övrigt";
+
+/* ↵ run    ⇥ pin chip    ⌘, options */
+"palette_legend_chip" = "↵ kör    ⇥ fäst bricka    ⌘, alternativ";
+
+/* Paste */
+"paste" = "Klistra in";
+
+/* Langmin can't access the pasted file */
+"pasted_file_denied" = "Langmin kommer inte åt den inklistrade filen";
+
+/* Langmin can't access the pasted files */
+"pasted_files_denied" = "Langmin kommer inte åt de inklistrade filerna";
+
+/* macOS did not grant access to these files. Drag them into this window instead. */
+"pasted_files_denied_body" = "macOS gav inte åtkomst till de här filerna. Dra dem till det här fönstret.";
+
+/* Look up a word… */
+"placeholder_dictionary" = "Slå upp ett ord…";
+
+/* What would you like explained? */
+"placeholder_explain" = "Vad vill du få förklarat?";
+
+/* What would you like proofread? */
+"placeholder_proofread" = "Vad vill du få korrekturläst?";
+
+/* What would you like rewritten? */
+"placeholder_rewrite" = "Vad vill du få omskrivet?";
+
+/* What would you like summarized? */
+"placeholder_summarize" = "Vad vill du få sammanfattat?";
+
+/* What would you like translated? */
+"placeholder_translate" = "Vad vill du få översatt?";
+
+/* Preparing narration… */
+"preparing_narration" = "Förbereder uppläsning…";
+
+/* Privacy Policy… */
+"privacy_policy" = "Integritetspolicy…";
+
+/* Family Sharing included. */
+"pro_family_caption" = "Familjedelning ingår.";
+
+/* OpenAI, Anthropic, Gemini, Grok, DeepSeek, and custom endpoints */
+"pro_feature_cloud" = "OpenAI, Anthropic, Gemini, Grok, DeepSeek och egna slutpunkter";
+
+/* Library folders */
+"pro_feature_folders" = "Mappar i Biblioteket";
+
+/* Web research for current facts and sources */
+"pro_feature_research" = "Webbsökning för aktuella fakta och källor";
+
+/* OpenAI and Grok voices */
+"pro_feature_voices" = "OpenAI- och Grok-röster";
+
+/* Apple Intelligence, Apple voices, and the Library stay free. */
+"pro_free_note" = "Apple Intelligence, Apple-röster och Biblioteket förblir gratis.";
+
+/* Buy once for %@ */
+"pro_lifetime_button" = "Köp en gång för %@";
+
+/* Contacting the App Store… */
+"pro_loading" = "Kontaktar App Store…";
+
+/* Manage Subscription… */
+"pro_manage_subscription" = "Hantera prenumeration…";
+
+/* %@ Pro… */
+"pro_menu" = "%@ Pro…";
+
+/* This purchase is still pending. %@ Pro unlocks when the App Store confirms it. */
+"pro_pending_body" = "Det här köpet väntar fortfarande. %@ Pro låses upp när App Store bekräftar det.";
+
+/* Purchase pending */
+"pro_pending_title" = "Köp väntar";
+
+/* Privacy Policy */
+"pro_privacy_policy" = "Integritetspolicy";
+
+/* The purchase didn't complete: %@ */
+"pro_purchase_failed" = "Köpet slutfördes inte: %@";
+
+/* Cloud models are part of %@ Pro. */
+"pro_reason_cloud" = "Molnmodeller ingår i %@ Pro.";
+
+/* Library folders are part of %@ Pro. */
+"pro_reason_folders" = "Mappar i Biblioteket ingår i %@ Pro.";
+
+/* Get more with %@ Pro. */
+"pro_reason_general" = "Fler funktioner med %@ Pro.";
+
+/* OpenAI and Grok voices are part of %@ Pro. */
+"pro_reason_voices" = "OpenAI- och Grok-röster ingår i %@ Pro.";
+
+/* Couldn't restore purchases */
+
+/* No %@ Pro purchase was found for this Apple Account. */
+"pro_restore_none_body" = "Inget köp av %@ Pro hittades för det här Apple-kontot.";
+
+/* Nothing to restore */
+"pro_restore_none_title" = "Inget att återställa";
+
+/* Restore Purchases */
+"pro_restore_purchases" = "Återställ köp";
+
+/* Pro */
+"pro_status_active" = "Pro";
+
+/* Pro · ends %@ */
+"pro_status_ends" = "Pro · upphör %@";
+
+/* Pro · shared with your family */
+"pro_status_family" = "Pro · delas med din familj";
+
+/* Free */
+"pro_status_free" = "Gratis";
+
+/* Pro · lifetime */
+"pro_status_lifetime" = "Pro · livstid";
+
+/* Pro · renews %@ */
+"pro_status_renews" = "Pro · förnyas %@";
+
+/* Pro trial · ends %@ */
+"pro_status_trial_ends" = "Pro-provperiod · upphör %@";
+
+/* Pro trial · first payment %@ */
+"pro_status_trial_renews" = "Pro-provperiod · första betalning %@";
+
+/* Pro trial · until %@ */
+"pro_status_trial_until" = "Pro-provperiod · till %@";
+
+/* Pro · until %@ */
+"pro_status_until" = "Pro · till %@";
+
+/* Pro purchases are unavailable right now. Please try again later. */
+"pro_store_unavailable" = "Pro-köp är inte tillgängliga just nu. Försök igen senare.";
+
+/* Payment goes to your Apple Account. A subscription renews automatically each year unless it is cancelled in your App Store settings at least a day before the period ends. */
+"pro_terms" = "Betalningen dras från ditt Apple-konto. Prenumerationen förnyas automatiskt varje år om den inte sägs upp i App Store-inställningarna minst en dag före periodens slut.";
+
+/* Terms of Use */
+"pro_terms_of_use" = "Användarvillkor";
+
+/* Cancel at least a day before the free trial ends to avoid being charged. */
+
+/* %@ Pro */
+"pro_title" = "%@ Pro";
+
+/* Start free trial */
+
+/* Try free for a month */
+
+/* then %@ a year · cancel anytime */
+
+/* The App Store could not verify this purchase. */
+"pro_unverified" = "App Store kunde inte verifiera det här köpet.";
+
+/* Upgrade… */
+"pro_upgrade_button" = "Uppgradera…";
+
+/* Subscribe for %@ a year */
+"pro_yearly_button" = "Prenumerera för %@ per år";
+
+/* Renews automatically each year · cancel anytime */
+"pro_yearly_caption" = "Förnyas automatiskt varje år · avsluta när som helst";
+
+/* You have %@ Pro. */
+"pro_you_have" = "Du har %@ Pro.";
+
+/* Pronounce — click to choose a voice first */
+"pronounce_setup_tooltip" = "Uttala — klicka för att välja en röst först";
+
+/* Pronunciation voice */
+"pronunciation_voice" = "Uttalsröst";
+
+/* Proofread */
+"proofread" = "Korrektur";
+
+/* Proofread Clipboard */
+"proofread_clipboard" = "Korrekturläs urklipp";
+
+/* Proofreading… */
+"proofreading" = "Korrekturläser…";
+
+/* Quit %@ */
+"quit_app" = "Avsluta %@";
+
+/* Quit Now */
+"quit_now" = "Avsluta nu";
+
+/* Redo */
+"redo" = "Gör om";
+
+/* Remember choices */
+"remember_choices" = "Kom ihåg val";
+
+/* Rename */
+"rename" = "Byt namn";
+
+/* Rename Folder */
+"rename_folder_menu" = "Byt namn på mapp";
+
+/* Rephrasing… */
+"rephrasing" = "Omformulerar…";
+
+/* Reset Defaults */
+"reset_defaults" = "Återställ standard";
+
+/* Press Save to restore defaults, or open Setup Assistant to choose new settings. */
+"reset_wizard_body" = "Klicka på Spara för att återställa standardvärdena, eller öppna installationsassistenten för att välja nya inställningar.";
+
+/* Start over with the Setup Assistant? */
+"reset_wizard_title" = "Börja om med installationsassistenten?";
+
+/* Empty and loading results */
+"results_empty_title" = "Redo när du är";
+"results_empty_hint" = "Skriv text till vänster och tryck på ⌘↵ för att se resultatet här.";
+"results_loading_title" = "Skapar ditt resultat";
+"retry" = "Försök igen";
+
+/* Rewrite */
+"rewrite" = "Omskrivning";
+
+/* Rewrite Clipboard */
+"rewrite_clipboard" = "Skriv om urklipp";
+
+/* App Language */
+"row_app_language" = "Appens språk";
+
+/* Launcher Window */
+"row_launcher_window" = "Startfönster";
+
+/* Online Research */
+"row_online_research" = "Onlinesökning";
+
+/* Secret Protection */
+"row_secret_protection" = "Skydd av hemligheter";
+
+/* Run */
+"run" = "Kör";
+
+/* look up */
+"run_verb_dictionary" = "slå upp";
+
+/* explain */
+"run_verb_explain" = "förklara";
+
+/* proofread */
+"run_verb_proofread" = "korrekturläsa";
+
+/* rewrite */
+"run_verb_rewrite" = "skriva om";
+
+/* summarize */
+"run_verb_summarize" = "sammanfatta";
+
+/* translate */
+"run_verb_translate" = "översätta";
+
+/* Save */
+"save" = "Spara";
+
+/* Save Audio… */
+"save_audio" = "Spara ljud…";
+
+/* Save Text… */
+"save_text" = "Spara text…";
+
+/* Search actions */
+"search_actions" = "Sök åtgärder";
+
+/* ⌘K search */
+"search_actions_hint" = "⌘K sök";
+
+/* Search languages */
+"search_languages" = "Sök språk";
+
+/* Search Library */
+"search_library" = "Sök i biblioteket";
+
+/* Search models */
+"search_models" = "Sök modeller";
+
+/* titles */
+"search_scope_titles" = "titlar";
+
+/* titles or contents */
+"search_scope_titles_contents" = "titlar eller innehåll";
+
+/* Search voices */
+"search_voices" = "Sök röster";
+
+/* Services */
+"services" = "Tjänster";
+
+/* Settings… */
+"settings" = "Inställningar…";
+
+/* Settings */
+"settings_window" = "Inställningar";
+
+/* Setup Assistant… */
+"setup_assistant" = "Installationsassistent…";
+
+/* Show All */
+"show_all" = "Visa alla";
+
+/* Show Langmin in the menu bar */
+"show_langmin_in_the_menu_bar" = "Visa Langmin i menyraden";
+
+/* %@ with %@… */
+"status_with_model" = "%@ med %@…";
+
+/* Style */
+"style" = "Stil";
+
+/* Summarize */
+"summarize" = "Sammanfattning";
+
+/* Summarize Clipboard */
+"summarize_clipboard" = "Sammanfatta urklipp";
+
+/* Summarizing… */
+"summarizing" = "Sammanfattar…";
+
+/* System Default */
+"system_default" = "Systemstandard";
+
+/* Advanced */
+"tab_advanced" = "Avancerat";
+
+/* General */
+"tab_general" = "Allmänt";
+
+/* Models */
+"tab_models" = "Modeller";
+
+/* Reading */
+"tab_reading" = "Uppläsning";
+
+/* Shortcuts */
+"tab_shortcuts" = "Kortkommandon";
+
+/* Window */
+"tab_window" = "Fönster";
+
+/* Tightening… */
+"tightening" = "Kortar ner…";
+
+/* Translate */
+"translate" = "Översättning";
+
+/* Translate Clipboard */
+"translate_clipboard" = "Översätt urklipp";
+
+/* Translating… */
+"translating" = "Översätter…";
+
+/* Undo */
+"undo" = "Ångra";
+
+/* Untitled */
+"untitled" = "Namnlös";
+
+/* Another app asked Langmin to process this text:\n\n“%@”\n\nRunning sends it to your configured model. */
+"url_run_confirm_body" = "En annan app bad Langmin bearbeta den här texten:\n\n”%@”\n\nVid körning skickas den till din valda modell.";
+
+/* Run “%@” from a link? */
+"url_run_confirm_title" = "Kör ”%@” från en länk?";
+
+/* Use web research when available */
+"use_web_research" = "Använd webbsökning när den är tillgänglig";
+
+/* Warn before sending secrets */
+"warn_before_secrets" = "Varna innan hemligheter skickas";
+
+/* Window */
+"window" = "Fönster";
+
+/* Runs on your Mac. Free, with no account needed. */
+"wizard_apple_available" = "Körs på din Mac. Gratis, utan konto.";
+
+/* Apple Intelligence (on this Mac, private and free) */
+"wizard_apple_row" = "Apple Intelligence (på den här datorn, privat och gratis)";
+
+/* Apple Intelligence (not available on this Mac) */
+"wizard_apple_row_unavailable" = "Apple Intelligence (inte tillgängligt på den här datorn)";
+
+/* Not available on this Mac (requires Apple Intelligence). Choose a cloud provider below. */
+"wizard_apple_unavailable" = "Inte tillgängligt på den här datorn (kräver Apple Intelligence). Välj en molnleverantör nedan.";
+
+/* Read results aloud or hear Dictionary words and examples. Choose a voice that supports the language.\n\nApple voices run on your Mac for free. OpenAI and Grok voices require Pro and a provider API key. */
+"wizard_audio_body" = "Lyssna på resultat, ord och exempel från Ordbok. Välj en röst som stöder språket.\n\nApple-röster körs gratis på din Mac. OpenAI- och Grok-röster kräver Pro och en API-nyckel från leverantören.";
+
+/* Hear your words */
+"wizard_audio_title" = "Hör dina ord";
+
+/* Back */
+"wizard_back" = "Tillbaka";
+
+/* macOS may ask for clipboard access when you first use a shortcut. */
+"wizard_clipboard_note" = "macOS kan be om åtkomst till urklipp första gången du använder ett kortkommando.";
+
+/* Continue */
+"wizard_continue" = "Fortsätt";
+
+/* Also answer in */
+"wizard_extra_languages" = "Svara även på";
+
+/* Finish */
+"wizard_finish" = "Slutför";
+
+/* Keys stay in macOS Keychain. Requests go directly to your provider. Add keys or a local model later in Settings → Models. */
+"wizard_key_note_local" = "Nycklar sparas i macOS-nyckelringen. Förfrågningar går direkt till leverantören. Lägg till nycklar eller en lokal modell senare i Inställningar → Modeller.";
+
+/* API key (optional, add any time) */
+"wizard_key_optional" = "API-nyckel (valfri, lägg till när som helst)";
+
+/* Choose translation languages. Extra languages add versions to Dictionary, Explain, and Summarize results. Change either list in the launcher's mode menus. */
+"wizard_language_body_single_source" = "Välj översättningsspråk. Extra språk lägger till språkversioner i resultat från Ordbok, Förklaring och Sammanfattning. Ändra listorna i startfönstrets lägesmenyer.";
+
+/* Your languages */
+"wizard_language_title" = "Dina språk";
+
+/* Set Up Later */
+"wizard_later" = "Konfigurera senare";
+
+/* Cloud providers, web research, Library folders, and cloud voices require %@ Pro. Apple Intelligence is free. Eligible subscriptions include a trial. */
+"wizard_pro_note" = "Your first 30 days include %@ Pro. Apple Intelligence stays free afterward.";
+
+/* Dictionary pronunciation voice */
+"wizard_pronunciation_voice" = "Uttalsröst för ordboken";
+
+/* Claude models with web research. */
+"wizard_provider_anthropic" = "Claude-modeller med webbsökning.";
+
+/* Switch models in the launcher, or open All models to enable more. */
+"wizard_provider_body_multi" = "Byt modell i startfönstret eller aktivera fler under Alla modeller.";
+
+/* DeepSeek chat and reasoning models. */
+"wizard_provider_deepseek" = "DeepSeek-modeller för chatt och resonemang.";
+
+/* Gemini models with web research. */
+"wizard_provider_gemini" = "Gemini-modeller med webbsökning.";
+
+/* Grok text models and optional voices. */
+"wizard_provider_grok" = "Groks textmodeller och valfria röster.";
+
+/* GPT models with web research. */
+"wizard_provider_openai" = "GPT-modeller med webbsökning.";
+
+/* Choose your providers */
+"wizard_provider_title_multi" = "Välj leverantörer";
+
+/* Copy text and use a shortcut, or open the launcher and start typing.\n\nChange your choices in the launcher's menus or Settings. */
+"wizard_ready_body_simple" = "Langmin starts a free 30-day trial when you first open it. No subscription starts, and you will not be charged.";
+
+/* You're all set */
+"wizard_ready_title" = "30 days of full access";
+
+/* Use these shortcuts from another app after copying text. Proofread and Rewrite copy the result. The other four modes show it in the HUD. Open opens a result window; Dismiss closes the HUD.\n\nIn Langmin's main window, these shortcuts select a mode. Press ⌘Return to run it. */
+"wizard_shortcuts_body" = "Kopiera text i en annan app och använd dessa kortkommandon. Korrektur och Omskrivning kopierar resultatet. De andra fyra lägena visar det i HUD-panelen. Öppna öppnar ett resultatfönster; Stäng stänger HUD-panelen.\n\nI Langmins huvudfönster väljer kortkommandona ett läge. Tryck på ⌘Return för att köra det.";
+
+/* Step %d of %d */
+"wizard_step_n_of_m" = "Steg %d av %d";
+
+/* Translate to */
+"wizard_translate_to" = "Översätt till";
+
+/* Proofread, rewrite, explain, summarize, translate, and look up words. Listen to results and Dictionary examples.\n\nChoose your settings now or change them later. */
+"wizard_welcome_body_short" = "Korrekturläs, skriv om, förklara, sammanfatta, översätt och slå upp ord. Lyssna på resultat och ordboksexempel.\n\nVälj inställningar nu eller ändra dem senare.";
+
+/* Welcome to %@ */
+"wizard_welcome_title" = "Välkommen till %@";
+
+/* Langmin Setup */
+"wizard_window" = "Konfigurera Langmin";
+
+/* Open Langmin at login to keep its menu-bar actions and shortcuts available. */
+"wizard_workflow_body" = "Öppna Langmin vid inloggning så att åtgärderna i menyraden och kortkommandona är tillgängliga.";
+
+/* Always at hand */
+"wizard_workflow_title" = "Alltid nära till hands";
+
+/* Your providers */
+"your_providers" = "Dina leverantörer";
+
+/* Dictionary illustrations */
+"illustration" = "Illustration";
+"illustration_apple_note" = "Skapa och välj en bild på din Mac";
+"illustration_apple_unavailable" = "Kräver macOS 15.4 eller senare och Image Playground";
+"illustration_cloud_note" = "Debiteras separat · använder din OpenAI-API-nyckel";
+"illustration_generated" = "AI-genererad illustration";
+"illustration_generating" = "Skapar illustration…";
+"illustration_failed" = "Kunde inte skapa illustrationen";
+"illustration_missing_key" = "Lägg till en OpenAI-API-nyckel i Inställningar → Modeller.";
+"illustration_save" = "Spara bild…";
+"illustration_remove" = "Ta bort illustration";
+
+"reading_webpage" = "Läser sidan…";
+
+"loading_page_images" = "Läser in sidans bilder…";
+
+/* Follow-up */
+"followup_title" = "Följdfråga";
+
+/* Ask a follow-up or request changes… */
+"followup_placeholder" = "Ställ en följdfråga eller be om ändringar…";
+
+/* Send follow-up */
+"followup_send" = "Skicka följdfråga";
+
+/* Replying… */
+"followup_working" = "Svarar…";
+
+/* You */
+"followup_you" = "Du";
+
+/* Copy reply */
+"followup_copy" = "Kopiera svar";
+
+/* Delete reply */
+"followup_delete_reply" = "Radera svar";
+
+/* The message could not be deleted: %@ */
+"followup_delete_failed" = "Det gick inte att radera meddelandet: %@";
+
+/* Print… */
+"print" = "Skriv ut…";
+
+/* Quick HUD playback */
+"hud_read_paragraph" = "Läs detta stycke högt";
+"hud_stop_playback" = "Stoppa uppläsning";
+"hud_playback_failed" = "Det gick inte att läsa upp texten";
+"hud_voice_api_key" = "Lägg till en API-nyckel för %@ i Inställningar för att använda den här rösten.";
+
+"request_failed" = "Begäran misslyckades";
+
+/* Translation skipped */
+"translation_skipped" = "Översättning hoppades över";
+
+/* Already in this language. */
+"translation_already_in_language" = "Texten är redan på det valda språket.";
+
+/* Library window placement */
+"detach_library" = "Öppna biblioteket i ett separat fönster";
+"attach_library" = "Flytta biblioteket till huvudfönstret";
+
+/* Result text editing */
+"apply" = "Använd";
+"discard_changes" = "Förkasta ändringar";
+"done" = "Klart";
+"edit_link" = "Redigera länk";
+"edit_text" = "Redigera text";
+"format_text" = "Formatera text";
+"remove_link" = "Ta bort länk";
+"save_text_changes" = "Vill du spara textändringarna?";
+"text_style" = "Textstil";
+"save_edits_remove_audio" = "Spara ändringar och ta bort ljud?";
+"save_edits_remove_audio_detail" = "Om du sparar ändringarna tas all bifogad uppläsning och allt uttalsljud bort. Du kan generera nytt ljud efteråt.";
+
+/* iCloud Library sync */
+"pro_feature_icloud" = "Synkronisering av bibliotek via iCloud";
+"pro_reason_icloud" = "Synkronisering av bibliotek via iCloud ingår i %@ Pro.";
+
+/* Automatically illustrate new lookups */
+"illustration_automatic" = "Illustrera nya uppslag automatiskt";
+
+/* Automatic images are off by default. To add an image yourself, use the picture button on a Dictionary result. */
+"illustration_manual_note" = "Automatiska bilder är avstängda som standard. Använd bildknappen i ett ordboksresultat för att själv lägga till en bild.";
+
+/* Image Provider */
+"illustration_provider" = "Bildleverantör";
+
+/* Choose in result */
+"illustration_choose_in_result" = "Välj i resultatet";
+
+/* Choose a provider before turning on automatic images. You can also add an image from a Dictionary result's picture button. */
+"illustration_choose_provider_note" = "Välj en leverantör innan du slår på automatiska bilder. Du kan också lägga till en bild med bildknappen i ett ordboksresultat.";
+
+/* Create and choose images on your Mac. Automatic mode opens Image Playground after each Dictionary lookup. */
+"illustration_apple_settings_note" = "Skapa och välj bilder på din Mac. I automatiskt läge öppnas Image Playground efter varje ordboksuppslag.";
+
+/* Requires Pro and an OpenAI API key in Settings → Models. Each image is billed separately. Creates one landscape image at medium quality. */
+"illustration_openai_settings_note" = "Kräver Pro och en OpenAI-API-nyckel i Inställningar → Modeller. Varje bild debiteras separat. Skapar en liggande bild med medelhög kvalitet.";
+
+/* Illustrations */
+"tab_illustrations" = "Illustrationer";
+
+/* Empty launcher input */
+"input_start_hint" = "Skriv eller klistra in här, eller dra in en fil";
+"input_documents" = "Dokument";
+"input_images" = "Bilder";
+"input_audio" = "Ljud";
+"input_drop_title" = "Släpp för att lägga till text";
+
+/* Source-build purchase footer */
+"source_build_title" = "Trial ended";
+"source_build_support" = "Apple Intelligence stays free, while other Pro features require purchase.";
+"source_build_purchase" = "Köp";
+"source_build_dismiss" = "Dismiss";
+"pro_app_trial_one_day" = "Pro trial · 1 day remaining";
+"pro_app_trial_days" = "Pro trial · %d days remaining";
+"wizard_trial_during_title" = "Your first 30 days";
+"wizard_trial_during_langmin" = "Use every Langmin feature without app limits. Provider charges may still apply.";
+"wizard_trial_after_title" = "After the trial";
+"wizard_trial_after_langmin" = "Apple Intelligence, Apple voices, Apple transcription, text editing, and the Library stay free. Other Pro features require a purchase.";
+"wizard_trial_plans_title" = "Keep Pro";
+"wizard_trial_plans_body" = "Choose a yearly plan or lifetime access at any time.";
