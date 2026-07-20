@@ -1,0 +1,983 @@
+/* Langmin — th localization. Comments give English text or name a related group. */
+
+/* About %@ */
+"about_app" = "เกี่ยวกับ %@";
+
+/* All */
+"all_chip" = "ทั้งหมด";
+
+/* All models */
+"all_models" = "โมเดลทั้งหมด";
+
+/* Answer language */
+"answer_language" = "ภาษาของคำตอบ";
+
+/* %@ Help */
+"app_help" = "วิธีใช้ %@";
+
+/* Back */
+"back" = "ย้อนกลับ";
+
+/* Bring All to Front */
+"bring_all_to_front" = "นำทั้งหมดมาไว้ด้านหน้า";
+
+/* Delete %d items from %@? */
+"bulk_delete_confirm_many" = "ลบ %d รายการจาก “%@” หรือไม่";
+
+/* Delete 1 item from %@? */
+"bulk_delete_confirm_one" = "ลบ 1 รายการจาก “%@” หรือไม่";
+
+/* Only the items matching the current search are deleted. */
+"bulk_delete_search_note" = "จะลบเฉพาะรายการที่ตรงกับการค้นหาปัจจุบันเท่านั้น";
+
+/* Use Undo to restore an item before it disappears. */
+"bulk_delete_undo_note" = "ใช้เลิกทำเพื่อกู้คืนรายการก่อนที่รายการจะหายไป";
+
+/* Cancel */
+"cancel" = "ยกเลิก";
+
+/* Cancel Current Action */
+"cancel_current_action" = "ยกเลิกการดำเนินการปัจจุบัน";
+
+/* Cancel this request (Esc) */
+"cancel_this_request_esc" = "ยกเลิกคำขอนี้ (Esc)";
+
+/* Cancelled */
+"cancelled" = "ยกเลิกแล้ว";
+
+/* Cancelling… */
+"cancelling" = "กำลังยกเลิก…";
+
+/* Cancelling */
+"cancelling_a11y" = "กำลังยกเลิก";
+
+/* Clear after submit */
+"clear_after_submit" = "ล้างหลังส่ง";
+
+/* You copied something else while Langmin was working. Replace it with the transformed text? */
+"clipboard_changed_body" = "คุณคัดลอกสิ่งอื่นระหว่างที่ Langmin กำลังทำงาน ต้องการแทนที่ด้วยข้อความที่แปลงแล้วหรือไม่";
+
+/* The clipboard changed */
+"clipboard_changed_title" = "คลิปบอร์ดเปลี่ยนไปแล้ว";
+
+/* Clipboard unchanged */
+"clipboard_unchanged" = "คลิปบอร์ดไม่เปลี่ยนแปลง";
+
+/* macOS did not accept the transformed text. The previous clipboard contents were restored. */
+"clipboard_write_failed_restored" = "macOS ไม่ยอมรับข้อความที่แปลงแล้ว ได้กู้คืนเนื้อหาเดิมของคลิปบอร์ดแล้ว";
+
+/* macOS did not accept the transformed text, and the previous clipboard contents could not be restored. */
+"clipboard_write_failed_unrestored" = "macOS ไม่ยอมรับข้อความที่แปลงแล้ว และไม่สามารถกู้คืนเนื้อหาเดิมของคลิปบอร์ดได้";
+
+/* Close */
+"close" = "ปิด";
+
+/* ⌘V to paste */
+"cmd_v_to_paste" = "⌘V เพื่อวาง";
+
+/* Compose with Clipboard */
+"compose_with_clipboard" = "เขียนจากคลิปบอร์ด";
+
+/* Copied */
+"copied" = "คัดลอกแล้ว";
+
+/* Copy */
+"copy" = "คัดลอก";
+
+/* Copy this paragraph */
+"copy_paragraph" = "คัดลอกย่อหน้านี้";
+
+/* Copy Result */
+"copy_result" = "คัดลอกผลลัพธ์";
+
+/* Copying… */
+"copying" = "กำลังคัดลอก…";
+
+/* Could not delete one saved item */
+"could_not_delete_one_saved_item" = "ไม่สามารถลบรายการที่บันทึกไว้หนึ่งรายการ";
+
+/* Could not delete some saved items */
+"could_not_delete_some_saved_items" = "ไม่สามารถลบรายการที่บันทึกไว้บางรายการ";
+
+/* Could not delete this saved item */
+"could_not_delete_this_saved_item" = "ไม่สามารถลบรายการที่บันทึกไว้นี้";
+
+/* Could not export this saved item */
+"could_not_export_this_saved_item" = "ไม่สามารถส่งออกรายการที่บันทึกไว้นี้";
+
+/* Could not open the result */
+"could_not_open_result" = "ไม่สามารถเปิดผลลัพธ์ได้";
+
+/* Could not rename this saved item */
+"could_not_rename_this_saved_item" = "ไม่สามารถเปลี่ยนชื่อรายการที่บันทึกไว้นี้";
+
+/* Could not restore this saved item */
+"could_not_restore_this_saved_item" = "ไม่สามารถกู้คืนรายการที่บันทึกไว้นี้";
+
+/* Could not save audio */
+"could_not_save_audio" = "ไม่สามารถบันทึกเสียง";
+
+/* Could not update the clipboard */
+"could_not_update_clipboard" = "ไม่สามารถอัปเดตคลิปบอร์ดได้";
+
+/* Could not update the login item */
+"could_not_update_the_login_item" = "ไม่สามารถอัปเดตรายการเข้าสู่ระบบ";
+
+/* Cut */
+"cut" = "ตัด";
+
+/* Cycle Through Windows */
+"cycle_through_windows" = "สลับไปมาระหว่างหน้าต่าง";
+
+/* Delete */
+"delete" = "ลบ";
+
+/* Delete All %d… */
+"delete_all_n" = "ลบทั้งหมด %d รายการ…";
+
+/* Delete Folder */
+"delete_folder_menu" = "ลบโฟลเดอร์";
+
+/* All entries stay in the Library */
+"delete_folder_subtitle" = "รายการทั้งหมดยังคงอยู่ในคลัง";
+
+/* Delete %d Shown… */
+"delete_n_shown" = "ลบ %d รายการที่แสดง…";
+
+/* Deleted “%@” */
+"deleted_item" = "ลบ “%@” แล้ว";
+
+/* Dictionary */
+"dictionary" = "พจนานุกรม";
+
+/* Dictionary Lookup */
+"dictionary_lookup" = "ค้นหาในพจนานุกรม";
+
+/* Dismiss */
+"dismiss" = "ปิด";
+
+/* Drop or paste documents, images, or audio */
+"drop_hint" = "ลากหรือวางเอกสาร รูปภาพ หรือไฟล์เสียง";
+
+/* Edit */
+"edit" = "แก้ไข";
+
+/* Deeper essay */
+"effort_detailed" = "เรียงความเชิงลึก";
+
+/* Short and clear */
+"effort_simple" = "สั้นและชัดเจน";
+
+/* Balanced depth */
+"effort_standard" = "ความลึกพอดี";
+
+/* Elaborating… */
+"elaborating" = "กำลังขยายความ…";
+
+/* Explain */
+"explain" = "อธิบาย";
+
+/* Explain Clipboard */
+"explain_clipboard" = "อธิบายคลิปบอร์ด";
+
+/* Explaining… */
+"explaining" = "กำลังอธิบาย…";
+
+/* Export Audio… */
+"export_audio_menu" = "ส่งออกเสียง…";
+
+/* Export Audio */
+"export_audio_panel" = "ส่งออกเสียง";
+
+/* Export Text… */
+"export_text_menu" = "ส่งออกข้อความ…";
+
+/* Export Text */
+"export_text_panel" = "ส่งออกข้อความ";
+
+/* Extra languages */
+"extra_languages" = "ภาษาเพิ่มเติม";
+
+/* File */
+"file" = "ไฟล์";
+
+/* File In */
+"file_in_submenu" = "จัดเก็บใน";
+
+/* Filter folders */
+"filter_folders" = "กรองโฟลเดอร์";
+
+/* Find… */
+"find_item" = "ค้นหา…";
+
+/* Find */
+"find_menu" = "ค้นหา";
+
+/* ↵ create · esc cancel */
+"folder_create_hint" = "↵ สร้าง · esc ยกเลิก";
+
+/* Nothing in this folder yet */
+"folder_empty_title" = "โฟลเดอร์นี้ยังว่างอยู่";
+
+/* Drag results onto a folder chip, or right-click one and file it here. */
+"folder_empty_subtitle" = "ลากผลลัพธ์ไปวางบนป้ายโฟลเดอร์ หรือคลิกขวาที่ผลลัพธ์แล้วจัดเก็บไว้ที่นี่";
+
+/* already exists */
+"folder_exists_hint" = "มีอยู่แล้ว";
+
+/* already exists · ↵ opens it */
+"folder_exists_opens_hint" = "มีอยู่แล้ว · ↵ เพื่อเปิด";
+
+/* Folder name */
+"folder_name_placeholder" = "ชื่อโฟลเดอร์";
+
+/* ↵ rename · esc cancel */
+"folder_rename_hint" = "↵ เปลี่ยนชื่อ · esc ยกเลิก";
+
+/* Help */
+"help" = "วิธีใช้";
+
+/* Hide %@ */
+"hide_app" = "ซ่อน %@";
+
+/* Hide Others */
+"hide_others" = "ซ่อนอื่นๆ";
+
+/* Explaining */
+"hud_explaining" = "กำลังอธิบาย";
+
+/* Looking up */
+"hud_looking_up" = "กำลังค้นหา";
+
+/* 1 word */
+"hud_one_word" = "1 คำ";
+
+/* Proofreading */
+"hud_proofreading" = "กำลังพิสูจน์อักษร";
+
+/* Rewriting */
+"hud_rewriting" = "กำลังเขียนใหม่";
+
+/* Summarizing */
+"hud_summarizing" = "กำลังสรุป";
+
+/* Translating */
+"hud_translating" = "กำลังแปล";
+
+/* %d words */
+"hud_word_count" = "%d คำ";
+
+/* Keep Current Clipboard */
+"keep_current_clipboard" = "เก็บคลิปบอร์ดปัจจุบันไว้";
+
+/* Language level */
+"language_level" = "ระดับภาษา";
+
+/* The new language takes effect the next time Langmin opens. */
+"language_restart_notice" = "ภาษาใหม่จะมีผลเมื่อเปิด Langmin ครั้งถัดไป";
+
+/* Later */
+"later" = "ภายหลัง";
+
+/* Library */
+"library" = "คลัง";
+
+/* No saved items yet */
+"library_empty_title" = "ยังไม่มีรายการที่บันทึกไว้";
+
+/* Click a result's bookmark button to save it here. */
+"library_empty_subtitle" = "คลิกปุ่มบุ๊กมาร์กที่ผลลัพธ์เพื่อบันทึกไว้ที่นี่";
+
+/* Look Up Clipboard in Dictionary */
+"look_up_clipboard_in_dictionary" = "ค้นหาคลิปบอร์ดในพจนานุกรม";
+
+/* Looking up… */
+"looking_up" = "กำลังค้นหา…";
+
+/* Match question */
+"match_question" = "ตามภาษาของคำถาม";
+
+/* Minimize */
+"minimize" = "ย่อ";
+
+/* More folders */
+"more_folders" = "โฟลเดอร์เพิ่มเติม";
+
+/* More languages */
+"more_languages" = "ภาษาอื่นๆ";
+
+/* %d saved */
+"n_saved" = "บันทึกแล้ว %d รายการ";
+
+/* New Explanation */
+"new_explanation" = "คำอธิบายใหม่";
+
+/* New Folder… */
+"new_folder_menu" = "โฟลเดอร์ใหม่…";
+
+/* Copy some text, then try the Langmin action again. */
+"no_clipboard_text_body" = "คัดลอกข้อความ แล้วลองใช้การกระทำของ Langmin อีกครั้ง";
+
+/* No clipboard text */
+"no_clipboard_text_title" = "ไม่มีข้อความในคลิปบอร์ด";
+
+/* No Folder */
+"no_folder" = "ไม่มีโฟลเดอร์";
+
+/* No results */
+"library_search_empty_title" = "ไม่มีผลลัพธ์";
+
+/* No %@ match “%@”. */
+"no_search_matches" = "ไม่มี%@ที่ตรงกับ “%@”";
+
+/* None */
+"none" = "ไม่มี";
+
+/* Not Now */
+"not_now" = "ไว้ทีหลัง";
+
+/* OK */
+"ok" = "ตกลง";
+
+/* On this Mac */
+"on_this_mac" = "บน Mac เครื่องนี้";
+
+/* Open */
+"open" = "เปิด";
+
+/* Open */
+"open_in_window" = "เปิด";
+
+/* Open Langmin */
+"open_langmin" = "เปิด Langmin";
+
+/* Open Langmin at login */
+"open_langmin_at_login" = "เปิด Langmin เมื่อเข้าสู่ระบบ";
+
+/* Open in a result window */
+"open_result_window" = "เปิดในหน้าต่างผลลัพธ์";
+
+/* Open Settings */
+"open_settings" = "เปิดการตั้งค่า";
+
+/* Open Setup Assistant */
+"open_setup_assistant" = "เปิดตัวช่วยตั้งค่า";
+
+/* Opening… */
+"opening_hud" = "กำลังเปิด…";
+
+/* Opening… */
+"opening_progress" = "กำลังเปิด…";
+
+/* Other */
+"other" = "อื่นๆ";
+
+/* ↵ run    ⇥ pin chip    ⌘, options */
+"palette_legend_chip" = "↵ เรียกใช้    ⇥ ปักหมุดป้าย    ⌘, ตัวเลือก";
+
+/* Paste */
+"paste" = "วาง";
+
+/* Langmin can't access the pasted file */
+"pasted_file_denied" = "Langmin ไม่สามารถเข้าถึงไฟล์ที่วาง";
+
+/* Langmin can't access the pasted files */
+"pasted_files_denied" = "Langmin ไม่สามารถเข้าถึงไฟล์ที่วาง";
+
+/* macOS did not grant access to these files. Drag them into this window instead. */
+"pasted_files_denied_body" = "macOS ไม่ได้อนุญาตให้เข้าถึงไฟล์เหล่านี้ ลากไฟล์เข้ามาในหน้าต่างนี้แทน";
+
+/* Look up a word… */
+"placeholder_dictionary" = "ค้นหาคำ…";
+
+/* What would you like explained? */
+"placeholder_explain" = "ต้องการให้อธิบายเรื่องใด";
+
+/* What would you like proofread? */
+"placeholder_proofread" = "ต้องการพิสูจน์อักษรข้อความใด";
+
+/* What would you like rewritten? */
+"placeholder_rewrite" = "ต้องการเขียนข้อความใดใหม่";
+
+/* What would you like summarized? */
+"placeholder_summarize" = "ต้องการสรุปข้อความใด";
+
+/* What would you like translated? */
+"placeholder_translate" = "ต้องการแปลข้อความใด";
+
+/* Preparing narration… */
+"preparing_narration" = "กำลังเตรียมการอ่านออกเสียง…";
+
+/* Privacy Policy… */
+"privacy_policy" = "นโยบายความเป็นส่วนตัว…";
+
+/* Family Sharing included. */
+"pro_family_caption" = "รวมการแชร์กันในครอบครัว";
+
+/* OpenAI, Anthropic, Gemini, Grok, DeepSeek, and custom endpoints */
+"pro_feature_cloud" = "OpenAI, Anthropic, Gemini, Grok, DeepSeek และปลายทางที่กำหนดเอง";
+
+/* Library folders */
+"pro_feature_folders" = "โฟลเดอร์ในคลัง";
+
+/* Web research for current facts and sources */
+"pro_feature_research" = "ค้นหาเว็บเพื่อข้อเท็จจริงและแหล่งอ้างอิงล่าสุด";
+
+/* OpenAI and Grok voices */
+"pro_feature_voices" = "เสียง OpenAI และ Grok";
+
+/* Apple Intelligence, Apple voices, and the Library stay free. */
+"pro_free_note" = "Apple Intelligence เสียงของ Apple และคลังยังคงใช้ได้ฟรี";
+
+/* Buy once for %@ */
+"pro_lifetime_button" = "ซื้อครั้งเดียวในราคา %@";
+
+/* Contacting the App Store… */
+"pro_loading" = "กำลังติดต่อ App Store…";
+
+/* Manage Subscription… */
+"pro_manage_subscription" = "จัดการการสมัครสมาชิก…";
+
+/* %@ Pro… */
+"pro_menu" = "%@ Pro…";
+
+/* This purchase is still pending. %@ Pro unlocks when the App Store confirms it. */
+"pro_pending_body" = "การซื้อนี้ยังรอดำเนินการ %@ Pro จะปลดล็อกเมื่อ App Store ยืนยันการซื้อ";
+
+/* Purchase pending */
+"pro_pending_title" = "การซื้อยังรอดำเนินการ";
+
+/* Privacy Policy */
+"pro_privacy_policy" = "นโยบายความเป็นส่วนตัว";
+
+/* The purchase didn't complete: %@ */
+"pro_purchase_failed" = "การซื้อไม่เสร็จสมบูรณ์: %@";
+
+/* Cloud models are part of %@ Pro. */
+"pro_reason_cloud" = "โมเดลบนคลาวด์เป็นส่วนหนึ่งของ %@ Pro";
+
+/* Library folders are part of %@ Pro. */
+"pro_reason_folders" = "โฟลเดอร์ในคลังเป็นส่วนหนึ่งของ %@ Pro";
+
+/* Get more with %@ Pro. */
+"pro_reason_general" = "ใช้ฟีเจอร์เพิ่มเติมด้วย %@ Pro";
+
+/* OpenAI and Grok voices are part of %@ Pro. */
+"pro_reason_voices" = "เสียง OpenAI และ Grok เป็นส่วนหนึ่งของ %@ Pro";
+
+/* Couldn't restore purchases */
+
+/* No %@ Pro purchase was found for this Apple Account. */
+"pro_restore_none_body" = "ไม่พบการซื้อ %@ Pro สำหรับบัญชี Apple นี้";
+
+/* Nothing to restore */
+"pro_restore_none_title" = "ไม่มีรายการให้กู้คืน";
+
+/* Restore Purchases */
+"pro_restore_purchases" = "กู้คืนการซื้อ";
+
+/* Pro */
+"pro_status_active" = "Pro";
+
+/* Pro · ends %@ */
+"pro_status_ends" = "Pro · สิ้นสุด %@";
+
+/* Pro · shared with your family */
+"pro_status_family" = "Pro · แชร์กับครอบครัวของคุณ";
+
+/* Free */
+"pro_status_free" = "ฟรี";
+
+/* Pro · lifetime */
+"pro_status_lifetime" = "Pro · ตลอดชีพ";
+
+/* Pro · renews %@ */
+"pro_status_renews" = "Pro · ต่ออายุ %@";
+
+/* Pro trial · ends %@ */
+"pro_status_trial_ends" = "ทดลองใช้ Pro · สิ้นสุด %@";
+
+/* Pro trial · first payment %@ */
+"pro_status_trial_renews" = "ทดลองใช้ Pro · ชำระเงินครั้งแรก %@";
+
+/* Pro trial · until %@ */
+"pro_status_trial_until" = "ทดลองใช้ Pro · ถึง %@";
+
+/* Pro · until %@ */
+"pro_status_until" = "Pro · ถึง %@";
+
+/* Pro purchases are unavailable right now. Please try again later. */
+"pro_store_unavailable" = "ขณะนี้ยังซื้อ Pro ไม่ได้ โปรดลองอีกครั้งภายหลัง";
+
+/* Payment goes to your Apple Account. A subscription renews automatically each year unless it is cancelled in your App Store settings at least a day before the period ends. */
+"pro_terms" = "ค่าใช้จ่ายจะเรียกเก็บผ่านบัญชี Apple ของคุณ การสมัครสมาชิกจะต่ออายุอัตโนมัติทุกปี เว้นแต่จะยกเลิกในการตั้งค่า App Store อย่างน้อยหนึ่งวันก่อนสิ้นสุดรอบ";
+
+/* Terms of Use */
+"pro_terms_of_use" = "ข้อกำหนดการใช้งาน";
+
+/* Cancel at least a day before the free trial ends to avoid being charged. */
+
+/* %@ Pro */
+"pro_title" = "%@ Pro";
+
+/* Start free trial */
+
+/* Try free for a month */
+
+/* then %@ a year · cancel anytime */
+
+/* The App Store could not verify this purchase. */
+"pro_unverified" = "App Store ไม่สามารถยืนยันการซื้อนี้ได้";
+
+/* Upgrade… */
+"pro_upgrade_button" = "อัปเกรด…";
+
+/* Subscribe for %@ a year */
+"pro_yearly_button" = "สมัครสมาชิกในราคา %@ ต่อปี";
+
+/* Renews automatically each year · cancel anytime */
+"pro_yearly_caption" = "ต่ออายุอัตโนมัติทุกปี · ยกเลิกได้ทุกเมื่อ";
+
+/* You have %@ Pro. */
+"pro_you_have" = "คุณมี %@ Pro แล้ว";
+
+/* Pronounce — click to choose a voice first */
+"pronounce_setup_tooltip" = "ออกเสียง — คลิกเพื่อเลือกเสียงก่อน";
+
+/* Pronunciation voice */
+"pronunciation_voice" = "เสียงออกเสียง";
+
+/* Proofread */
+"proofread" = "พิสูจน์อักษร";
+
+/* Proofread Clipboard */
+"proofread_clipboard" = "พิสูจน์อักษรคลิปบอร์ด";
+
+/* Proofreading… */
+"proofreading" = "กำลังพิสูจน์อักษร…";
+
+/* Quit %@ */
+"quit_app" = "ออกจาก %@";
+
+/* Quit Now */
+"quit_now" = "ออกตอนนี้";
+
+/* Redo */
+"redo" = "ทำกลับมาใหม่";
+
+/* Remember choices */
+"remember_choices" = "จำตัวเลือก";
+
+/* Rename */
+"rename" = "เปลี่ยนชื่อ";
+
+/* Rename Folder */
+"rename_folder_menu" = "เปลี่ยนชื่อโฟลเดอร์";
+
+/* Rephrasing… */
+"rephrasing" = "กำลังเรียบเรียงใหม่…";
+
+/* Reset Defaults */
+"reset_defaults" = "รีเซ็ตค่าเริ่มต้น";
+
+/* Press Save to restore defaults, or open Setup Assistant to choose new settings. */
+"reset_wizard_body" = "กดบันทึกเพื่อคืนค่าเริ่มต้น หรือเปิดตัวช่วยตั้งค่าเพื่อเลือกการตั้งค่าใหม่";
+
+/* Start over with the Setup Assistant? */
+"reset_wizard_title" = "เริ่มใหม่ด้วยตัวช่วยตั้งค่าหรือไม่";
+
+/* Empty and loading results */
+"results_empty_title" = "เริ่มได้เมื่อคุณพร้อม";
+"results_empty_hint" = "ป้อนข้อความทางด้านซ้าย แล้วกด ⌘↵ เพื่อดูผลลัพธ์ที่นี่";
+"results_loading_title" = "กำลังสร้างผลลัพธ์ของคุณ";
+"retry" = "ลองอีกครั้ง";
+
+/* Rewrite */
+"rewrite" = "เขียนใหม่";
+
+/* Rewrite Clipboard */
+"rewrite_clipboard" = "เขียนคลิปบอร์ดใหม่";
+
+/* App Language */
+"row_app_language" = "ภาษาของแอป";
+
+/* Launcher Window */
+"row_launcher_window" = "หน้าต่างตัวเรียกใช้";
+
+/* Online Research */
+"row_online_research" = "การค้นหาออนไลน์";
+
+/* Secret Protection */
+"row_secret_protection" = "การป้องกันข้อมูลลับ";
+
+/* Run */
+"run" = "เรียกใช้";
+
+/* look up */
+"run_verb_dictionary" = "ค้นหาคำ";
+
+/* explain */
+"run_verb_explain" = "อธิบาย";
+
+/* proofread */
+"run_verb_proofread" = "พิสูจน์อักษร";
+
+/* rewrite */
+"run_verb_rewrite" = "เขียนใหม่";
+
+/* summarize */
+"run_verb_summarize" = "สรุป";
+
+/* translate */
+"run_verb_translate" = "แปล";
+
+/* Save */
+"save" = "บันทึก";
+
+/* Save Audio… */
+"save_audio" = "บันทึกเสียง…";
+
+/* Save Text… */
+"save_text" = "บันทึกข้อความ…";
+
+/* Search actions */
+"search_actions" = "ค้นหาการกระทำ";
+
+/* ⌘K search */
+"search_actions_hint" = "⌘K ค้นหา";
+
+/* Search languages */
+"search_languages" = "ค้นหาภาษา";
+
+/* Search Library */
+"search_library" = "ค้นหาในคลัง";
+
+/* Search models */
+"search_models" = "ค้นหาโมเดล";
+
+/* titles */
+"search_scope_titles" = "ชื่อเรื่อง";
+
+/* titles or contents */
+"search_scope_titles_contents" = "ชื่อเรื่องหรือเนื้อหา";
+
+/* Search voices */
+"search_voices" = "ค้นหาเสียง";
+
+/* Services */
+"services" = "บริการ";
+
+/* Settings… */
+"settings" = "การตั้งค่า…";
+
+/* Settings */
+"settings_window" = "การตั้งค่า";
+
+/* Setup Assistant… */
+"setup_assistant" = "ตัวช่วยตั้งค่า…";
+
+/* Show All */
+"show_all" = "แสดงทั้งหมด";
+
+/* Show Langmin in the menu bar */
+"show_langmin_in_the_menu_bar" = "แสดง Langmin ในแถบเมนู";
+
+/* %@ with %@… */
+"status_with_model" = "%@ ด้วย %@…";
+
+/* Style */
+"style" = "สไตล์";
+
+/* Summarize */
+"summarize" = "สรุป";
+
+/* Summarize Clipboard */
+"summarize_clipboard" = "สรุปคลิปบอร์ด";
+
+/* Summarizing… */
+"summarizing" = "กำลังสรุป…";
+
+/* System Default */
+"system_default" = "ค่าเริ่มต้นของระบบ";
+
+/* Advanced */
+"tab_advanced" = "ขั้นสูง";
+
+/* General */
+"tab_general" = "ทั่วไป";
+
+/* Models */
+"tab_models" = "โมเดล";
+
+/* Reading */
+"tab_reading" = "การอ่าน";
+
+/* Shortcuts */
+"tab_shortcuts" = "ปุ่มลัด";
+
+/* Window */
+"tab_window" = "หน้าต่าง";
+
+/* Tightening… */
+"tightening" = "กำลังย่อ…";
+
+/* Translate */
+"translate" = "แปล";
+
+/* Translate Clipboard */
+"translate_clipboard" = "แปลคลิปบอร์ด";
+
+/* Translating… */
+"translating" = "กำลังแปล…";
+
+/* Undo */
+"undo" = "เลิกทำ";
+
+/* Untitled */
+"untitled" = "ไม่มีชื่อ";
+
+/* Another app asked Langmin to process this text:\n\n“%@”\n\nRunning sends it to your configured model. */
+"url_run_confirm_body" = "แอปอื่นขอให้ Langmin ประมวลผลข้อความนี้:\n\n“%@”\n\nการเรียกใช้จะส่งข้อความไปยังโมเดลที่กำหนดค่าไว้";
+
+/* Run “%@” from a link? */
+"url_run_confirm_title" = "เรียกใช้ “%@” จากลิงก์หรือไม่";
+
+/* Use web research when available */
+"use_web_research" = "ใช้การค้นหาเว็บเมื่อพร้อมใช้งาน";
+
+/* Warn before sending secrets */
+"warn_before_secrets" = "เตือนก่อนส่งข้อมูลลับ";
+
+/* Window */
+"window" = "หน้าต่าง";
+
+/* Runs on your Mac. Free, with no account needed. */
+"wizard_apple_available" = "ทำงานบน Mac ของคุณ ฟรีและไม่ต้องมีบัญชี";
+
+/* Apple Intelligence (on this Mac, private and free) */
+"wizard_apple_row" = "Apple Intelligence (บน Mac เครื่องนี้ เป็นส่วนตัวและฟรี)";
+
+/* Apple Intelligence (not available on this Mac) */
+"wizard_apple_row_unavailable" = "Apple Intelligence (ไม่พร้อมใช้งานบน Mac เครื่องนี้)";
+
+/* Not available on this Mac (requires Apple Intelligence). Choose a cloud provider below. */
+"wizard_apple_unavailable" = "ไม่พร้อมใช้งานบน Mac เครื่องนี้ (ต้องใช้ Apple Intelligence) โปรดเลือกผู้ให้บริการคลาวด์ด้านล่าง";
+
+/* Read results aloud or hear Dictionary words and examples. Choose a voice that supports the language.\n\nApple voices run on your Mac for free. OpenAI and Grok voices require Pro and a provider API key. */
+"wizard_audio_body" = "ฟังผลลัพธ์ คำศัพท์ และตัวอย่างในพจนานุกรม เลือกเสียงที่รองรับภาษานั้น\n\nเสียง Apple ทำงานบน Mac ได้ฟรี เสียง OpenAI และ Grok ต้องใช้ Pro และคีย์ API ของผู้ให้บริการ";
+
+/* Hear your words */
+"wizard_audio_title" = "ฟังคำของคุณ";
+
+/* Back */
+"wizard_back" = "ย้อนกลับ";
+
+/* macOS may ask for clipboard access when you first use a shortcut. */
+"wizard_clipboard_note" = "macOS อาจขอสิทธิ์เข้าถึงคลิปบอร์ดเมื่อใช้ปุ่มลัดครั้งแรก";
+
+/* Continue */
+"wizard_continue" = "ดำเนินการต่อ";
+
+/* Also answer in */
+"wizard_extra_languages" = "ตอบเป็นภาษาเหล่านี้ด้วย";
+
+/* Finish */
+"wizard_finish" = "เสร็จสิ้น";
+
+/* Keys stay in macOS Keychain. Requests go directly to your provider. Add keys or a local model later in Settings → Models. */
+"wizard_key_note_local" = "คีย์เก็บอยู่ในพวงกุญแจ macOS และส่งคำขอตรงไปยังผู้ให้บริการ เพิ่มคีย์หรือโมเดลในเครื่องภายหลังได้ที่การตั้งค่า → โมเดล";
+
+/* API key (optional, add any time) */
+"wizard_key_optional" = "คีย์ API (ไม่บังคับ เพิ่มได้ทุกเมื่อ)";
+
+/* Choose translation languages. Extra languages add versions to Dictionary, Explain, and Summarize results. Change either list in the launcher's mode menus. */
+"wizard_language_body_single_source" = "เลือกภาษาที่ต้องการแปล ภาษาเพิ่มเติมจะเพิ่มฉบับภาษาอื่นในผลลัพธ์พจนานุกรม อธิบาย และสรุป เปลี่ยนทั้งสองรายการได้ในเมนูโหมดของหน้าต่างหลัก";
+
+/* Your languages */
+"wizard_language_title" = "ภาษาของคุณ";
+
+/* Set Up Later */
+"wizard_later" = "ตั้งค่าทีหลัง";
+
+/* Cloud providers, web research, Library folders, and cloud voices require %@ Pro. Apple Intelligence is free. Eligible subscriptions include a trial. */
+"wizard_pro_note" = "Your first 30 days include %@ Pro. Apple Intelligence stays free afterward.";
+
+/* Dictionary pronunciation voice */
+"wizard_pronunciation_voice" = "เสียงออกเสียงของพจนานุกรม";
+
+/* Claude models with web research. */
+"wizard_provider_anthropic" = "โมเดล Claude พร้อมการค้นหาเว็บ";
+
+/* Switch models in the launcher, or open All models to enable more. */
+"wizard_provider_body_multi" = "เปลี่ยนโมเดลในหน้าต่างหลัก หรือเปิดใช้เพิ่มเติมในโมเดลทั้งหมด";
+
+/* DeepSeek chat and reasoning models. */
+"wizard_provider_deepseek" = "โมเดล DeepSeek สำหรับแชทและการใช้เหตุผล";
+
+/* Gemini models with web research. */
+"wizard_provider_gemini" = "โมเดล Gemini พร้อมการค้นหาเว็บ";
+
+/* Grok text models and optional voices. */
+"wizard_provider_grok" = "โมเดลข้อความ Grok และเสียงเสริม";
+
+/* GPT models with web research. */
+"wizard_provider_openai" = "โมเดล GPT พร้อมการค้นหาเว็บ";
+
+/* Choose your providers */
+"wizard_provider_title_multi" = "เลือกผู้ให้บริการ";
+
+/* Copy text and use a shortcut, or open the launcher and start typing.\n\nChange your choices in the launcher's menus or Settings. */
+"wizard_ready_body_simple" = "Langmin starts a free 30-day trial when you first open it. No subscription starts, and you will not be charged.";
+
+/* You're all set */
+"wizard_ready_title" = "30 days of full access";
+
+/* Use these shortcuts from another app after copying text. Proofread and Rewrite copy the result. The other four modes show it in the HUD. Open opens a result window; Dismiss closes the HUD.\n\nIn Langmin's main window, these shortcuts select a mode. Press ⌘Return to run it. */
+"wizard_shortcuts_body" = "คัดลอกข้อความในแอปอื่นแล้วใช้ปุ่มลัดเหล่านี้ โหมดพิสูจน์อักษรและเขียนใหม่จะคัดลอกผลลัพธ์ อีกสี่โหมดจะแสดงผลใน HUD ปุ่มเปิดจะเปิดหน้าต่างผลลัพธ์ ส่วนปุ่มปิดจะปิด HUD\n\nในหน้าต่างหลักของ Langmin ปุ่มลัดเหล่านี้ใช้เลือกโหมด กด ⌘Return เพื่อเริ่มทำงาน";
+
+/* Step %d of %d */
+"wizard_step_n_of_m" = "ขั้นตอนที่ %d จาก %d";
+
+/* Translate to */
+"wizard_translate_to" = "แปลเป็น";
+
+/* Proofread, rewrite, explain, summarize, translate, and look up words. Listen to results and Dictionary examples.\n\nChoose your settings now or change them later. */
+"wizard_welcome_body_short" = "พิสูจน์อักษร เขียนใหม่ อธิบาย สรุป แปล และค้นหาคำ ฟังผลลัพธ์และตัวอย่างในพจนานุกรม\n\nเลือกการตั้งค่าตอนนี้หรือเปลี่ยนภายหลังก็ได้";
+
+/* Welcome to %@ */
+"wizard_welcome_title" = "ยินดีต้อนรับสู่ %@";
+
+/* Langmin Setup */
+"wizard_window" = "ตั้งค่า Langmin";
+
+/* Open Langmin at login to keep its menu-bar actions and shortcuts available. */
+"wizard_workflow_body" = "เปิด Langmin เมื่อเข้าสู่ระบบเพื่อให้ใช้คำสั่งในแถบเมนูและปุ่มลัดได้ทันที";
+
+/* Always at hand */
+"wizard_workflow_title" = "พร้อมใช้เสมอ";
+
+/* Your providers */
+"your_providers" = "ผู้ให้บริการของคุณ";
+
+/* Dictionary illustrations */
+"illustration" = "ภาพประกอบ";
+"illustration_apple_note" = "สร้างและเลือกภาพบน Mac ของคุณ";
+"illustration_apple_unavailable" = "ต้องใช้ macOS 15.4 ขึ้นไปและ Image Playground";
+"illustration_cloud_note" = "คิดค่าบริการแยกต่างหาก · ใช้คีย์ API OpenAI ของคุณ";
+"illustration_generated" = "ภาพประกอบที่สร้างด้วย AI";
+"illustration_generating" = "กำลังสร้างภาพประกอบ…";
+"illustration_failed" = "ไม่สามารถสร้างภาพประกอบได้";
+"illustration_missing_key" = "เพิ่มคีย์ API OpenAI ในการตั้งค่า → โมเดล";
+"illustration_save" = "บันทึกภาพ…";
+"illustration_remove" = "นำภาพประกอบออก";
+
+"reading_webpage" = "กำลังอ่านหน้าเว็บ…";
+
+"loading_page_images" = "กำลังโหลดรูปภาพจากหน้าเว็บ…";
+
+/* Follow-up */
+"followup_title" = "คำถามต่อเนื่อง";
+
+/* Ask a follow-up or request changes… */
+"followup_placeholder" = "ถามต่อหรือขอให้แก้ไข…";
+
+/* Send follow-up */
+"followup_send" = "ส่งคำถาม";
+
+/* Replying… */
+"followup_working" = "กำลังตอบ…";
+
+/* You */
+"followup_you" = "คุณ";
+
+/* Copy reply */
+"followup_copy" = "คัดลอกคำตอบ";
+
+/* Delete reply */
+"followup_delete_reply" = "ลบคำตอบ";
+
+/* The message could not be deleted: %@ */
+"followup_delete_failed" = "ไม่สามารถลบข้อความได้: %@";
+
+/* Print… */
+"print" = "พิมพ์…";
+
+/* Quick HUD playback */
+"hud_read_paragraph" = "อ่านย่อหน้านี้ออกเสียง";
+"hud_stop_playback" = "หยุดอ่าน";
+"hud_playback_failed" = "ไม่สามารถอ่านออกเสียงข้อความนี้ได้";
+"hud_voice_api_key" = "เพิ่มคีย์ API ของ %@ ในการตั้งค่าเพื่อใช้เสียงนี้";
+
+"request_failed" = "คำขอล้มเหลว";
+
+/* Translation skipped */
+"translation_skipped" = "ข้ามการแปลแล้ว";
+
+/* Already in this language. */
+"translation_already_in_language" = "ข้อความเป็นภาษาที่เลือกอยู่แล้ว";
+
+/* Library window placement */
+"detach_library" = "เปิดคลังในหน้าต่างแยก";
+"attach_library" = "ย้ายคลังไปยังหน้าต่างหลัก";
+
+/* Result text editing */
+"apply" = "นำไปใช้";
+"discard_changes" = "ละทิ้งการเปลี่ยนแปลง";
+"done" = "เสร็จสิ้น";
+"edit_link" = "แก้ไขลิงก์";
+"edit_text" = "แก้ไขข้อความ";
+"format_text" = "จัดรูปแบบข้อความ";
+"remove_link" = "นำลิงก์ออก";
+"save_text_changes" = "บันทึกการเปลี่ยนแปลงข้อความหรือไม่?";
+"text_style" = "รูปแบบข้อความ";
+"save_edits_remove_audio" = "บันทึกการแก้ไขและลบเสียงหรือไม่?";
+"save_edits_remove_audio_detail" = "การบันทึกการแก้ไขนี้จะลบเสียงบรรยายและเสียงการออกเสียงที่แนบไว้ทั้งหมด คุณสามารถสร้างเสียงใหม่ได้ในภายหลัง";
+
+/* iCloud Library sync */
+"pro_feature_icloud" = "ซิงค์คลังผ่าน iCloud";
+"pro_reason_icloud" = "การซิงค์คลังผ่าน iCloud เป็นส่วนหนึ่งของ %@ Pro";
+
+/* Automatically illustrate new lookups */
+"illustration_automatic" = "สร้างภาพประกอบให้การค้นหาใหม่โดยอัตโนมัติ";
+
+/* Automatic images are off by default. To add an image yourself, use the picture button on a Dictionary result. */
+"illustration_manual_note" = "การสร้างภาพอัตโนมัติปิดไว้ตามค่าเริ่มต้น หากต้องการเพิ่มภาพเอง ให้ใช้ปุ่มภาพบนผลลัพธ์พจนานุกรม";
+
+/* Image Provider */
+"illustration_provider" = "ผู้ให้บริการภาพ";
+
+/* Choose in result */
+"illustration_choose_in_result" = "เลือกในผลลัพธ์";
+
+/* Choose a provider before turning on automatic images. You can also add an image from a Dictionary result's picture button. */
+"illustration_choose_provider_note" = "เลือกผู้ให้บริการก่อนเปิดการสร้างภาพอัตโนมัติ คุณยังเพิ่มภาพได้จากปุ่มภาพบนผลลัพธ์พจนานุกรม";
+
+/* Create and choose images on your Mac. Automatic mode opens Image Playground after each Dictionary lookup. */
+"illustration_apple_settings_note" = "สร้างและเลือกภาพบน Mac ของคุณ ในโหมดอัตโนมัติ Image Playground จะเปิดหลังจากค้นหาในพจนานุกรมแต่ละครั้ง";
+
+/* Requires Pro and an OpenAI API key in Settings → Models. Each image is billed separately. Creates one landscape image at medium quality. */
+"illustration_openai_settings_note" = "ต้องใช้ Pro และคีย์ API OpenAI ในการตั้งค่า → โมเดล แต่ละภาพคิดค่าบริการแยกต่างหาก สร้างภาพแนวนอนหนึ่งภาพที่คุณภาพปานกลาง";
+
+/* Illustrations */
+"tab_illustrations" = "ภาพประกอบ";
+
+/* Empty launcher input */
+"input_start_hint" = "พิมพ์หรือวางข้อความที่นี่ หรือลากไฟล์มาวาง";
+"input_documents" = "เอกสาร";
+"input_images" = "รูปภาพ";
+"input_audio" = "เสียง";
+"input_drop_title" = "ปล่อยเพื่อเพิ่มข้อความ";
+
+/* Source-build purchase footer */
+"source_build_title" = "Trial ended";
+"source_build_support" = "Apple Intelligence stays free, while other Pro features require purchase.";
+"source_build_purchase" = "ซื้อ";
+"source_build_dismiss" = "Dismiss";
+"pro_app_trial_one_day" = "Pro trial · 1 day remaining";
+"pro_app_trial_days" = "Pro trial · %d days remaining";
+"wizard_trial_during_title" = "Your first 30 days";
+"wizard_trial_during_langmin" = "Use every Langmin feature without app limits. Provider charges may still apply.";
+"wizard_trial_after_title" = "After the trial";
+"wizard_trial_after_langmin" = "Apple Intelligence, Apple voices, Apple transcription, text editing, and the Library stay free. Other Pro features require a purchase.";
+"wizard_trial_plans_title" = "Keep Pro";
+"wizard_trial_plans_body" = "Choose a yearly plan or lifetime access at any time.";
