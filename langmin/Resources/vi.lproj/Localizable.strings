@@ -1,0 +1,983 @@
+/* Langmin — vi localization. Comments give English text or name a related group. */
+
+/* About %@ */
+"about_app" = "Giới thiệu %@";
+
+/* All */
+"all_chip" = "Tất cả";
+
+/* All models */
+"all_models" = "Tất cả mô hình";
+
+/* Answer language */
+"answer_language" = "Ngôn ngữ trả lời";
+
+/* %@ Help */
+"app_help" = "Trợ giúp %@";
+
+/* Back */
+"back" = "Quay lại";
+
+/* Bring All to Front */
+"bring_all_to_front" = "Đưa tất cả ra trước";
+
+/* Delete %d items from %@? */
+"bulk_delete_confirm_many" = "Xóa %d mục khỏi “%@”?";
+
+/* Delete 1 item from %@? */
+"bulk_delete_confirm_one" = "Xóa 1 mục khỏi “%@”?";
+
+/* Only the items matching the current search are deleted. */
+"bulk_delete_search_note" = "Chỉ những mục khớp với tìm kiếm hiện tại mới bị xóa.";
+
+/* Use Undo to restore an item before it disappears. */
+"bulk_delete_undo_note" = "Dùng Hoàn tác để khôi phục mục trước khi mục đó biến mất.";
+
+/* Cancel */
+"cancel" = "Hủy";
+
+/* Cancel Current Action */
+"cancel_current_action" = "Hủy tác vụ hiện tại";
+
+/* Cancel this request (Esc) */
+"cancel_this_request_esc" = "Hủy yêu cầu này (Esc)";
+
+/* Cancelled */
+"cancelled" = "Đã hủy";
+
+/* Cancelling… */
+"cancelling" = "Đang hủy…";
+
+/* Cancelling */
+"cancelling_a11y" = "Đang hủy";
+
+/* Clear after submit */
+"clear_after_submit" = "Xóa sau khi gửi";
+
+/* You copied something else while Langmin was working. Replace it with the transformed text? */
+"clipboard_changed_body" = "Bạn đã sao chép nội dung khác trong lúc Langmin đang xử lý. Thay bằng văn bản đã chuyển đổi?";
+
+/* The clipboard changed */
+"clipboard_changed_title" = "Bảng nhớ tạm đã thay đổi";
+
+/* Clipboard unchanged */
+"clipboard_unchanged" = "Bảng nhớ tạm không thay đổi";
+
+/* macOS did not accept the transformed text. The previous clipboard contents were restored. */
+"clipboard_write_failed_restored" = "macOS không chấp nhận văn bản đã chuyển đổi. Nội dung trước đó của bảng nhớ tạm đã được khôi phục.";
+
+/* macOS did not accept the transformed text, and the previous clipboard contents could not be restored. */
+"clipboard_write_failed_unrestored" = "macOS không chấp nhận văn bản đã chuyển đổi và không thể khôi phục nội dung trước đó của bảng nhớ tạm.";
+
+/* Close */
+"close" = "Đóng";
+
+/* ⌘V to paste */
+"cmd_v_to_paste" = "⌘V để dán";
+
+/* Compose with Clipboard */
+"compose_with_clipboard" = "Soạn từ bảng nhớ tạm";
+
+/* Copied */
+"copied" = "Đã sao chép";
+
+/* Copy */
+"copy" = "Sao chép";
+
+/* Copy this paragraph */
+"copy_paragraph" = "Sao chép đoạn này";
+
+/* Copy Result */
+"copy_result" = "Sao chép kết quả";
+
+/* Copying… */
+"copying" = "Đang sao chép…";
+
+/* Could not delete one saved item */
+"could_not_delete_one_saved_item" = "Không thể xóa một mục đã lưu";
+
+/* Could not delete some saved items */
+"could_not_delete_some_saved_items" = "Không thể xóa một số mục đã lưu";
+
+/* Could not delete this saved item */
+"could_not_delete_this_saved_item" = "Không thể xóa mục đã lưu này";
+
+/* Could not export this saved item */
+"could_not_export_this_saved_item" = "Không thể xuất mục đã lưu này";
+
+/* Could not open the result */
+"could_not_open_result" = "Không thể mở kết quả";
+
+/* Could not rename this saved item */
+"could_not_rename_this_saved_item" = "Không thể đổi tên mục đã lưu này";
+
+/* Could not restore this saved item */
+"could_not_restore_this_saved_item" = "Không thể khôi phục mục đã lưu này";
+
+/* Could not save audio */
+"could_not_save_audio" = "Không thể lưu âm thanh";
+
+/* Could not update the clipboard */
+"could_not_update_clipboard" = "Không thể cập nhật bảng nhớ tạm";
+
+/* Could not update the login item */
+"could_not_update_the_login_item" = "Không thể cập nhật mục đăng nhập";
+
+/* Cut */
+"cut" = "Cắt";
+
+/* Cycle Through Windows */
+"cycle_through_windows" = "Chuyển giữa các cửa sổ";
+
+/* Delete */
+"delete" = "Xóa";
+
+/* Delete All %d… */
+"delete_all_n" = "Xóa tất cả %d mục…";
+
+/* Delete Folder */
+"delete_folder_menu" = "Xóa thư mục";
+
+/* All entries stay in the Library */
+"delete_folder_subtitle" = "Mọi mục vẫn ở trong Thư viện";
+
+/* Delete %d Shown… */
+"delete_n_shown" = "Xóa %d mục đang hiển thị…";
+
+/* Deleted “%@” */
+"deleted_item" = "Đã xóa “%@”";
+
+/* Dictionary */
+"dictionary" = "Từ điển";
+
+/* Dictionary Lookup */
+"dictionary_lookup" = "Tra từ điển";
+
+/* Dismiss */
+"dismiss" = "Đóng";
+
+/* Drop or paste documents, images, or audio */
+"drop_hint" = "Kéo hoặc dán tài liệu, hình ảnh hoặc âm thanh";
+
+/* Edit */
+"edit" = "Sửa";
+
+/* Deeper essay */
+"effort_detailed" = "Bài luận sâu hơn";
+
+/* Short and clear */
+"effort_simple" = "Ngắn gọn và rõ ràng";
+
+/* Balanced depth */
+"effort_standard" = "Độ sâu cân bằng";
+
+/* Elaborating… */
+"elaborating" = "Đang mở rộng…";
+
+/* Explain */
+"explain" = "Giải thích";
+
+/* Explain Clipboard */
+"explain_clipboard" = "Giải thích bảng nhớ tạm";
+
+/* Explaining… */
+"explaining" = "Đang giải thích…";
+
+/* Export Audio… */
+"export_audio_menu" = "Xuất âm thanh…";
+
+/* Export Audio */
+"export_audio_panel" = "Xuất âm thanh";
+
+/* Export Text… */
+"export_text_menu" = "Xuất văn bản…";
+
+/* Export Text */
+"export_text_panel" = "Xuất văn bản";
+
+/* Extra languages */
+"extra_languages" = "Ngôn ngữ bổ sung";
+
+/* File */
+"file" = "Tệp";
+
+/* File In */
+"file_in_submenu" = "Xếp vào";
+
+/* Filter folders */
+"filter_folders" = "Lọc thư mục";
+
+/* Find… */
+"find_item" = "Tìm…";
+
+/* Find */
+"find_menu" = "Tìm";
+
+/* ↵ create · esc cancel */
+"folder_create_hint" = "↵ tạo · esc hủy";
+
+/* Nothing in this folder yet */
+"folder_empty_title" = "Thư mục này chưa có gì";
+
+/* Drag results onto a folder chip, or right-click one and file it here. */
+"folder_empty_subtitle" = "Kéo kết quả vào nhãn thư mục, hoặc bấm chuột phải vào một kết quả và xếp vào đây.";
+
+/* already exists */
+"folder_exists_hint" = "đã tồn tại";
+
+/* already exists · ↵ opens it */
+"folder_exists_opens_hint" = "đã tồn tại · ↵ để mở";
+
+/* Folder name */
+"folder_name_placeholder" = "Tên thư mục";
+
+/* ↵ rename · esc cancel */
+"folder_rename_hint" = "↵ đổi tên · esc hủy";
+
+/* Help */
+"help" = "Trợ giúp";
+
+/* Hide %@ */
+"hide_app" = "Ẩn %@";
+
+/* Hide Others */
+"hide_others" = "Ẩn mục khác";
+
+/* Explaining */
+"hud_explaining" = "Đang giải thích";
+
+/* Looking up */
+"hud_looking_up" = "Đang tra";
+
+/* 1 word */
+"hud_one_word" = "1 từ";
+
+/* Proofreading */
+"hud_proofreading" = "Đang soát lỗi";
+
+/* Rewriting */
+"hud_rewriting" = "Đang viết lại";
+
+/* Summarizing */
+"hud_summarizing" = "Đang tóm tắt";
+
+/* Translating */
+"hud_translating" = "Đang dịch";
+
+/* %d words */
+"hud_word_count" = "%d từ";
+
+/* Keep Current Clipboard */
+"keep_current_clipboard" = "Giữ bảng nhớ tạm hiện tại";
+
+/* Language level */
+"language_level" = "Trình độ ngôn ngữ";
+
+/* The new language takes effect the next time Langmin opens. */
+"language_restart_notice" = "Ngôn ngữ mới sẽ có hiệu lực vào lần mở Langmin tiếp theo.";
+
+/* Later */
+"later" = "Để sau";
+
+/* Library */
+"library" = "Thư viện";
+
+/* No saved items yet */
+"library_empty_title" = "Chưa có mục đã lưu";
+
+/* Click a result's bookmark button to save it here. */
+"library_empty_subtitle" = "Bấm nút dấu trang trên kết quả để lưu vào đây.";
+
+/* Look Up Clipboard in Dictionary */
+"look_up_clipboard_in_dictionary" = "Tra bảng nhớ tạm trong từ điển";
+
+/* Looking up… */
+"looking_up" = "Đang tra cứu…";
+
+/* Match question */
+"match_question" = "Theo ngôn ngữ câu hỏi";
+
+/* Minimize */
+"minimize" = "Thu nhỏ";
+
+/* More folders */
+"more_folders" = "Thêm thư mục";
+
+/* More languages */
+"more_languages" = "Thêm ngôn ngữ";
+
+/* %d saved */
+"n_saved" = "Đã lưu %d";
+
+/* New Explanation */
+"new_explanation" = "Giải thích mới";
+
+/* New Folder… */
+"new_folder_menu" = "Thư mục mới…";
+
+/* Copy some text, then try the Langmin action again. */
+"no_clipboard_text_body" = "Hãy sao chép văn bản rồi thử lại hành động Langmin.";
+
+/* No clipboard text */
+"no_clipboard_text_title" = "Không có văn bản trong bảng nhớ tạm";
+
+/* No Folder */
+"no_folder" = "Không có thư mục";
+
+/* No results */
+"library_search_empty_title" = "Không có kết quả";
+
+/* No %@ match “%@”. */
+"no_search_matches" = "Không có %@ nào khớp với “%@”.";
+
+/* None */
+"none" = "Không";
+
+/* Not Now */
+"not_now" = "Để sau";
+
+/* OK */
+"ok" = "OK";
+
+/* On this Mac */
+"on_this_mac" = "Trên máy Mac này";
+
+/* Open */
+"open" = "Mở";
+
+/* Open */
+"open_in_window" = "Mở";
+
+/* Open Langmin */
+"open_langmin" = "Mở Langmin";
+
+/* Open Langmin at login */
+"open_langmin_at_login" = "Mở Langmin khi đăng nhập";
+
+/* Open in a result window */
+"open_result_window" = "Mở trong cửa sổ kết quả";
+
+/* Open Settings */
+"open_settings" = "Mở Cài đặt";
+
+/* Open Setup Assistant */
+"open_setup_assistant" = "Mở Trợ lý thiết lập";
+
+/* Opening… */
+"opening_hud" = "Đang mở…";
+
+/* Opening… */
+"opening_progress" = "Đang mở…";
+
+/* Other */
+"other" = "Khác";
+
+/* ↵ run    ⇥ pin chip    ⌘, options */
+"palette_legend_chip" = "↵ chạy    ⇥ ghim nhãn    ⌘, tùy chọn";
+
+/* Paste */
+"paste" = "Dán";
+
+/* Langmin can't access the pasted file */
+"pasted_file_denied" = "Langmin không thể truy cập tệp đã dán";
+
+/* Langmin can't access the pasted files */
+"pasted_files_denied" = "Langmin không thể truy cập các tệp đã dán";
+
+/* macOS did not grant access to these files. Drag them into this window instead. */
+"pasted_files_denied_body" = "macOS không cấp quyền truy cập các tệp này. Hãy kéo chúng vào cửa sổ này.";
+
+/* Look up a word… */
+"placeholder_dictionary" = "Tra một từ…";
+
+/* What would you like explained? */
+"placeholder_explain" = "Bạn muốn giải thích điều gì?";
+
+/* What would you like proofread? */
+"placeholder_proofread" = "Bạn muốn soát lỗi nội dung gì?";
+
+/* What would you like rewritten? */
+"placeholder_rewrite" = "Bạn muốn viết lại nội dung gì?";
+
+/* What would you like summarized? */
+"placeholder_summarize" = "Bạn muốn tóm tắt nội dung gì?";
+
+/* What would you like translated? */
+"placeholder_translate" = "Bạn muốn dịch nội dung gì?";
+
+/* Preparing narration… */
+"preparing_narration" = "Đang chuẩn bị thuyết minh…";
+
+/* Privacy Policy… */
+"privacy_policy" = "Chính sách quyền riêng tư…";
+
+/* Family Sharing included. */
+"pro_family_caption" = "Bao gồm Chia sẻ trong gia đình.";
+
+/* OpenAI, Anthropic, Gemini, Grok, DeepSeek, and custom endpoints */
+"pro_feature_cloud" = "OpenAI, Anthropic, Gemini, Grok, DeepSeek và điểm cuối tùy chỉnh";
+
+/* Library folders */
+"pro_feature_folders" = "Thư mục trong Thư viện";
+
+/* Web research for current facts and sources */
+"pro_feature_research" = "Tìm kiếm web để có dữ kiện và nguồn mới nhất";
+
+/* OpenAI and Grok voices */
+"pro_feature_voices" = "Giọng OpenAI và Grok";
+
+/* Apple Intelligence, Apple voices, and the Library stay free. */
+"pro_free_note" = "Apple Intelligence, giọng Apple và Thư viện luôn miễn phí.";
+
+/* Buy once for %@ */
+"pro_lifetime_button" = "Mua một lần với giá %@";
+
+/* Contacting the App Store… */
+"pro_loading" = "Đang kết nối với App Store…";
+
+/* Manage Subscription… */
+"pro_manage_subscription" = "Quản lý gói đăng ký…";
+
+/* %@ Pro… */
+"pro_menu" = "%@ Pro…";
+
+/* This purchase is still pending. %@ Pro unlocks when the App Store confirms it. */
+"pro_pending_body" = "Giao dịch này vẫn đang chờ. %@ Pro sẽ được mở khóa khi App Store xác nhận.";
+
+/* Purchase pending */
+"pro_pending_title" = "Giao dịch đang chờ";
+
+/* Privacy Policy */
+"pro_privacy_policy" = "Chính sách quyền riêng tư";
+
+/* The purchase didn't complete: %@ */
+"pro_purchase_failed" = "Giao dịch chưa hoàn tất: %@";
+
+/* Cloud models are part of %@ Pro. */
+"pro_reason_cloud" = "Mô hình đám mây thuộc gói %@ Pro.";
+
+/* Library folders are part of %@ Pro. */
+"pro_reason_folders" = "Thư mục trong Thư viện thuộc gói %@ Pro.";
+
+/* Get more with %@ Pro. */
+"pro_reason_general" = "Thêm tính năng với %@ Pro.";
+
+/* OpenAI and Grok voices are part of %@ Pro. */
+"pro_reason_voices" = "Giọng OpenAI và Grok thuộc gói %@ Pro.";
+
+/* Couldn't restore purchases */
+
+/* No %@ Pro purchase was found for this Apple Account. */
+"pro_restore_none_body" = "Không tìm thấy giao dịch mua %@ Pro cho Tài khoản Apple này.";
+
+/* Nothing to restore */
+"pro_restore_none_title" = "Không có gì để khôi phục";
+
+/* Restore Purchases */
+"pro_restore_purchases" = "Khôi phục giao dịch";
+
+/* Pro */
+"pro_status_active" = "Pro";
+
+/* Pro · ends %@ */
+"pro_status_ends" = "Pro · kết thúc %@";
+
+/* Pro · shared with your family */
+"pro_status_family" = "Pro · chia sẻ với gia đình";
+
+/* Free */
+"pro_status_free" = "Miễn phí";
+
+/* Pro · lifetime */
+"pro_status_lifetime" = "Pro · trọn đời";
+
+/* Pro · renews %@ */
+"pro_status_renews" = "Pro · gia hạn %@";
+
+/* Pro trial · ends %@ */
+"pro_status_trial_ends" = "Dùng thử Pro · kết thúc %@";
+
+/* Pro trial · first payment %@ */
+"pro_status_trial_renews" = "Dùng thử Pro · thanh toán lần đầu %@";
+
+/* Pro trial · until %@ */
+"pro_status_trial_until" = "Dùng thử Pro · đến %@";
+
+/* Pro · until %@ */
+"pro_status_until" = "Pro · đến %@";
+
+/* Pro purchases are unavailable right now. Please try again later. */
+"pro_store_unavailable" = "Hiện không thể mua Pro. Vui lòng thử lại sau.";
+
+/* Payment goes to your Apple Account. A subscription renews automatically each year unless it is cancelled in your App Store settings at least a day before the period ends. */
+"pro_terms" = "Khoản thanh toán được tính vào Tài khoản Apple của bạn. Gói đăng ký tự động gia hạn hằng năm trừ khi bạn hủy trong cài đặt App Store ít nhất một ngày trước khi kỳ hạn kết thúc.";
+
+/* Terms of Use */
+"pro_terms_of_use" = "Điều khoản sử dụng";
+
+/* Cancel at least a day before the free trial ends to avoid being charged. */
+
+/* %@ Pro */
+"pro_title" = "%@ Pro";
+
+/* Start free trial */
+
+/* Try free for a month */
+
+/* then %@ a year · cancel anytime */
+
+/* The App Store could not verify this purchase. */
+"pro_unverified" = "App Store không thể xác minh giao dịch này.";
+
+/* Upgrade… */
+"pro_upgrade_button" = "Nâng cấp…";
+
+/* Subscribe for %@ a year */
+"pro_yearly_button" = "Đăng ký với giá %@ mỗi năm";
+
+/* Renews automatically each year · cancel anytime */
+"pro_yearly_caption" = "Tự động gia hạn hằng năm · hủy bất cứ lúc nào";
+
+/* You have %@ Pro. */
+"pro_you_have" = "Bạn đang có %@ Pro.";
+
+/* Pronounce — click to choose a voice first */
+"pronounce_setup_tooltip" = "Phát âm — bấm để chọn giọng trước";
+
+/* Pronunciation voice */
+"pronunciation_voice" = "Giọng phát âm";
+
+/* Proofread */
+"proofread" = "Soát lỗi";
+
+/* Proofread Clipboard */
+"proofread_clipboard" = "Soát lỗi bảng nhớ tạm";
+
+/* Proofreading… */
+"proofreading" = "Đang soát lỗi…";
+
+/* Quit %@ */
+"quit_app" = "Thoát %@";
+
+/* Quit Now */
+"quit_now" = "Thoát ngay";
+
+/* Redo */
+"redo" = "Làm lại";
+
+/* Remember choices */
+"remember_choices" = "Ghi nhớ lựa chọn";
+
+/* Rename */
+"rename" = "Đổi tên";
+
+/* Rename Folder */
+"rename_folder_menu" = "Đổi tên thư mục";
+
+/* Rephrasing… */
+"rephrasing" = "Đang diễn đạt lại…";
+
+/* Reset Defaults */
+"reset_defaults" = "Đặt lại mặc định";
+
+/* Press Save to restore defaults, or open Setup Assistant to choose new settings. */
+"reset_wizard_body" = "Nhấn Lưu để khôi phục mặc định, hoặc mở Trợ lý thiết lập để chọn cài đặt mới.";
+
+/* Start over with the Setup Assistant? */
+"reset_wizard_title" = "Bắt đầu lại với Trợ lý thiết lập?";
+
+/* Empty and loading results */
+"results_empty_title" = "Bắt đầu khi bạn sẵn sàng";
+"results_empty_hint" = "Nhập văn bản ở bên trái, rồi nhấn ⌘↵ để xem kết quả tại đây.";
+"results_loading_title" = "Đang tạo kết quả cho bạn";
+"retry" = "Thử lại";
+
+/* Rewrite */
+"rewrite" = "Viết lại";
+
+/* Rewrite Clipboard */
+"rewrite_clipboard" = "Viết lại bảng nhớ tạm";
+
+/* App Language */
+"row_app_language" = "Ngôn ngữ ứng dụng";
+
+/* Launcher Window */
+"row_launcher_window" = "Cửa sổ khởi chạy";
+
+/* Online Research */
+"row_online_research" = "Tìm kiếm trực tuyến";
+
+/* Secret Protection */
+"row_secret_protection" = "Bảo vệ thông tin bí mật";
+
+/* Run */
+"run" = "Chạy";
+
+/* look up */
+"run_verb_dictionary" = "tra từ";
+
+/* explain */
+"run_verb_explain" = "giải thích";
+
+/* proofread */
+"run_verb_proofread" = "soát lỗi";
+
+/* rewrite */
+"run_verb_rewrite" = "viết lại";
+
+/* summarize */
+"run_verb_summarize" = "tóm tắt";
+
+/* translate */
+"run_verb_translate" = "dịch";
+
+/* Save */
+"save" = "Lưu";
+
+/* Save Audio… */
+"save_audio" = "Lưu âm thanh…";
+
+/* Save Text… */
+"save_text" = "Lưu văn bản…";
+
+/* Search actions */
+"search_actions" = "Tìm hành động";
+
+/* ⌘K search */
+"search_actions_hint" = "⌘K tìm kiếm";
+
+/* Search languages */
+"search_languages" = "Tìm ngôn ngữ";
+
+/* Search Library */
+"search_library" = "Tìm trong thư viện";
+
+/* Search models */
+"search_models" = "Tìm mô hình";
+
+/* titles */
+"search_scope_titles" = "tiêu đề";
+
+/* titles or contents */
+"search_scope_titles_contents" = "tiêu đề hoặc nội dung";
+
+/* Search voices */
+"search_voices" = "Tìm giọng";
+
+/* Services */
+"services" = "Dịch vụ";
+
+/* Settings… */
+"settings" = "Cài đặt…";
+
+/* Settings */
+"settings_window" = "Cài đặt";
+
+/* Setup Assistant… */
+"setup_assistant" = "Trợ lý thiết lập…";
+
+/* Show All */
+"show_all" = "Hiển thị tất cả";
+
+/* Show Langmin in the menu bar */
+"show_langmin_in_the_menu_bar" = "Hiển thị Langmin trên thanh menu";
+
+/* %@ with %@… */
+"status_with_model" = "%@ bằng %@…";
+
+/* Style */
+"style" = "Phong cách";
+
+/* Summarize */
+"summarize" = "Tóm tắt";
+
+/* Summarize Clipboard */
+"summarize_clipboard" = "Tóm tắt bảng nhớ tạm";
+
+/* Summarizing… */
+"summarizing" = "Đang tóm tắt…";
+
+/* System Default */
+"system_default" = "Mặc định hệ thống";
+
+/* Advanced */
+"tab_advanced" = "Nâng cao";
+
+/* General */
+"tab_general" = "Chung";
+
+/* Models */
+"tab_models" = "Mô hình";
+
+/* Reading */
+"tab_reading" = "Đọc";
+
+/* Shortcuts */
+"tab_shortcuts" = "Phím tắt";
+
+/* Window */
+"tab_window" = "Cửa sổ";
+
+/* Tightening… */
+"tightening" = "Đang rút gọn…";
+
+/* Translate */
+"translate" = "Dịch";
+
+/* Translate Clipboard */
+"translate_clipboard" = "Dịch bảng nhớ tạm";
+
+/* Translating… */
+"translating" = "Đang dịch…";
+
+/* Undo */
+"undo" = "Hoàn tác";
+
+/* Untitled */
+"untitled" = "Không có tiêu đề";
+
+/* Another app asked Langmin to process this text:\n\n“%@”\n\nRunning sends it to your configured model. */
+"url_run_confirm_body" = "Một ứng dụng khác yêu cầu Langmin xử lý văn bản này:\n\n“%@”\n\nKhi chạy, văn bản sẽ được gửi đến mô hình đã cấu hình.";
+
+/* Run “%@” from a link? */
+"url_run_confirm_title" = "Chạy “%@” từ liên kết?";
+
+/* Use web research when available */
+"use_web_research" = "Dùng tìm kiếm web khi có thể";
+
+/* Warn before sending secrets */
+"warn_before_secrets" = "Cảnh báo trước khi gửi thông tin bí mật";
+
+/* Window */
+"window" = "Cửa sổ";
+
+/* Runs on your Mac. Free, with no account needed. */
+"wizard_apple_available" = "Chạy trên máy Mac của bạn. Miễn phí, không cần tài khoản.";
+
+/* Apple Intelligence (on this Mac, private and free) */
+"wizard_apple_row" = "Apple Intelligence (trên máy Mac này, riêng tư và miễn phí)";
+
+/* Apple Intelligence (not available on this Mac) */
+"wizard_apple_row_unavailable" = "Apple Intelligence (không khả dụng trên máy Mac này)";
+
+/* Not available on this Mac (requires Apple Intelligence). Choose a cloud provider below. */
+"wizard_apple_unavailable" = "Không khả dụng trên máy Mac này (cần Apple Intelligence). Hãy chọn một nhà cung cấp đám mây bên dưới.";
+
+/* Read results aloud or hear Dictionary words and examples. Choose a voice that supports the language.\n\nApple voices run on your Mac for free. OpenAI and Grok voices require Pro and a provider API key. */
+"wizard_audio_body" = "Nghe kết quả, từ và ví dụ trong Từ điển. Chọn giọng hỗ trợ ngôn ngữ đó.\n\nGiọng Apple chạy miễn phí trên máy Mac. Giọng OpenAI và Grok cần Pro và khóa API của nhà cung cấp.";
+
+/* Hear your words */
+"wizard_audio_title" = "Nghe từ của bạn";
+
+/* Back */
+"wizard_back" = "Quay lại";
+
+/* macOS may ask for clipboard access when you first use a shortcut. */
+"wizard_clipboard_note" = "macOS có thể yêu cầu quyền truy cập bảng nhớ tạm khi bạn dùng phím tắt lần đầu.";
+
+/* Continue */
+"wizard_continue" = "Tiếp tục";
+
+/* Also answer in */
+"wizard_extra_languages" = "Trả lời thêm bằng";
+
+/* Finish */
+"wizard_finish" = "Hoàn tất";
+
+/* Keys stay in macOS Keychain. Requests go directly to your provider. Add keys or a local model later in Settings → Models. */
+"wizard_key_note_local" = "Khóa được lưu trong Chuỗi khóa macOS. Yêu cầu gửi thẳng đến nhà cung cấp. Bạn có thể thêm khóa hoặc mô hình cục bộ sau trong Cài đặt → Mô hình.";
+
+/* API key (optional, add any time) */
+"wizard_key_optional" = "Khóa API (tùy chọn, thêm bất cứ lúc nào)";
+
+/* Choose translation languages. Extra languages add versions to Dictionary, Explain, and Summarize results. Change either list in the launcher's mode menus. */
+"wizard_language_body_single_source" = "Chọn ngôn ngữ dịch. Ngôn ngữ bổ sung thêm phiên bản cho kết quả Từ điển, Giải thích và Tóm tắt. Thay đổi hai danh sách trong menu chế độ của cửa sổ chính.";
+
+/* Your languages */
+"wizard_language_title" = "Ngôn ngữ của bạn";
+
+/* Set Up Later */
+"wizard_later" = "Thiết lập sau";
+
+/* Cloud providers, web research, Library folders, and cloud voices require %@ Pro. Apple Intelligence is free. Eligible subscriptions include a trial. */
+"wizard_pro_note" = "Your first 30 days include %@ Pro. Apple Intelligence stays free afterward.";
+
+/* Dictionary pronunciation voice */
+"wizard_pronunciation_voice" = "Giọng phát âm từ điển";
+
+/* Claude models with web research. */
+"wizard_provider_anthropic" = "Mô hình Claude có tìm kiếm web.";
+
+/* Switch models in the launcher, or open All models to enable more. */
+"wizard_provider_body_multi" = "Đổi mô hình trong cửa sổ chính hoặc bật thêm trong Tất cả mô hình.";
+
+/* DeepSeek chat and reasoning models. */
+"wizard_provider_deepseek" = "Mô hình DeepSeek cho trò chuyện và suy luận.";
+
+/* Gemini models with web research. */
+"wizard_provider_gemini" = "Mô hình Gemini có tìm kiếm web.";
+
+/* Grok text models and optional voices. */
+"wizard_provider_grok" = "Mô hình văn bản Grok và giọng tùy chọn.";
+
+/* GPT models with web research. */
+"wizard_provider_openai" = "Mô hình GPT có tìm kiếm web.";
+
+/* Choose your providers */
+"wizard_provider_title_multi" = "Chọn nhà cung cấp";
+
+/* Copy text and use a shortcut, or open the launcher and start typing.\n\nChange your choices in the launcher's menus or Settings. */
+"wizard_ready_body_simple" = "Langmin starts a free 30-day trial when you first open it. No subscription starts, and you will not be charged.";
+
+/* You're all set */
+"wizard_ready_title" = "30 days of full access";
+
+/* Use these shortcuts from another app after copying text. Proofread and Rewrite copy the result. The other four modes show it in the HUD. Open opens a result window; Dismiss closes the HUD.\n\nIn Langmin's main window, these shortcuts select a mode. Press ⌘Return to run it. */
+"wizard_shortcuts_body" = "Sao chép văn bản trong ứng dụng khác rồi dùng các phím tắt này. Soát lỗi và Viết lại sao chép kết quả. Bốn chế độ còn lại hiển thị kết quả trong HUD. Mở sẽ mở cửa sổ kết quả; Đóng sẽ đóng HUD.\n\nTrong cửa sổ chính của Langmin, các phím tắt này chọn chế độ. Nhấn ⌘Return để chạy.";
+
+/* Step %d of %d */
+"wizard_step_n_of_m" = "Bước %d / %d";
+
+/* Translate to */
+"wizard_translate_to" = "Dịch sang";
+
+/* Proofread, rewrite, explain, summarize, translate, and look up words. Listen to results and Dictionary examples.\n\nChoose your settings now or change them later. */
+"wizard_welcome_body_short" = "Soát lỗi, viết lại, giải thích, tóm tắt, dịch và tra từ. Nghe kết quả và ví dụ trong Từ điển.\n\nChọn cài đặt ngay hoặc thay đổi sau.";
+
+/* Welcome to %@ */
+"wizard_welcome_title" = "Chào mừng đến với %@";
+
+/* Langmin Setup */
+"wizard_window" = "Thiết lập Langmin";
+
+/* Open Langmin at login to keep its menu-bar actions and shortcuts available. */
+"wizard_workflow_body" = "Mở Langmin khi đăng nhập để luôn dùng được tác vụ trên thanh menu và phím tắt.";
+
+/* Always at hand */
+"wizard_workflow_title" = "Luôn trong tầm tay";
+
+/* Your providers */
+"your_providers" = "Nhà cung cấp của bạn";
+
+/* Dictionary illustrations */
+"illustration" = "Hình minh họa";
+"illustration_apple_note" = "Tạo và chọn hình ảnh trên máy Mac của bạn";
+"illustration_apple_unavailable" = "Yêu cầu macOS 15.4 trở lên và Image Playground";
+"illustration_cloud_note" = "Tính phí riêng · dùng khóa API OpenAI của bạn";
+"illustration_generated" = "Hình minh họa do AI tạo";
+"illustration_generating" = "Đang tạo hình minh họa…";
+"illustration_failed" = "Không thể tạo hình minh họa";
+"illustration_missing_key" = "Thêm khóa API OpenAI trong Cài đặt → Mô hình.";
+"illustration_save" = "Lưu hình ảnh…";
+"illustration_remove" = "Xóa hình minh họa";
+
+"reading_webpage" = "Đang đọc trang…";
+
+"loading_page_images" = "Đang tải hình ảnh trên trang…";
+
+/* Follow-up */
+"followup_title" = "Câu hỏi tiếp theo";
+
+/* Ask a follow-up or request changes… */
+"followup_placeholder" = "Đặt câu hỏi tiếp theo hoặc yêu cầu chỉnh sửa…";
+
+/* Send follow-up */
+"followup_send" = "Gửi câu hỏi";
+
+/* Replying… */
+"followup_working" = "Đang trả lời…";
+
+/* You */
+"followup_you" = "Bạn";
+
+/* Copy reply */
+"followup_copy" = "Sao chép câu trả lời";
+
+/* Delete reply */
+"followup_delete_reply" = "Xóa câu trả lời";
+
+/* The message could not be deleted: %@ */
+"followup_delete_failed" = "Không thể xóa tin nhắn: %@";
+
+/* Print… */
+"print" = "In…";
+
+/* Quick HUD playback */
+"hud_read_paragraph" = "Đọc to đoạn này";
+"hud_stop_playback" = "Dừng đọc";
+"hud_playback_failed" = "Không thể đọc to văn bản này";
+"hud_voice_api_key" = "Thêm khóa API %@ trong Cài đặt để dùng giọng này.";
+
+"request_failed" = "Yêu cầu không thành công";
+
+/* Translation skipped */
+"translation_skipped" = "Đã bỏ qua bản dịch";
+
+/* Already in this language. */
+"translation_already_in_language" = "Văn bản đã ở ngôn ngữ được chọn.";
+
+/* Library window placement */
+"detach_library" = "Mở thư viện trong cửa sổ riêng";
+"attach_library" = "Chuyển thư viện về cửa sổ chính";
+
+/* Result text editing */
+"apply" = "Áp dụng";
+"discard_changes" = "Hủy thay đổi";
+"done" = "Xong";
+"edit_link" = "Sửa liên kết";
+"edit_text" = "Sửa văn bản";
+"format_text" = "Định dạng văn bản";
+"remove_link" = "Xóa liên kết";
+"save_text_changes" = "Lưu thay đổi văn bản?";
+"text_style" = "Kiểu văn bản";
+"save_edits_remove_audio" = "Lưu thay đổi và xóa âm thanh?";
+"save_edits_remove_audio_detail" = "Việc lưu những thay đổi này sẽ xóa tất cả âm thanh đọc và phát âm đính kèm. Bạn có thể tạo âm thanh mới sau đó.";
+
+/* iCloud Library sync */
+"pro_feature_icloud" = "Đồng bộ Thư viện qua iCloud";
+"pro_reason_icloud" = "Đồng bộ Thư viện qua iCloud là tính năng của %@ Pro.";
+
+/* Automatically illustrate new lookups */
+"illustration_automatic" = "Tự động minh họa các lượt tra cứu mới";
+
+/* Automatic images are off by default. To add an image yourself, use the picture button on a Dictionary result. */
+"illustration_manual_note" = "Hình ảnh tự động mặc định bị tắt. Để tự thêm hình ảnh, hãy dùng nút hình ảnh trên kết quả Từ điển.";
+
+/* Image Provider */
+"illustration_provider" = "Nhà cung cấp hình ảnh";
+
+/* Choose in result */
+"illustration_choose_in_result" = "Chọn trong kết quả";
+
+/* Choose a provider before turning on automatic images. You can also add an image from a Dictionary result's picture button. */
+"illustration_choose_provider_note" = "Chọn nhà cung cấp trước khi bật hình ảnh tự động. Bạn cũng có thể thêm hình ảnh bằng nút hình ảnh trên kết quả Từ điển.";
+
+/* Create and choose images on your Mac. Automatic mode opens Image Playground after each Dictionary lookup. */
+"illustration_apple_settings_note" = "Tạo và chọn hình ảnh trên máy Mac. Ở chế độ tự động, Image Playground mở sau mỗi lượt tra Từ điển.";
+
+/* Requires Pro and an OpenAI API key in Settings → Models. Each image is billed separately. Creates one landscape image at medium quality. */
+"illustration_openai_settings_note" = "Yêu cầu Pro và khóa API OpenAI trong Cài đặt → Mô hình. Mỗi hình ảnh được tính phí riêng. Tạo một hình ảnh ngang với chất lượng trung bình.";
+
+/* Illustrations */
+"tab_illustrations" = "Hình minh họa";
+
+/* Empty launcher input */
+"input_start_hint" = "Nhập hoặc dán ở đây, hoặc kéo tệp vào";
+"input_documents" = "Tài liệu";
+"input_images" = "Hình ảnh";
+"input_audio" = "Âm thanh";
+"input_drop_title" = "Thả để thêm văn bản";
+
+/* Source-build purchase footer */
+"source_build_title" = "Trial ended";
+"source_build_support" = "Apple Intelligence stays free, while other Pro features require purchase.";
+"source_build_purchase" = "Mua";
+"source_build_dismiss" = "Dismiss";
+"pro_app_trial_one_day" = "Pro trial · 1 day remaining";
+"pro_app_trial_days" = "Pro trial · %d days remaining";
+"wizard_trial_during_title" = "Your first 30 days";
+"wizard_trial_during_langmin" = "Use every Langmin feature without app limits. Provider charges may still apply.";
+"wizard_trial_after_title" = "After the trial";
+"wizard_trial_after_langmin" = "Apple Intelligence, Apple voices, Apple transcription, text editing, and the Library stay free. Other Pro features require a purchase.";
+"wizard_trial_plans_title" = "Keep Pro";
+"wizard_trial_plans_body" = "Choose a yearly plan or lifetime access at any time.";
