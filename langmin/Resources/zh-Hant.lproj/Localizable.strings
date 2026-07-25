@@ -1,0 +1,983 @@
+/* Langmin — zh-Hant localization. Comments give English text or name a related group. */
+
+/* About %@ */
+"about_app" = "關於%@";
+
+/* All */
+"all_chip" = "全部";
+
+/* All models */
+"all_models" = "所有模型";
+
+/* Answer language */
+"answer_language" = "回答語言";
+
+/* %@ Help */
+"app_help" = "%@輔助說明";
+
+/* Back */
+"back" = "返回";
+
+/* Bring All to Front */
+"bring_all_to_front" = "將此App所有視窗移至最前";
+
+/* Delete %d items from %@? */
+"bulk_delete_confirm_many" = "要從「%2$@」刪除%1$d個項目嗎？";
+
+/* Delete 1 item from %@? */
+"bulk_delete_confirm_one" = "要從「%@」刪除1個項目嗎？";
+
+/* Only the items matching the current search are deleted. */
+"bulk_delete_search_note" = "僅會刪除與目前搜尋相符的項目。";
+
+/* Use Undo to restore an item before it disappears. */
+"bulk_delete_undo_note" = "在項目消失前，按一下「還原」即可復原。";
+
+/* Cancel */
+"cancel" = "取消";
+
+/* Cancel Current Action */
+"cancel_current_action" = "取消目前動作";
+
+/* Cancel this request (Esc) */
+"cancel_this_request_esc" = "取消此要求 (Esc)";
+
+/* Cancelled */
+"cancelled" = "已取消";
+
+/* Cancelling… */
+"cancelling" = "正在取消…";
+
+/* Cancelling */
+"cancelling_a11y" = "正在取消";
+
+/* Clear after submit */
+"clear_after_submit" = "送出後清除";
+
+/* You copied something else while Langmin was working. Replace it with the transformed text? */
+"clipboard_changed_body" = "Langmin 處理期間你拷貝了其他內容。要用轉換後的文字取代嗎？";
+
+/* The clipboard changed */
+"clipboard_changed_title" = "剪貼簿已更改";
+
+/* Clipboard unchanged */
+"clipboard_unchanged" = "剪貼簿未更改";
+
+/* macOS did not accept the transformed text. The previous clipboard contents were restored. */
+"clipboard_write_failed_restored" = "macOS 未接受轉換後的文字。已回復剪貼簿先前的內容。";
+
+/* macOS did not accept the transformed text, and the previous clipboard contents could not be restored. */
+"clipboard_write_failed_unrestored" = "macOS 未接受轉換後的文字，且無法回復剪貼簿先前的內容。";
+
+/* Close */
+"close" = "關閉";
+
+/* ⌘V to paste */
+"cmd_v_to_paste" = "按 ⌘V 貼上";
+
+/* Compose with Clipboard */
+"compose_with_clipboard" = "以剪貼簿撰寫";
+
+/* Copied */
+"copied" = "已拷貝";
+
+/* Copy */
+"copy" = "拷貝";
+
+/* Copy this paragraph */
+"copy_paragraph" = "拷貝此段落";
+
+/* Copy Result */
+"copy_result" = "拷貝結果";
+
+/* Copying… */
+"copying" = "正在拷貝…";
+
+/* Could not delete one saved item */
+"could_not_delete_one_saved_item" = "無法刪除一個已儲存項目";
+
+/* Could not delete some saved items */
+"could_not_delete_some_saved_items" = "無法刪除部分已儲存項目";
+
+/* Could not delete this saved item */
+"could_not_delete_this_saved_item" = "無法刪除此已儲存項目";
+
+/* Could not export this saved item */
+"could_not_export_this_saved_item" = "無法輸出此已儲存項目";
+
+/* Could not open the result */
+"could_not_open_result" = "無法開啟結果";
+
+/* Could not rename this saved item */
+"could_not_rename_this_saved_item" = "無法重新命名此已儲存項目";
+
+/* Could not restore this saved item */
+"could_not_restore_this_saved_item" = "無法回復此已儲存項目";
+
+/* Could not save audio */
+"could_not_save_audio" = "無法儲存音訊";
+
+/* Could not update the clipboard */
+"could_not_update_clipboard" = "無法更新剪貼簿";
+
+/* Could not update the login item */
+"could_not_update_the_login_item" = "無法更新登入項目";
+
+/* Cut */
+"cut" = "剪下";
+
+/* Cycle Through Windows */
+"cycle_through_windows" = "循環切換視窗";
+
+/* Delete */
+"delete" = "刪除";
+
+/* Delete All %d… */
+"delete_all_n" = "刪除全部%d個項目…";
+
+/* Delete Folder */
+"delete_folder_menu" = "刪除檔案夾";
+
+/* All entries stay in the Library */
+"delete_folder_subtitle" = "所有項目仍保留在資料庫中";
+
+/* Delete %d Shown… */
+"delete_n_shown" = "刪除顯示的%d個項目…";
+
+/* Deleted “%@” */
+"deleted_item" = "已刪除「%@」";
+
+/* Dictionary */
+"dictionary" = "字典";
+
+/* Dictionary Lookup */
+"dictionary_lookup" = "字典查詢";
+
+/* Dismiss */
+"dismiss" = "關閉";
+
+/* Drop or paste documents, images, or audio */
+"drop_hint" = "拖入或貼上文件、影像或音訊";
+
+/* Edit */
+"edit" = "編輯";
+
+/* Deeper essay */
+"effort_detailed" = "深入長文";
+
+/* Short and clear */
+"effort_simple" = "簡短清晰";
+
+/* Balanced depth */
+"effort_standard" = "深度適中";
+
+/* Elaborating… */
+"elaborating" = "正在擴寫…";
+
+/* Explain */
+"explain" = "解釋";
+
+/* Explain Clipboard */
+"explain_clipboard" = "解釋剪貼簿";
+
+/* Explaining… */
+"explaining" = "正在解釋…";
+
+/* Export Audio… */
+"export_audio_menu" = "輸出音訊…";
+
+/* Export Audio */
+"export_audio_panel" = "輸出音訊";
+
+/* Export Text… */
+"export_text_menu" = "輸出文字…";
+
+/* Export Text */
+"export_text_panel" = "輸出文字";
+
+/* Extra languages */
+"extra_languages" = "額外語言";
+
+/* File */
+"file" = "檔案";
+
+/* File In */
+"file_in_submenu" = "歸入";
+
+/* Filter folders */
+"filter_folders" = "篩選檔案夾";
+
+/* Find… */
+"find_item" = "尋找…";
+
+/* Find */
+"find_menu" = "尋找";
+
+/* ↵ create · esc cancel */
+"folder_create_hint" = "↵ 建立 · esc 取消";
+
+/* Nothing in this folder yet */
+"folder_empty_title" = "此檔案夾還沒有內容";
+
+/* Drag results onto a folder chip, or right-click one and file it here. */
+"folder_empty_subtitle" = "將結果拖到檔案夾標籤上，或在結果上按右鍵並歸入此處。";
+
+/* already exists */
+"folder_exists_hint" = "已存在";
+
+/* already exists · ↵ opens it */
+"folder_exists_opens_hint" = "已存在 · ↵ 開啟它";
+
+/* Folder name */
+"folder_name_placeholder" = "檔案夾名稱";
+
+/* ↵ rename · esc cancel */
+"folder_rename_hint" = "↵ 重新命名 · esc 取消";
+
+/* Help */
+"help" = "輔助說明";
+
+/* Hide %@ */
+"hide_app" = "隱藏%@";
+
+/* Hide Others */
+"hide_others" = "隱藏其他";
+
+/* Explaining */
+"hud_explaining" = "正在解釋";
+
+/* Looking up */
+"hud_looking_up" = "正在查詢";
+
+/* 1 word */
+"hud_one_word" = "1 個字詞";
+
+/* Proofreading */
+"hud_proofreading" = "正在校對";
+
+/* Rewriting */
+"hud_rewriting" = "正在改寫";
+
+/* Summarizing */
+"hud_summarizing" = "正在摘要";
+
+/* Translating */
+"hud_translating" = "正在翻譯";
+
+/* %d words */
+"hud_word_count" = "%d 個字詞";
+
+/* Keep Current Clipboard */
+"keep_current_clipboard" = "保留目前的剪貼簿";
+
+/* Language level */
+"language_level" = "語言程度";
+
+/* The new language takes effect the next time Langmin opens. */
+"language_restart_notice" = "新語言將在下次開啟Langmin時生效。";
+
+/* Later */
+"later" = "稍後";
+
+/* Library */
+"library" = "資料庫";
+
+/* No saved items yet */
+"library_empty_title" = "還沒有儲存的項目";
+
+/* Click a result's bookmark button to save it here. */
+"library_empty_subtitle" = "按一下結果的書籤按鈕即可儲存到這裡。";
+
+/* Look Up Clipboard in Dictionary */
+"look_up_clipboard_in_dictionary" = "在字典中查詢剪貼簿";
+
+/* Looking up… */
+"looking_up" = "正在查詢…";
+
+/* Match question */
+"match_question" = "與提問一致";
+
+/* Minimize */
+"minimize" = "縮到最小";
+
+/* More folders */
+"more_folders" = "更多檔案夾";
+
+/* More languages */
+"more_languages" = "更多語言";
+
+/* %d saved */
+"n_saved" = "已儲存 %d 項";
+
+/* New Explanation */
+"new_explanation" = "新增解釋";
+
+/* New Folder… */
+"new_folder_menu" = "新增檔案夾…";
+
+/* Copy some text, then try the Langmin action again. */
+"no_clipboard_text_body" = "請先拷貝一些文字，再重新執行 Langmin 動作。";
+
+/* No clipboard text */
+"no_clipboard_text_title" = "剪貼簿中沒有文字";
+
+/* No Folder */
+"no_folder" = "無檔案夾";
+
+/* No results */
+"library_search_empty_title" = "沒有結果";
+
+/* No %@ match “%@”. */
+"no_search_matches" = "沒有%@包含「%@」。";
+
+/* None */
+"none" = "無";
+
+/* Not Now */
+"not_now" = "暫時不要";
+
+/* OK */
+"ok" = "好";
+
+/* On this Mac */
+"on_this_mac" = "在這部 Mac 上";
+
+/* Open */
+"open" = "開啟";
+
+/* Open */
+"open_in_window" = "開啟";
+
+/* Open Langmin */
+"open_langmin" = "開啟Langmin";
+
+/* Open Langmin at login */
+"open_langmin_at_login" = "登入時開啟Langmin";
+
+/* Open in a result window */
+"open_result_window" = "在結果視窗中開啟";
+
+/* Open Settings */
+"open_settings" = "開啟設定";
+
+/* Open Setup Assistant */
+"open_setup_assistant" = "開啟設定輔助程式";
+
+/* Opening… */
+"opening_hud" = "正在開啟…";
+
+/* Opening… */
+"opening_progress" = "正在開啟…";
+
+/* Other */
+"other" = "其他";
+
+/* ↵ run    ⇥ pin chip    ⌘, options */
+"palette_legend_chip" = "↵ 執行    ⇥ 釘選標籤    ⌘, 選項";
+
+/* Paste */
+"paste" = "貼上";
+
+/* Langmin can't access the pasted file */
+"pasted_file_denied" = "Langmin無法取用貼上的檔案";
+
+/* Langmin can't access the pasted files */
+"pasted_files_denied" = "Langmin無法取用貼上的檔案";
+
+/* macOS did not grant access to these files. Drag them into this window instead. */
+"pasted_files_denied_body" = "macOS 未允許取用這些檔案。請將它們拖入此視窗。";
+
+/* Look up a word… */
+"placeholder_dictionary" = "查詢一個字詞…";
+
+/* What would you like explained? */
+"placeholder_explain" = "想解釋什麼內容？";
+
+/* What would you like proofread? */
+"placeholder_proofread" = "想校對什麼內容？";
+
+/* What would you like rewritten? */
+"placeholder_rewrite" = "想改寫什麼內容？";
+
+/* What would you like summarized? */
+"placeholder_summarize" = "想摘要什麼內容？";
+
+/* What would you like translated? */
+"placeholder_translate" = "想翻譯什麼內容？";
+
+/* Preparing narration… */
+"preparing_narration" = "正在準備朗讀…";
+
+/* Privacy Policy… */
+"privacy_policy" = "隱私權政策…";
+
+/* Family Sharing included. */
+"pro_family_caption" = "支援家人共享。";
+
+/* OpenAI, Anthropic, Gemini, Grok, DeepSeek, and custom endpoints */
+"pro_feature_cloud" = "OpenAI、Anthropic、Gemini、Grok、DeepSeek 和自訂端點";
+
+/* Library folders */
+"pro_feature_folders" = "資料庫檔案夾";
+
+/* Web research for current facts and sources */
+"pro_feature_research" = "網頁搜尋，取得最新事實與來源";
+
+/* OpenAI and Grok voices */
+"pro_feature_voices" = "OpenAI 和 Grok 語音";
+
+/* Apple Intelligence, Apple voices, and the Library stay free. */
+"pro_free_note" = "Apple Intelligence、Apple 語音和資料庫永遠免費。";
+
+/* Buy once for %@ */
+"pro_lifetime_button" = "以 %@ 一次買斷";
+
+/* Contacting the App Store… */
+"pro_loading" = "正在連接 App Store…";
+
+/* Manage Subscription… */
+"pro_manage_subscription" = "管理訂閱…";
+
+/* %@ Pro… */
+"pro_menu" = "%@ Pro…";
+
+/* This purchase is still pending. %@ Pro unlocks when the App Store confirms it. */
+"pro_pending_body" = "此購買仍在等待處理。App Store 確認後，%@ Pro 將解鎖。";
+
+/* Purchase pending */
+"pro_pending_title" = "購買待處理";
+
+/* Privacy Policy */
+"pro_privacy_policy" = "隱私權政策";
+
+/* The purchase didn't complete: %@ */
+"pro_purchase_failed" = "購買未完成：%@";
+
+/* Cloud models are part of %@ Pro. */
+"pro_reason_cloud" = "雲端模型屬於 %@ Pro。";
+
+/* Library folders are part of %@ Pro. */
+"pro_reason_folders" = "資料庫檔案夾屬於 %@ Pro。";
+
+/* Get more with %@ Pro. */
+"pro_reason_general" = "使用 %@ Pro 取得更多功能。";
+
+/* OpenAI and Grok voices are part of %@ Pro. */
+"pro_reason_voices" = "OpenAI 和 Grok 語音屬於 %@ Pro。";
+
+/* Couldn't restore purchases */
+
+/* No %@ Pro purchase was found for this Apple Account. */
+"pro_restore_none_body" = "此 Apple 帳號下找不到 %@ Pro 的購買紀錄。";
+
+/* Nothing to restore */
+"pro_restore_none_title" = "沒有可回復的項目";
+
+/* Restore Purchases */
+"pro_restore_purchases" = "回復購買";
+
+/* Pro */
+"pro_status_active" = "Pro";
+
+/* Pro · ends %@ */
+"pro_status_ends" = "Pro · %@ 到期";
+
+/* Pro · shared with your family */
+"pro_status_family" = "Pro · 與家人共享";
+
+/* Free */
+"pro_status_free" = "免費";
+
+/* Pro · lifetime */
+"pro_status_lifetime" = "Pro · 永久";
+
+/* Pro · renews %@ */
+"pro_status_renews" = "Pro · %@ 續訂";
+
+/* Pro trial · ends %@ */
+"pro_status_trial_ends" = "Pro 試用 · %@ 結束";
+
+/* Pro trial · first payment %@ */
+"pro_status_trial_renews" = "Pro 試用 · %@ 首次扣款";
+
+/* Pro trial · until %@ */
+"pro_status_trial_until" = "Pro 試用 · 至 %@";
+
+/* Pro · until %@ */
+"pro_status_until" = "Pro · 至 %@";
+
+/* Pro purchases are unavailable right now. Please try again later. */
+"pro_store_unavailable" = "目前無法購買 Pro，請稍後再試。";
+
+/* Payment goes to your Apple Account. A subscription renews automatically each year unless it is cancelled in your App Store settings at least a day before the period ends. */
+"pro_terms" = "費用會透過你的 Apple 帳號支付。訂閱每年自動續訂，除非在目前期間結束至少一天前於 App Store 設定中取消。";
+
+/* Terms of Use */
+"pro_terms_of_use" = "使用條款";
+
+/* Cancel at least a day before the free trial ends to avoid being charged. */
+
+/* %@ Pro */
+"pro_title" = "%@ Pro";
+
+/* Start free trial */
+
+/* Try free for a month */
+
+/* then %@ a year · cancel anytime */
+
+/* The App Store could not verify this purchase. */
+"pro_unverified" = "App Store 無法驗證此購買。";
+
+/* Upgrade… */
+"pro_upgrade_button" = "升級…";
+
+/* Subscribe for %@ a year */
+"pro_yearly_button" = "訂閱，每年 %@";
+
+/* Renews automatically each year · cancel anytime */
+"pro_yearly_caption" = "每年自動續訂 · 隨時取消";
+
+/* You have %@ Pro. */
+"pro_you_have" = "你已擁有 %@ Pro。";
+
+/* Pronounce — click to choose a voice first */
+"pronounce_setup_tooltip" = "朗讀 — 請先按一下選擇一個聲音";
+
+/* Pronunciation voice */
+"pronunciation_voice" = "發音聲音";
+
+/* Proofread */
+"proofread" = "校對";
+
+/* Proofread Clipboard */
+"proofread_clipboard" = "校對剪貼簿";
+
+/* Proofreading… */
+"proofreading" = "正在校對…";
+
+/* Quit %@ */
+"quit_app" = "結束%@";
+
+/* Quit Now */
+"quit_now" = "立即結束";
+
+/* Redo */
+"redo" = "重做";
+
+/* Remember choices */
+"remember_choices" = "記住選擇";
+
+/* Rename */
+"rename" = "重新命名";
+
+/* Rename Folder */
+"rename_folder_menu" = "重新命名檔案夾";
+
+/* Rephrasing… */
+"rephrasing" = "正在改寫…";
+
+/* Reset Defaults */
+"reset_defaults" = "回復預設";
+
+/* Press Save to restore defaults, or open Setup Assistant to choose new settings. */
+"reset_wizard_body" = "按一下「儲存」以回復預設設定，或開啟設定輔助程式來選擇新設定。";
+
+/* Start over with the Setup Assistant? */
+"reset_wizard_title" = "要使用設定輔助程式重新開始嗎？";
+
+/* Empty and loading results */
+"results_empty_title" = "隨時可以開始";
+"results_empty_hint" = "在左側輸入文字，然後按 ⌘↵，即可在此處查看結果。";
+"results_loading_title" = "正在產生結果";
+"retry" = "重試";
+
+/* Rewrite */
+"rewrite" = "改寫";
+
+/* Rewrite Clipboard */
+"rewrite_clipboard" = "改寫剪貼簿";
+
+/* App Language */
+"row_app_language" = "App 語言";
+
+/* Launcher Window */
+"row_launcher_window" = "啟動器視窗";
+
+/* Online Research */
+"row_online_research" = "線上搜尋";
+
+/* Secret Protection */
+"row_secret_protection" = "機密資訊保護";
+
+/* Run */
+"run" = "執行";
+
+/* look up */
+"run_verb_dictionary" = "查詞";
+
+/* explain */
+"run_verb_explain" = "解釋";
+
+/* proofread */
+"run_verb_proofread" = "校對";
+
+/* rewrite */
+"run_verb_rewrite" = "改寫";
+
+/* summarize */
+"run_verb_summarize" = "摘要";
+
+/* translate */
+"run_verb_translate" = "翻譯";
+
+/* Save */
+"save" = "儲存";
+
+/* Save Audio… */
+"save_audio" = "儲存音訊…";
+
+/* Save Text… */
+"save_text" = "儲存文字…";
+
+/* Search actions */
+"search_actions" = "搜尋動作";
+
+/* ⌘K search */
+"search_actions_hint" = "⌘K 搜尋";
+
+/* Search languages */
+"search_languages" = "搜尋語言";
+
+/* Search Library */
+"search_library" = "搜尋資料庫";
+
+/* Search models */
+"search_models" = "搜尋模型";
+
+/* titles */
+"search_scope_titles" = "標題";
+
+/* titles or contents */
+"search_scope_titles_contents" = "標題或內容";
+
+/* Search voices */
+"search_voices" = "搜尋聲音";
+
+/* Services */
+"services" = "服務";
+
+/* Settings… */
+"settings" = "設定…";
+
+/* Settings */
+"settings_window" = "設定";
+
+/* Setup Assistant… */
+"setup_assistant" = "設定輔助程式…";
+
+/* Show All */
+"show_all" = "顯示全部";
+
+/* Show Langmin in the menu bar */
+"show_langmin_in_the_menu_bar" = "在選單列顯示Langmin";
+
+/* %@ with %@… */
+"status_with_model" = "%@（%@）…";
+
+/* Style */
+"style" = "風格";
+
+/* Summarize */
+"summarize" = "摘要";
+
+/* Summarize Clipboard */
+"summarize_clipboard" = "摘要剪貼簿";
+
+/* Summarizing… */
+"summarizing" = "正在製作摘要…";
+
+/* System Default */
+"system_default" = "系統預設";
+
+/* Advanced */
+"tab_advanced" = "進階";
+
+/* General */
+"tab_general" = "一般";
+
+/* Models */
+"tab_models" = "模型";
+
+/* Reading */
+"tab_reading" = "朗讀";
+
+/* Shortcuts */
+"tab_shortcuts" = "快速鍵";
+
+/* Window */
+"tab_window" = "視窗";
+
+/* Tightening… */
+"tightening" = "正在精簡…";
+
+/* Translate */
+"translate" = "翻譯";
+
+/* Translate Clipboard */
+"translate_clipboard" = "翻譯剪貼簿";
+
+/* Translating… */
+"translating" = "正在翻譯…";
+
+/* Undo */
+"undo" = "還原";
+
+/* Untitled */
+"untitled" = "未命名";
+
+/* Another app asked Langmin to process this text:\n\n“%@”\n\nRunning sends it to your configured model. */
+"url_run_confirm_body" = "另一個App要求Langmin處理這段文字：\n\n「%@」\n\n執行後將傳送給你設定的模型。";
+
+/* Run “%@” from a link? */
+"url_run_confirm_title" = "要透過連結執行「%@」嗎？";
+
+/* Use web research when available */
+"use_web_research" = "可用時使用網路搜尋";
+
+/* Warn before sending secrets */
+"warn_before_secrets" = "傳送機密資訊前警告";
+
+/* Window */
+"window" = "視窗";
+
+/* Runs on your Mac. Free, with no account needed. */
+"wizard_apple_available" = "在你的 Mac 上執行。免費，無需帳號。";
+
+/* Apple Intelligence (on this Mac, private and free) */
+"wizard_apple_row" = "Apple Intelligence（在這部 Mac 上，私密且免費）";
+
+/* Apple Intelligence (not available on this Mac) */
+"wizard_apple_row_unavailable" = "Apple Intelligence（這部 Mac 無法使用）";
+
+/* Not available on this Mac (requires Apple Intelligence). Choose a cloud provider below. */
+"wizard_apple_unavailable" = "這部 Mac 無法使用（需要 Apple Intelligence）。請在下方選擇一個雲端服務供應商。";
+
+/* Read results aloud or hear Dictionary words and examples. Choose a voice that supports the language.\n\nApple voices run on your Mac for free. OpenAI and Grok voices require Pro and a provider API key. */
+"wizard_audio_body" = "聆聽結果、字典中的單字和例句。請選擇支援該語言的聲音。\n\nApple 聲音在 Mac 上免費執行。OpenAI 和 Grok 聲音需要 Pro 和供應商的 API 金鑰。";
+
+/* Hear your words */
+"wizard_audio_title" = "聽聽你的字詞";
+
+/* Back */
+"wizard_back" = "返回";
+
+/* macOS may ask for clipboard access when you first use a shortcut. */
+"wizard_clipboard_note" = "首次使用快速鍵時，macOS 可能會要求剪貼簿取用權限。";
+
+/* Continue */
+"wizard_continue" = "繼續";
+
+/* Also answer in */
+"wizard_extra_languages" = "同時以下列語言作答";
+
+/* Finish */
+"wizard_finish" = "完成";
+
+/* Keys stay in macOS Keychain. Requests go directly to your provider. Add keys or a local model later in Settings → Models. */
+"wizard_key_note_local" = "金鑰儲存在 macOS 鑰匙圈中，請求直接傳送給供應商。你可以稍後在「設定 → 模型」中加入金鑰或本機模型。";
+
+/* API key (optional, add any time) */
+"wizard_key_optional" = "API 金鑰（選填，隨時可加入）";
+
+/* Choose translation languages. Extra languages add versions to Dictionary, Explain, and Summarize results. Change either list in the launcher's mode menus. */
+"wizard_language_body_single_source" = "選擇翻譯語言。額外語言會為字典、解釋和摘要結果加入其他語言版本。兩份列表都能在啟動器的模式選單中修改。";
+
+/* Your languages */
+"wizard_language_title" = "你的語言";
+
+/* Set Up Later */
+"wizard_later" = "稍後設定";
+
+/* Cloud providers, web research, Library folders, and cloud voices require %@ Pro. Apple Intelligence is free. Eligible subscriptions include a trial. */
+"wizard_pro_note" = "Your first 30 days include %@ Pro. Apple Intelligence stays free afterward.";
+
+/* Dictionary pronunciation voice */
+"wizard_pronunciation_voice" = "字典發音聲音";
+
+/* Claude models with web research. */
+"wizard_provider_anthropic" = "支援網頁搜尋的 Claude 模型。";
+
+/* Switch models in the launcher, or open All models to enable more. */
+"wizard_provider_body_multi" = "在啟動器中切換模型，或在「所有模型」中啟用更多模型。";
+
+/* DeepSeek chat and reasoning models. */
+"wizard_provider_deepseek" = "用於聊天和推理的 DeepSeek 模型。";
+
+/* Gemini models with web research. */
+"wizard_provider_gemini" = "支援網頁搜尋的 Gemini 模型。";
+
+/* Grok text models and optional voices. */
+"wizard_provider_grok" = "Grok 文字模型和選用聲音。";
+
+/* GPT models with web research. */
+"wizard_provider_openai" = "支援網頁搜尋的 GPT 模型。";
+
+/* Choose your providers */
+"wizard_provider_title_multi" = "選擇供應商";
+
+/* Copy text and use a shortcut, or open the launcher and start typing.\n\nChange your choices in the launcher's menus or Settings. */
+"wizard_ready_body_simple" = "Langmin starts a free 30-day trial when you first open it. No subscription starts, and you will not be charged.";
+
+/* You're all set */
+"wizard_ready_title" = "30 days of full access";
+
+/* Use these shortcuts from another app after copying text. Proofread and Rewrite copy the result. The other four modes show it in the HUD. Open opens a result window; Dismiss closes the HUD.\n\nIn Langmin's main window, these shortcuts select a mode. Press ⌘Return to run it. */
+"wizard_shortcuts_body" = "在其他 App 中複製文字後，使用這些快速鍵。「校對」和「改寫」會複製結果，其他四種模式會在 HUD 中顯示結果。「開啟」會開啟結果視窗，「關閉」會關閉 HUD。\n\n在 Langmin 主視窗中，這些快速鍵用來選擇模式。按 ⌘Return 執行。";
+
+/* Step %d of %d */
+"wizard_step_n_of_m" = "第 %d 步，共 %d 步";
+
+/* Translate to */
+"wizard_translate_to" = "翻譯為";
+
+/* Proofread, rewrite, explain, summarize, translate, and look up words. Listen to results and Dictionary examples.\n\nChoose your settings now or change them later. */
+"wizard_welcome_body_short" = "校對、改寫、解釋、摘要、翻譯和查字。聆聽結果和字典例句。\n\n現在選擇設定，也可以稍後修改。";
+
+/* Welcome to %@ */
+"wizard_welcome_title" = "歡迎使用 %@";
+
+/* Langmin Setup */
+"wizard_window" = "Langmin 設定";
+
+/* Open Langmin at login to keep its menu-bar actions and shortcuts available. */
+"wizard_workflow_body" = "登入時開啟 Langmin，即可隨時使用選單列操作和快速鍵。";
+
+/* Always at hand */
+"wizard_workflow_title" = "隨時可用";
+
+/* Your providers */
+"your_providers" = "你的服務供應商";
+
+/* Dictionary illustrations */
+"illustration" = "插圖";
+"illustration_apple_note" = "在 Mac 上製作並選擇影像";
+"illustration_apple_unavailable" = "需要 macOS 15.4 或以上版本及 Image Playground";
+"illustration_cloud_note" = "另外計費 · 使用你的 OpenAI API 金鑰";
+"illustration_generated" = "AI 生成的插圖";
+"illustration_generating" = "正在製作插圖…";
+"illustration_failed" = "無法製作插圖";
+"illustration_missing_key" = "請在設定 → 模型中加入 OpenAI API 金鑰。";
+"illustration_save" = "儲存影像…";
+"illustration_remove" = "移除插圖";
+
+"reading_webpage" = "正在讀取網頁…";
+
+"loading_page_images" = "正在載入網頁圖片…";
+
+/* Follow-up */
+"followup_title" = "追問";
+
+/* Ask a follow-up or request changes… */
+"followup_placeholder" = "繼續提問或要求修改…";
+
+/* Send follow-up */
+"followup_send" = "傳送追問";
+
+/* Replying… */
+"followup_working" = "正在回覆…";
+
+/* You */
+"followup_you" = "你";
+
+/* Copy reply */
+"followup_copy" = "拷貝回覆";
+
+/* Delete reply */
+"followup_delete_reply" = "刪除回覆";
+
+/* The message could not be deleted: %@ */
+"followup_delete_failed" = "無法刪除訊息：%@";
+
+/* Print… */
+"print" = "列印…";
+
+/* Quick HUD playback */
+"hud_read_paragraph" = "朗讀此段落";
+"hud_stop_playback" = "停止朗讀";
+"hud_playback_failed" = "無法朗讀此文字";
+"hud_voice_api_key" = "若要使用此語音，請在設定中加入 %@ API 金鑰。";
+
+"request_failed" = "請求失敗";
+
+/* Translation skipped */
+"translation_skipped" = "已略過翻譯";
+
+/* Already in this language. */
+"translation_already_in_language" = "文字已是所選語言。";
+
+/* Library window placement */
+"detach_library" = "在獨立視窗中開啟資料庫";
+"attach_library" = "將資料庫移至主視窗";
+
+/* Result text editing */
+"apply" = "套用";
+"discard_changes" = "放棄更改";
+"done" = "完成";
+"edit_link" = "編輯連結";
+"edit_text" = "編輯文字";
+"format_text" = "設定文字格式";
+"remove_link" = "移除連結";
+"save_text_changes" = "儲存文字變更？";
+"text_style" = "文字樣式";
+"save_edits_remove_audio" = "儲存修改並移除音訊？";
+"save_edits_remove_audio_detail" = "儲存這些修改將移除所有附加的朗讀和發音音訊。之後可以重新產生音訊。";
+
+/* iCloud Library sync */
+"pro_feature_icloud" = "iCloud 資料庫同步";
+"pro_reason_icloud" = "iCloud 資料庫同步是 %@ Pro 的功能。";
+
+/* Automatically illustrate new lookups */
+"illustration_automatic" = "自動為新查詢加入插圖";
+
+/* Automatic images are off by default. To add an image yourself, use the picture button on a Dictionary result. */
+"illustration_manual_note" = "自動圖片預設為關閉。如需自行加入圖片，請使用字典結果中的圖片按鈕。";
+
+/* Image Provider */
+"illustration_provider" = "圖片供應商";
+
+/* Choose in result */
+"illustration_choose_in_result" = "在結果中選擇";
+
+/* Choose a provider before turning on automatic images. You can also add an image from a Dictionary result's picture button. */
+"illustration_choose_provider_note" = "開啟自動圖片前，請先選擇供應商。你也可以透過字典結果中的圖片按鈕加入圖片。";
+
+/* Create and choose images on your Mac. Automatic mode opens Image Playground after each Dictionary lookup. */
+"illustration_apple_settings_note" = "在 Mac 上製作並選擇圖片。自動模式會在每次字典查詢後開啟 Image Playground。";
+
+/* Requires Pro and an OpenAI API key in Settings → Models. Each image is billed separately. Creates one landscape image at medium quality. */
+"illustration_openai_settings_note" = "需要 Pro，並在設定 → 模型中加入 OpenAI API 金鑰。每張圖片另外計費。產生一張中等品質的橫向圖片。";
+
+/* Illustrations */
+"tab_illustrations" = "插圖";
+
+/* Empty launcher input */
+"input_start_hint" = "在此輸入、貼上或拖入檔案";
+"input_documents" = "文件";
+"input_images" = "影像";
+"input_audio" = "音訊";
+"input_drop_title" = "放開以加入文字";
+
+/* Source-build purchase footer */
+"source_build_title" = "Trial ended";
+"source_build_support" = "Apple Intelligence stays free, while other Pro features require purchase.";
+"source_build_purchase" = "購買";
+"source_build_dismiss" = "Dismiss";
+"pro_app_trial_one_day" = "Pro trial · 1 day remaining";
+"pro_app_trial_days" = "Pro trial · %d days remaining";
+"wizard_trial_during_title" = "Your first 30 days";
+"wizard_trial_during_langmin" = "Use every Langmin feature without app limits. Provider charges may still apply.";
+"wizard_trial_after_title" = "After the trial";
+"wizard_trial_after_langmin" = "Apple Intelligence, Apple voices, Apple transcription, text editing, and the Library stay free. Other Pro features require a purchase.";
+"wizard_trial_plans_title" = "Keep Pro";
+"wizard_trial_plans_body" = "Choose a yearly plan or lifetime access at any time.";
