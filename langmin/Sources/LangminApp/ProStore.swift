@@ -31,6 +31,7 @@ final class ProStore {
     private(set) var yearly: Product?
     private(set) var lifetime: Product?
     private(set) var appTrialStartedAt: Date?
+    private(set) var hasResolvedEntitlement = false
     private var updatesTask: Task<Void, Never>?
     private var refreshGeneration = 0
     private var entitlementTimer: Timer?
@@ -65,7 +66,10 @@ final class ProStore {
     // entitlement.
     func start() {
         // An unlocked local build must not start StoreKit or prompt for an Apple Account.
-        guard developerOverride == nil else { return }
+        guard developerOverride == nil else {
+            hasResolvedEntitlement = true
+            return
+        }
         prepareAppTrial()
         // Install the transaction observer once.
         guard updatesTask == nil else {
@@ -124,13 +128,20 @@ final class ProStore {
         }
         // Discard a refresh result if a newer refresh started while it was awaiting StoreKit.
         guard generation == refreshGeneration else { return }
+        let resolvedForFirstTime = !hasResolvedEntitlement
+        hasResolvedEntitlement = true
         var evaluated = ProEntitlementLogic.evaluate(summaries)
         // Retain renewal metadata only when the newly evaluated entitlement represents the same access.
         if evaluated.kind == entitlement.kind && evaluated.expirationDate == entitlement.expirationDate
             && evaluated.isFamilyShared == entitlement.isFamilyShared {
             evaluated.willAutoRenew = entitlement.willAutoRenew
         }
+        let entitlementChanged = evaluated != entitlement
         applyEntitlement(evaluated)
+        // Publish the first resolved free state even when the entitlement value stayed unchanged.
+        if resolvedForFirstTime && !entitlementChanged {
+            NotificationCenter.default.post(name: Self.entitlementDidChange, object: self)
+        }
         scheduleEntitlementRefresh()
         // Look up renewal details only for an active subscription entitlement.
         if evaluated.kind == .subscription {
@@ -166,20 +177,28 @@ final class ProStore {
         }
     }
 
-    // prepareAppTrial([now]): Restore or start the independent 30-day full-access period.
-    private func prepareAppTrial(now: Date = Date()) {
+    // beginAppTrial([now]): Start the local trial after its first-launch disclosure is accepted.
+    func beginAppTrial(now: Date = Date()) {
+        prepareAppTrial(startIfNeeded: true, now: now)
+    }
+
+    // prepareAppTrial([startIfNeeded = false], [now]): Restore trial state and optionally start it.
+    private func prepareAppTrial(startIfNeeded: Bool = false, now: Date = Date()) {
         // Private builds never create public trial state.
         guard developerOverride == nil else { return }
+        let previousStart = appTrialStartedAt
         if let forced = LangminEdition.forcedTrialStartedAt {
             // Private previews must not change the real trial date in preferences.
             appTrialStartedAt = forced
         } else if appTrialStartedAt == nil {
             if let stored = UserDefaults.standard.object(forKey: Self.appTrialStartedAtKey) as? Date {
                 appTrialStartedAt = stored
-            } else {
+            } else if startIfNeeded {
                 appTrialStartedAt = now
                 UserDefaults.standard.set(now, forKey: Self.appTrialStartedAtKey)
             }
+        }
+        if appTrialStartedAt != previousStart {
             NotificationCenter.default.post(name: Self.entitlementDidChange, object: self)
         }
         scheduleAppTrialExpiry(now: now)

@@ -64,9 +64,10 @@ final class SetupWizardController: NSObject, NSWindowDelegate {
         window?.makeKeyAndOrderFront(nil)
     }
 
-    // windowWillClose(notification): Mark setup complete on close. The user can
-    // reopen it from the app menu.
+    // windowWillClose(notification): Start the disclosed trial and mark setup
+    // complete. The user can reopen setup from the app menu.
     func windowWillClose(_ notification: Notification) {
+        ProStore.shared.beginAppTrial()
         preferencesStore.set(true, forKey: Self.completedKey)
     }
 
@@ -234,18 +235,18 @@ final class SetupWizardController: NSObject, NSWindowDelegate {
             // Build a step only on its first visit in this setup session.
             // Select the content associated with the current position in the wizard.
             switch stepIndex {
+            // Disclose the local trial before its clock starts.
+            case 0: step = readyStep()
             // Introduce the app before asking for configuration choices.
-            case 0: step = welcomeStep()
+            case 1: step = welcomeStep()
             // Let the user choose available AI providers.
-            case 1: step = providerStep()
+            case 2: step = providerStep()
             // Collect translation and dictionary language choices.
-            case 2: step = languageStep()
+            case 3: step = languageStep()
             // Collect reading and pronunciation preferences.
-            case 3: step = audioStep()
-            // Explain shortcuts and the optional login item.
-            case 4: step = workflowStep()
-            // Use the final page to confirm that setup is ready to finish.
-            default: step = readyStep()
+            case 4: step = audioStep()
+            // Finish with shortcuts and the optional login item.
+            default: step = workflowStep()
             }
             stepViews[stepIndex] = step
         }
@@ -607,6 +608,10 @@ final class SetupWizardController: NSObject, NSWindowDelegate {
     // goForward(sender): Advance through setup, or save the selected choices
     // from the final step.
     @objc private func goForward(_ sender: Any?) {
+        // Leaving the disclosure starts the full 30-day period at that moment.
+        if stepIndex == 0 {
+            ProStore.shared.beginAppTrial()
+        }
         // The final Continue action saves setup instead of advancing past the last page.
         if stepIndex == stepCount - 1 {
             finish()

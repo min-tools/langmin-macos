@@ -20,7 +20,10 @@ final class SourcePurchaseFooter: NSView {
         let dismissed = LangminEdition.isExpiredTrialPreview
             ? previewDismissed
             : UserDefaults.standard.bool(forKey: dismissedKey)
-        return store.hasPreparedAppTrial && !store.hasFullAccess && !dismissed
+        return store.hasResolvedEntitlement
+            && store.hasPreparedAppTrial
+            && !store.hasFullAccess
+            && !dismissed
     }
 
     // init(frame): Explain the expired trial and offer dismissal, purchase, or restore.

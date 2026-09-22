@@ -121,7 +121,17 @@ enum AppStore {
         let store = ProStore()
         // Public source and App Store builds must both start without Pro access.
         try check(store.developerOverride == nil, "Public builds have no local override")
+        UserDefaults.standard.removeObject(forKey: ProStore.appTrialStartedAtKey)
+        defer { UserDefaults.standard.removeObject(forKey: ProStore.appTrialStartedAtKey) }
+        let disclosedStart = Date(timeIntervalSince1970: 1_800_000_000)
+        store.prepareAppTrial(now: disclosedStart)
+        try check(store.appTrialStartedAt == nil, "Store startup does not begin the trial before disclosure")
+        store.beginAppTrial(now: disclosedStart)
+        try check(store.appTrialStartedAt == disclosedStart, "Accepting the disclosure begins the trial")
+        store.beginAppTrial(now: disclosedStart.addingTimeInterval(60))
+        try check(store.appTrialStartedAt == disclosedStart, "Repeated acceptance preserves the original trial date")
         await store.refreshEntitlement()
+        try check(store.hasResolvedEntitlement, "The first StoreKit lookup resolves launch UI")
         try check(!store.isPro && store.entitlementTimer == nil, "Free accounts have no expiry timer")
 
         // A slow renewal-label lookup cannot delay the entitlement or restore stale access later.

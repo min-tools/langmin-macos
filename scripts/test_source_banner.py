@@ -22,6 +22,7 @@ class ProStore {
     static let shared = ProStore()
     static let entitlementDidChange = Notification.Name("FixtureAccessChanged")
     var hasPreparedAppTrial = true
+    var hasResolvedEntitlement = true
     var hasFullAccess = false
     var restores = 0
     var pending: CheckedContinuation<Bool, Error>?
@@ -59,6 +60,12 @@ func check(_ value: Bool, _ message: String) {
         let resources = URL(fileURLWithPath: CommandLine.arguments[1])
         let artifacts = URL(fileURLWithPath: CommandLine.arguments[2])
         let locales = try FileManager.default.contentsOfDirectory(at: resources, includingPropertiesForKeys: nil)
+        ProStore.shared.hasResolvedEntitlement = false
+        let unresolved = SourcePurchaseFooter(frame: .zero)
+        check(unresolved.isHidden, "Entitlement lookup keeps the expired banner hidden")
+        ProStore.shared.hasResolvedEntitlement = true
+        NotificationCenter.default.post(name: ProStore.entitlementDidChange, object: nil)
+        check(!unresolved.isHidden, "Resolved free access reveals the expired banner")
         // Fit all translated actions in light and dark mode at the minimum launcher width.
         for locale in locales where locale.pathExtension == "lproj" {
             let data = try Data(contentsOf: locale.appendingPathComponent("Localizable.strings"))
