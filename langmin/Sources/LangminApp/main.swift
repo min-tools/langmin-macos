@@ -2561,6 +2561,8 @@ final class TitlebarTooltipButton: NSButton {
 // Built-in text models for the model pickers.
 let explanationModelOptions: [PreferenceOption] = [
     PreferenceOption(id: "gpt-6-astra", title: "GPT-6 Astra", note: "web research"),
+    PreferenceOption(id: "gpt-6-sol", title: "GPT-6 Sol", note: "web research"),
+    PreferenceOption(id: "gpt-6-luna", title: "GPT-6 Luna", note: "web research"),
     PreferenceOption(id: "gpt-5.6-sol", title: "GPT-5.6 Sol", note: "web research"),
     PreferenceOption(id: "gpt-5.6-terra", title: "GPT-5.6 Terra", note: "web research"),
     PreferenceOption(id: "gpt-5.6-luna", title: "GPT-5.6 Luna", note: "web research"),
@@ -2571,29 +2573,37 @@ let explanationModelOptions: [PreferenceOption] = [
     PreferenceOption(id: "gpt-4.1", title: "GPT-4.1", note: "web research"),
     PreferenceOption(id: "gpt-4.1-mini", title: "GPT-4.1 Mini", note: "web research"),
     PreferenceOption(id: "anthropic:claude-fable-5-1", title: "Claude Fable 5.1", note: "web research"),
-    PreferenceOption(id: "anthropic:claude-fable-5", title: "Claude Fable 5", note: "web research"),
+    PreferenceOption(id: "anthropic:claude-opus-5-5", title: "Claude Opus 5.5", note: "web research"),
     PreferenceOption(id: "anthropic:claude-sonnet-5", title: "Claude Sonnet 5", note: "web research"),
-    PreferenceOption(id: "anthropic:claude-sonnet-4-5", title: "Claude Sonnet 4.5", note: "web research"),
-    PreferenceOption(id: "anthropic:claude-haiku-4-5", title: "Claude Haiku", note: "web research"),
-    PreferenceOption(id: "anthropic:claude-opus-4-1", title: "Claude Opus 4.1", note: "web research"),
-    PreferenceOption(id: "gemini:gemini-2.5-pro", title: "Gemini 2.5 Pro", note: "web research"),
-    PreferenceOption(id: "gemini:gemini-2.5-flash", title: "Gemini 2.5 Flash", note: "web research"),
-    PreferenceOption(id: "gemini:gemini-2.5-flash-lite", title: "Gemini Flash Lite", note: "web research"),
-    PreferenceOption(id: "grok:grok-4", title: "Grok 4", note: "xAI"),
-    PreferenceOption(id: "grok:grok-3-mini", title: "Grok 3 Mini", note: "xAI"),
-    PreferenceOption(id: "deepseek:deepseek-chat", title: "DeepSeek Chat", note: "chat"),
-    PreferenceOption(id: "deepseek:deepseek-reasoner", title: "DeepSeek Reasoner", note: "reasoning"),
+    PreferenceOption(id: "anthropic:claude-haiku-4-5", title: "Claude Haiku 4.5", note: "web research"),
+    PreferenceOption(id: "anthropic:claude-fable-5", title: "Claude Fable 5", note: "legacy · web research"),
+    PreferenceOption(id: "gemini:gemini-3.1-pro-preview", title: "Gemini 3.1 Pro", note: "preview · web research"),
+    PreferenceOption(id: "gemini:gemini-3.8-flash", title: "Gemini 3.8 Flash", note: "web research"),
+    PreferenceOption(id: "gemini:gemini-3.5-flash-lite", title: "Gemini 3.5 Flash-Lite", note: "web research"),
+    PreferenceOption(id: "gemini:gemini-2.5-pro", title: "Gemini 2.5 Pro", note: "legacy · web research"),
+    PreferenceOption(id: "gemini:gemini-2.5-flash", title: "Gemini 2.5 Flash", note: "legacy · web research"),
+    PreferenceOption(id: "gemini:gemini-2.5-flash-lite", title: "Gemini 2.5 Flash-Lite", note: "legacy · web research"),
+    PreferenceOption(id: "grok:grok-4.7", title: "Grok 4.7", note: "xAI"),
+    PreferenceOption(id: "deepseek:deepseek-v4-pro", title: "DeepSeek V4 Pro", note: "reasoning"),
+    PreferenceOption(id: "deepseek:deepseek-flash", title: "DeepSeek V4.1 Flash", note: "fast"),
     PreferenceOption(id: appleIntelligenceModelID, title: "Apple Intelligence", note: "on this Mac"),
     PreferenceOption(id: customModelID, title: "Custom Endpoint", note: "OpenAI-compatible endpoint")
 ]
 
+// Keep first-run provider choices in one place so setup and reset cannot drift.
+let defaultOpenAITextModelID = "gpt-6-sol"
+let defaultAnthropicTextModelID = "anthropic:claude-sonnet-5"
+let defaultGeminiTextModelID = "gemini:gemini-3.8-flash"
+let defaultGrokTextModelID = "grok:grok-4.7"
+let defaultDeepSeekTextModelID = "deepseek:deepseek-flash"
+
 // Default to one balanced model per provider. Enable Custom Endpoint only after a model name is set.
 let defaultPreferredTextModelIDs = [
-    "gpt-5.6-terra",
-    "anthropic:claude-sonnet-5",
-    "gemini:gemini-2.5-flash",
-    "grok:grok-4",
-    "deepseek:deepseek-chat",
+    defaultOpenAITextModelID,
+    defaultAnthropicTextModelID,
+    defaultGeminiTextModelID,
+    defaultGrokTextModelID,
+    defaultDeepSeekTextModelID,
     appleIntelligenceModelID
 ]
 

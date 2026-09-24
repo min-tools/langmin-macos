@@ -232,7 +232,25 @@ func check(_ condition: @autoclosure () -> Bool, _ message: String) {
  if !condition() { fatalError(message) }
  checks += 1
 }
-let apple = appleIntelligenceModelID, deepSeek = "deepseek:deepseek-chat"
+let apple = appleIntelligenceModelID, deepSeek = "deepseek:deepseek-flash"
+let catalogIDs = explanationModelOptions.map(\.id)
+check(Set(catalogIDs).count == catalogIDs.count, "The built-in model catalog has no duplicate IDs")
+let currentCloudModels = [
+ "gpt-6-astra", "gpt-6-sol", "gpt-6-luna",
+ "anthropic:claude-fable-5-1", "anthropic:claude-opus-5-5", "anthropic:claude-sonnet-5",
+ "gemini:gemini-3.1-pro-preview", "gemini:gemini-3.8-flash", "gemini:gemini-3.5-flash-lite",
+ "grok:grok-4.7", "deepseek:deepseek-v4-pro", "deepseek:deepseek-flash"
+]
+check(currentCloudModels.allSatisfy(catalogIDs.contains), "The catalog contains every current frontier model")
+let retiredModels = [
+ "anthropic:claude-opus-4-1", "grok:grok-3-mini",
+ "deepseek:deepseek-chat", "deepseek:deepseek-reasoner"
+]
+check(retiredModels.allSatisfy { !catalogIDs.contains($0) }, "The catalog omits retired provider models")
+check(defaultPreferredTextModelIDs == [
+ "gpt-6-sol", "anthropic:claude-sonnet-5", "gemini:gemini-3.8-flash",
+ "grok:grok-4.7", "deepseek:deepseek-flash", apple
+], "Fresh defaults use one current balanced model per provider")
 check(AppPreferences().explanationModel == apple, "Fresh installs default to Apple Intelligence")
 let form = SettingsFixture()
 saved.explanationModel = deepSeek
@@ -292,7 +310,7 @@ func finishSetup(_ ids: [String], available: Bool) {
  check(wizard.window!.closed, "Completed setup closes its window")
 }
 // Check that Apple remains the default when selected alongside a cloud provider.
-for cloud in [deepSeek, "gpt-5.6-terra", "anthropic:claude-sonnet-5"] {
+for cloud in [deepSeek, "gpt-6-sol", "anthropic:claude-sonnet-5"] {
  finishSetup([cloud, apple], available: true)
  check(preferencesStore.values[PreferenceKey.explanationModel] as? String == apple, "Apple wins over a checked cloud provider")
  check(preferencesStore.values[PreferenceKey.launcherExplanationModel] as? String == apple, "Remembered models follow the new setup default")

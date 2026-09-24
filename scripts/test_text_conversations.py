@@ -51,7 +51,7 @@ let anthropicAPIVersion = "fixture"
 let openAIWebSearchToolType = "web_search"
 let anthropicWebSearchToolType = "web_search_fixture"
 let geminiAPIBaseURL = "https://example.test/models"
-let defaultExplanationModel = "gpt-5.6-terra"
+let defaultExplanationModel = "gpt-6-sol"
 let appleIntelligenceModelID = "apple-intelligence"
 let customModelID = "custom"
 // openAICompatibleChatURL(base): Construct the chat endpoint used by the
@@ -266,7 +266,7 @@ for prompt in [ExplanationPrompt(instructions: "Explain this.", input: "A single
  let multi = !prompt.conversationMessages.isEmpty
  let texts = multi ? expectedText : [prompt.input]
  let roles = multi ? expectedRoles : ["user"]
- let compatible = try body(startOpenAICompatibleTextRequest(baseURL: "https://example.test", apiKey: "fixture", model: "deepseek-chat", prompt: prompt, emptyMessage: "empty", providerLabel: "DeepSeek", completion: complete))
+ let compatible = try body(startOpenAICompatibleTextRequest(baseURL: "https://example.test", apiKey: "fixture", model: "deepseek-flash", prompt: prompt, emptyMessage: "empty", providerLabel: "DeepSeek", completion: complete))
  let compatibleMessages = compatible["messages"] as! [[String: String]]
  check(compatibleMessages.map { $0["role"]! } == ["system"] + roles, "DeepSeek receives native chronological roles; multi=\(multi)")
  check(Array(compatibleMessages.dropFirst()).map { $0["content"]! } == texts, "DeepSeek receives each complete exchange and latest user question last; multi=\(multi)")

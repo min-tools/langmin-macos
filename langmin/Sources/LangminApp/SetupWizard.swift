@@ -169,7 +169,7 @@ final class SetupWizardController: NSObject, NSWindowDelegate {
             ),
             WizardProvider(
                 id: "openai", title: "OpenAI (GPT)",
-                account: keychainOpenAIAPIKeyAccount, modelID: "gpt-5.6-terra",
+                account: keychainOpenAIAPIKeyAccount, modelID: defaultOpenAITextModelID,
                 detail: localized(
                     "wizard_provider_openai",
                     "GPT models with web research."
@@ -177,7 +177,7 @@ final class SetupWizardController: NSObject, NSWindowDelegate {
             ),
             WizardProvider(
                 id: "anthropic", title: "Anthropic (Claude)",
-                account: keychainAnthropicAPIKeyAccount, modelID: "anthropic:claude-sonnet-5",
+                account: keychainAnthropicAPIKeyAccount, modelID: defaultAnthropicTextModelID,
                 detail: localized(
                     "wizard_provider_anthropic",
                     "Claude models with web research."
@@ -185,7 +185,7 @@ final class SetupWizardController: NSObject, NSWindowDelegate {
             ),
             WizardProvider(
                 id: "gemini", title: "Google (Gemini)",
-                account: keychainGeminiAPIKeyAccount, modelID: "gemini:gemini-2.5-flash",
+                account: keychainGeminiAPIKeyAccount, modelID: defaultGeminiTextModelID,
                 detail: localized(
                     "wizard_provider_gemini",
                     "Gemini models with web research."
@@ -193,7 +193,7 @@ final class SetupWizardController: NSObject, NSWindowDelegate {
             ),
             WizardProvider(
                 id: "grok", title: "xAI (Grok)",
-                account: keychainGrokAPIKeyAccount, modelID: "grok:grok-4",
+                account: keychainGrokAPIKeyAccount, modelID: defaultGrokTextModelID,
                 detail: localized(
                     "wizard_provider_grok",
                     "Grok text models and optional voices."
@@ -201,7 +201,7 @@ final class SetupWizardController: NSObject, NSWindowDelegate {
             ),
             WizardProvider(
                 id: "deepseek", title: "DeepSeek",
-                account: keychainDeepSeekAPIKeyAccount, modelID: "deepseek:deepseek-chat",
+                account: keychainDeepSeekAPIKeyAccount, modelID: defaultDeepSeekTextModelID,
                 detail: localized(
                     "wizard_provider_deepseek",
                     "DeepSeek chat and reasoning models."
