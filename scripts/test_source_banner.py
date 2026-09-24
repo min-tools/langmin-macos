@@ -64,6 +64,10 @@ func check(_ value: Bool, _ message: String) {
         let unresolved = SourcePurchaseFooter(frame: .zero)
         check(unresolved.isHidden, "Entitlement lookup keeps the expired banner hidden")
         ProStore.shared.hasResolvedEntitlement = true
+        ProStore.shared.hasPreparedAppTrial = false
+        NotificationCenter.default.post(name: ProStore.entitlementDidChange, object: nil)
+        check(unresolved.isHidden, "An unresolved trial keeps the expired banner hidden")
+        ProStore.shared.hasPreparedAppTrial = true
         NotificationCenter.default.post(name: ProStore.entitlementDidChange, object: nil)
         check(!unresolved.isHidden, "Resolved free access reveals the expired banner")
         // Fit all translated actions in light and dark mode at the minimum launcher width.

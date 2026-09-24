@@ -1,12 +1,12 @@
 # Langmin Privacy Policy
 
-Effective and last updated: September 21, 2026
+Effective and last updated: September 24, 2026
 
 This policy explains what data Langmin handles, where it goes, and how you can control it.
 
 ## Data on your Mac
 
-Langmin stores preferences, the local Pro trial start date, saved Library items, generated files, and other app data in its macOS app container. The trial date is used only on this Mac and is not sent to the developer. Provider API keys are stored separately in macOS Keychain. Langmin has no advertising, analytics, or tracking SDKs and does not monitor the clipboard.
+Langmin stores preferences, saved Library items, generated files, and other app data in its macOS app container. The Mac App Store build reads Apple's signed original acquisition date to determine the 30-day Pro period. Source and test builds store a local trial start date instead. Trial information is not sent to the developer. Provider API keys are stored separately in macOS Keychain. Langmin has no advertising, analytics, or tracking SDKs and does not monitor the clipboard.
 
 A macOS Service receives selected text from the source app on a private pasteboard. Menu-bar and global shortcut actions read the general clipboard only when you invoke them.
 

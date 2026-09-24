@@ -5,6 +5,14 @@ enum LangminEdition {
     static let bundleIdentifier = "tools.min.langmin"
     static let urlScheme = "langmin"
 
+    #if LANGMIN_APP_STORE
+    // Production App Store builds use the signed app acquisition date.
+    static let isAppStoreBuild = true
+    #else
+    // Source and private builds retain the disclosed local trial.
+    static let isAppStoreBuild = false
+    #endif
+
     // A private build input may supply local access. Public builds verify purchases.
     #if LANGMIN_LOCAL_BUILD && LANGMIN_APP_STORE
     #error("Local access must not be included in an App Store build.")

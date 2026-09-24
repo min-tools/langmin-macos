@@ -85,6 +85,34 @@ private struct ProEntitlementTests {
             30,
             "a new local trial reports 30 days"
         )
+        let localStart = now.addingTimeInterval(86_400)
+        expect(
+            LangminFreeAccessPolicy.authoritativeTrialStartDate(
+                appStoreOriginalPurchaseDate: now,
+                localStartedAt: localStart,
+                usesAppStoreDate: true
+            ),
+            now,
+            "the signed App Store date overrides local state"
+        )
+        expect(
+            LangminFreeAccessPolicy.authoritativeTrialStartDate(
+                appStoreOriginalPurchaseDate: nil,
+                localStartedAt: localStart,
+                usesAppStoreDate: true
+            ),
+            nil,
+            "a missing signed date never falls back to local state"
+        )
+        expect(
+            LangminFreeAccessPolicy.authoritativeTrialStartDate(
+                appStoreOriginalPurchaseDate: nil,
+                localStartedAt: localStart,
+                usesAppStoreDate: false
+            ),
+            localStart,
+            "source builds retain their local trial date"
+        )
     }
 
     // evaluationTests(): Check which verified transaction grants access across

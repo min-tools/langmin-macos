@@ -17,11 +17,11 @@ Langmin is one app, built from this repository. All app code compiles into the `
 
 Both use the bundle ID `tools.min.langmin` and the `langmin://` URL scheme. They contain the same feature implementations and data formats.
 
-Every public build starts the same local 30-day full-access trial and uses StoreKit to verify purchases. After the trial, Apple Intelligence, Apple voices, Apple transcription, text editing, and the local Library remain free. A dismissible amber footer offers purchase and restore for Pro features. Provider accounts, API charges, OS requirements, and Apple's signing requirements still apply.
+Every public build provides the same 30-day full-access period and uses StoreKit to verify purchases. App Store production builds use the verified app transaction's original acquisition date. Source builds and verified StoreKit sandboxes use the disclosed local start date. After the trial, Apple Intelligence, Apple voices, Apple transcription, text editing, and the local Library remain free. A dismissible amber footer offers purchase and restore for Pro features. Provider accounts, API charges, OS requirements, and Apple's signing requirements still apply.
 
-The `AppStore` Xcode configuration defines `LANGMIN_APP_STORE`. It uses the same trial, footer, and purchase verification as Debug and Release. The shared scheme uses AppStore for archives.
+The `AppStore` Xcode configuration defines `LANGMIN_APP_STORE`. It requires Apple's signed acquisition date in production and permits the local trial clock only after StoreKit verifies a nonproduction environment. It uses the same footer and purchase verification as Debug and Release. The shared scheme uses AppStore for archives.
 
-`ProStore` is the single access check used by models, voices, transcription, folders, and sync. It combines the local trial with verified StoreKit transactions. Private maintainer builds may supply an ignored compile-time override. API credentials and sharing permissions are required independently of access status.
+`ProStore` is the single access check used by models, voices, transcription, folders, and sync. It combines the distribution-appropriate trial clock with verified StoreKit transactions. Private maintainer builds may supply an ignored compile-time override. API credentials and sharing permissions are required independently of access status.
 
 ## Data and permissions
 

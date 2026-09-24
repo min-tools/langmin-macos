@@ -7,7 +7,7 @@
 "source_build_dismiss" = "Dismiss";
 "wizard_pro_note" = "Your first 30 days include %@ Pro. Apple Intelligence stays free afterward.";
 "wizard_ready_title" = "30 days of full access";
-"wizard_ready_body_simple" = "Langmin starts a free 30-day trial when you first open it. No subscription starts, and you will not be charged.";
+"wizard_ready_body_simple" = "Langmin includes a free 30-day full-access period. No subscription starts, and you will not be charged.";
 "pro_app_trial_one_day" = "Pro trial · 1 day remaining";
 "pro_app_trial_days" = "Pro trial · %d days remaining";
 "wizard_trial_during_title" = "Your first 30 days";

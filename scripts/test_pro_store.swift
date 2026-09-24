@@ -44,6 +44,23 @@ struct Transaction {
     // fixture.
     func finish() async {}
 }
+// Supply the signed app transaction used to anchor production trials.
+struct AppTransaction {
+    // Distinguish production receipts from Xcode, TestFlight, and review sandboxes.
+    enum Environment { case production, sandbox }
+    var originalPurchaseDate: Date
+    var bundleID = LangminEdition.bundleIdentifier
+    var environment = Environment.production
+    static var fixture: VerificationResult<AppTransaction> = .unverified
+    static var reads = 0
+    // shared: Return the configured signed-app result without contacting Apple.
+    static var shared: VerificationResult<AppTransaction> {
+        get async throws {
+            reads += 1
+            return fixture
+        }
+    }
+}
 // Simulate products, renewal status, and purchase calls without contacting the store.
 struct Product {
     // Supply renewal and eligibility information for subscription fixtures.
@@ -122,15 +139,43 @@ enum AppStore {
         // Public source and App Store builds must both start without Pro access.
         try check(store.developerOverride == nil, "Public builds have no local override")
         UserDefaults.standard.removeObject(forKey: ProStore.appTrialStartedAtKey)
-        defer { UserDefaults.standard.removeObject(forKey: ProStore.appTrialStartedAtKey) }
+        UserDefaults.standard.removeObject(forKey: ProStore.appTrialDisclosureAcceptedKey)
+        defer {
+            UserDefaults.standard.removeObject(forKey: ProStore.appTrialStartedAtKey)
+            UserDefaults.standard.removeObject(forKey: ProStore.appTrialDisclosureAcceptedKey)
+        }
         let disclosedStart = Date(timeIntervalSince1970: 1_800_000_000)
-        store.prepareAppTrial(now: disclosedStart)
-        try check(store.appTrialStartedAt == nil, "Store startup does not begin the trial before disclosure")
-        store.beginAppTrial(now: disclosedStart)
-        try check(store.appTrialStartedAt == disclosedStart, "Accepting the disclosure begins the trial")
-        store.beginAppTrial(now: disclosedStart.addingTimeInterval(60))
-        try check(store.appTrialStartedAt == disclosedStart, "Repeated acceptance preserves the original trial date")
+        #if LANGMIN_APP_STORE
+        // A production build ignores a resettable local date when signed app data is unavailable.
+        UserDefaults.standard.set(disclosedStart, forKey: ProStore.appTrialStartedAtKey)
+        AppTransaction.fixture = .unverified
+        store.prepareLocalAppTrial(startIfNeeded: true, now: disclosedStart)
         await store.refreshEntitlement()
+        try check(store.appTrialStartedAt == nil, "A failed signed lookup never restores local trial state")
+        try check(
+            store.hasResolvedAppTrial && store.hasPreparedAppTrial,
+            "A failed signed lookup resolves the App Store build as Free"
+        )
+
+        // Apple's original acquisition date remains authoritative after disclosure.
+        let acquisition = disclosedStart.addingTimeInterval(-10 * 86_400)
+        AppTransaction.fixture = .verified(AppTransaction(originalPurchaseDate: acquisition))
+        store.beginAppTrial(now: disclosedStart)
+        try await until { store.appTrialStartedAt == acquisition }
+        store.beginAppTrial(now: disclosedStart.addingTimeInterval(60))
+        try await until { AppTransaction.reads >= 3 }
+        try check(store.appTrialStartedAt == acquisition, "Repeated acceptance preserves the signed acquisition date")
+        #else
+        store.prepareLocalAppTrial(now: disclosedStart)
+        try check(store.appTrialStartedAt == nil, "Store startup does not begin the trial before disclosure")
+        try check(!store.hasPreparedAppTrial, "A source build waits for the trial disclosure")
+        store.beginAppTrial(now: disclosedStart)
+        try check(store.appTrialStartedAt == disclosedStart, "Accepting the disclosure begins the local trial")
+        try check(store.hasPreparedAppTrial, "Starting the source trial resolves its access state")
+        store.beginAppTrial(now: disclosedStart.addingTimeInterval(60))
+        try check(store.appTrialStartedAt == disclosedStart, "Repeated acceptance preserves the local trial date")
+        await store.refreshEntitlement()
+        #endif
         try check(store.hasResolvedEntitlement, "The first StoreKit lookup resolves launch UI")
         try check(!store.isPro && store.entitlementTimer == nil, "Free accounts have no expiry timer")
 

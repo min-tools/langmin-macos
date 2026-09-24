@@ -31,6 +31,7 @@ final class ProStore {
     private(set) var yearly: Product?
     private(set) var lifetime: Product?
     private(set) var appTrialStartedAt: Date?
+    private(set) var hasResolvedAppTrial = false
     private(set) var hasResolvedEntitlement = false
     private var updatesTask: Task<Void, Never>?
     private var refreshGeneration = 0
@@ -39,6 +40,7 @@ final class ProStore {
     private var activationObserver: NSObjectProtocol?
 
     private static let appTrialStartedAtKey = "LangminAppTrialStartedAt"
+    private static let appTrialDisclosureAcceptedKey = "LangminAppTrialDisclosureAccepted"
 
     var isPro: Bool {
         // Private local builds can grant access without querying StoreKit.
@@ -56,7 +58,7 @@ final class ProStore {
     }
 
     var hasFullAccess: Bool { isPro || isAppTrialActive }
-    var hasPreparedAppTrial: Bool { developerOverride != nil || appTrialStartedAt != nil }
+    var hasPreparedAppTrial: Bool { developerOverride != nil || appTrialStartedAt != nil || hasResolvedAppTrial }
     var canManageSubscription: Bool { entitlement.kind == .subscription && !entitlement.isFamilyShared }
 
     // Only the private build input can override verified purchase access.
@@ -70,7 +72,10 @@ final class ProStore {
             hasResolvedEntitlement = true
             return
         }
-        prepareAppTrial()
+        // Source and private previews restore their local trial immediately.
+        if !LangminEdition.isAppStoreBuild {
+            prepareLocalAppTrial()
+        }
         // Install the transaction observer once.
         guard updatesTask == nil else {
             return
@@ -90,9 +95,11 @@ final class ProStore {
         activationObserver = NotificationCenter.default.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
             guard let self else { return }
 
-            // Refresh trial-dependent UI after a long inactive period.
-            self.prepareAppTrial()
-            NotificationCenter.default.post(name: Self.entitlementDidChange, object: self)
+            // Refresh local trial-dependent UI before the asynchronous StoreKit check.
+            if !LangminEdition.isAppStoreBuild {
+                self.prepareLocalAppTrial()
+                NotificationCenter.default.post(name: Self.entitlementDidChange, object: self)
+            }
             Task { @MainActor [weak self] in await self?.refreshEntitlement() }
         }
         Task { [weak self] in
@@ -115,6 +122,7 @@ final class ProStore {
     @MainActor func refreshEntitlement() async {
         // Private local builds do not need a StoreKit entitlement refresh.
         guard developerOverride == nil else { return }
+        await refreshAppTrial()
         refreshGeneration += 1
         let generation = refreshGeneration
         var summaries: [ProTransactionSummary] = []
@@ -177,15 +185,67 @@ final class ProStore {
         }
     }
 
-    // beginAppTrial([now]): Start the local trial after its first-launch disclosure is accepted.
+    // beginAppTrial([now]): Record acceptance of the disclosed trial and resolve its start date.
     func beginAppTrial(now: Date = Date()) {
-        prepareAppTrial(startIfNeeded: true, now: now)
+        UserDefaults.standard.set(true, forKey: Self.appTrialDisclosureAcceptedKey)
+        // App Store builds must verify the transaction environment before choosing a clock.
+        if LangminEdition.isAppStoreBuild {
+            Task { @MainActor [weak self] in
+                await self?.refreshAppTrial(now: now)
+            }
+        } else {
+            prepareLocalAppTrial(startIfNeeded: true, now: now)
+        }
     }
 
-    // prepareAppTrial([startIfNeeded = false], [now]): Restore trial state and optionally start it.
-    private func prepareAppTrial(startIfNeeded: Bool = false, now: Date = Date()) {
-        // Private builds never create public trial state.
-        guard developerOverride == nil else { return }
+    // refreshAppTrial([now]): Use Apple's signed acquisition date in production.
+    // Verified sandbox builds retain the local clock needed for review and testing.
+    @MainActor private func refreshAppTrial(now: Date = Date()) async {
+        guard LangminEdition.isAppStoreBuild else { return }
+        defer {
+            // A failed signed lookup is still a resolved Free state for this build.
+            if !hasResolvedAppTrial {
+                hasResolvedAppTrial = true
+                NotificationCenter.default.post(name: Self.entitlementDidChange, object: self)
+            }
+        }
+        guard let result = try? await AppTransaction.shared,
+              case .verified(let transaction) = result,
+              transaction.bundleID == LangminEdition.bundleIdentifier else {
+            // A production build must never replace a failed signed lookup with local state.
+            return
+        }
+        if transaction.environment == .production {
+            let authoritative = LangminFreeAccessPolicy.authoritativeTrialStartDate(
+                appStoreOriginalPurchaseDate: transaction.originalPurchaseDate,
+                localStartedAt: nil,
+                usesAppStoreDate: true
+            )
+            if let authoritative {
+                applyAppTrialStartDate(authoritative, now: now)
+            }
+        } else {
+            let accepted = UserDefaults.standard.bool(
+                forKey: Self.appTrialDisclosureAcceptedKey
+            )
+            prepareLocalAppTrial(
+                startIfNeeded: accepted,
+                now: now,
+                allowAppStoreSandbox: true
+            )
+        }
+    }
+
+    // prepareLocalAppTrial([startIfNeeded = false], [now],
+    // [allowAppStoreSandbox = false]): Restore or start the local test clock.
+    private func prepareLocalAppTrial(
+        startIfNeeded: Bool = false,
+        now: Date = Date(),
+        allowAppStoreSandbox: Bool = false
+    ) {
+        // Only a verified sandbox transaction may use local state in an App Store build.
+        guard developerOverride == nil,
+              !LangminEdition.isAppStoreBuild || allowAppStoreSandbox else { return }
         let previousStart = appTrialStartedAt
         if let forced = LangminEdition.forcedTrialStartedAt {
             // Private previews must not change the real trial date in preferences.
@@ -204,7 +264,16 @@ final class ProStore {
         scheduleAppTrialExpiry(now: now)
     }
 
-    // scheduleAppTrialExpiry([now]): Publish access changes when the local trial reaches its end.
+    // applyAppTrialStartDate(startedAt, [now]): Publish the signed production clock.
+    @MainActor private func applyAppTrialStartDate(_ startedAt: Date, now: Date = Date()) {
+        if appTrialStartedAt != startedAt {
+            appTrialStartedAt = startedAt
+            NotificationCenter.default.post(name: Self.entitlementDidChange, object: self)
+        }
+        scheduleAppTrialExpiry(now: now)
+    }
+
+    // scheduleAppTrialExpiry([now]): Publish access changes when the trial reaches its end.
     private func scheduleAppTrialExpiry(now: Date = Date()) {
         appTrialTimer?.invalidate()
         appTrialTimer = nil
@@ -345,7 +414,7 @@ final class ProStore {
         if developerOverride == true {
             return LangminEdition.localAccessStatus ?? localized("pro_status_active", "Pro")
         }
-        // Describe the independent local trial before purchase entitlement details.
+        // Describe the independent app trial before purchase entitlement details.
         if isAppTrialActive, let appTrialStartedAt {
             let days = LangminFreeAccessPolicy.trialDaysRemaining(startedAt: appTrialStartedAt)
             return days == 1

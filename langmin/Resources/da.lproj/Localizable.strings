@@ -828,7 +828,7 @@
 "wizard_provider_title_multi" = "Vælg dine udbydere";
 
 /* Copy text and use a shortcut, or open the launcher and start typing.\n\nChange your choices in the launcher's menus or Settings. */
-"wizard_ready_body_simple" = "Langmin starts a free 30-day trial when you first open it. No subscription starts, and you will not be charged.";
+"wizard_ready_body_simple" = "Langmin includes a free 30-day full-access period. No subscription starts, and you will not be charged.";
 
 /* You're all set */
 "wizard_ready_title" = "30 days of full access";

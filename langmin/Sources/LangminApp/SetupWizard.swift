@@ -235,7 +235,7 @@ final class SetupWizardController: NSObject, NSWindowDelegate {
             // Build a step only on its first visit in this setup session.
             // Select the content associated with the current position in the wizard.
             switch stepIndex {
-            // Disclose the local trial before its clock starts.
+            // Disclose the app trial before setup continues.
             case 0: step = readyStep()
             // Introduce the app before asking for configuration choices.
             case 1: step = welcomeStep()
@@ -563,7 +563,7 @@ final class SetupWizardController: NSObject, NSWindowDelegate {
             title: localized("wizard_ready_title", "30 days of full access"),
             body: localized(
                 "wizard_ready_body_simple",
-                "Langmin starts a free 30-day trial when you first open it. No subscription starts, and you will not be charged."
+                "Langmin includes a free 30-day full-access period. No subscription starts, and you will not be charged."
             ),
             extra: [during, after, plans]
         )
@@ -608,7 +608,7 @@ final class SetupWizardController: NSObject, NSWindowDelegate {
     // goForward(sender): Advance through setup, or save the selected choices
     // from the final step.
     @objc private func goForward(_ sender: Any?) {
-        // Leaving the disclosure starts the full 30-day period at that moment.
+        // Leaving the disclosure starts the local clock where this build uses one.
         if stepIndex == 0 {
             ProStore.shared.beginAppTrial()
         }

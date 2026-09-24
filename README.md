@@ -204,7 +204,7 @@ Copy text and press the mode's shortcut: Proofread and Rewrite put the fix back 
 
 **Mac App Store:** The free download starts with 30 days of full access. No subscription starts, and there is no charge. Afterward, Apple Intelligence, Apple voices, Apple transcription, text editing, and the local Library stay free. Pro adds cloud models and custom endpoints, web research, Library folders and iCloud sync, cloud voices, OpenAI images, and OpenAI transcription. Choose a yearly subscription or lifetime purchase at any time. Provider charges are separate.
 
-**Build from source:** This repository contains the whole app. Public source builds use the same 30-day trial, free features, purchase checks, and post-trial banner as the App Store app. The Langmin banner can be dismissed because the included free features remain available. API keys, provider charges, OS requirements, and CloudKit signing requirements still apply. See [Build and test](docs/development.md).
+**Build from source:** This repository contains the whole app. Public source builds start the same 30-day trial locally after its disclosure; the Mac App Store build uses Apple's signed original acquisition date. Both use the same free features, purchase checks, and post-trial banner. The Langmin banner can be dismissed because the included free features remain available. API keys, provider charges, OS requirements, and CloudKit signing requirements still apply. See [Build and test](docs/development.md).
 
 If Langmin helps you, [contribute](CONTRIBUTING.md) to its development.
 

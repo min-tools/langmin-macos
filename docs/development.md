@@ -4,7 +4,7 @@
 
 Use an Apple-silicon Mac and full Xcode with the macOS 26.4 SDK or later. The app runs on macOS 14 or later; Apple Intelligence and Apple audio transcription need macOS 26 or later and a supported device and language.
 
-Open `langmin/Langmin.xcodeproj` and select the `Langmin` scheme. Debug, Release, and App Store builds start the same local 30-day full-access trial. No subscription starts automatically. After the trial, Apple Intelligence, Apple voices, Apple transcription, text editing, and the local Library remain free; an optional amber banner offers Purchase, Restore Purchases, and Dismiss.
+Open `langmin/Langmin.xcodeproj` and select the `Langmin` scheme. Debug and Release builds start the 30-day full-access trial locally after its disclosure. App Store production builds use Apple's signed original acquisition date; verified sandbox builds use the local clock for testing. No subscription starts automatically. After the trial, Apple Intelligence, Apple voices, Apple transcription, text editing, and the local Library remain free; an optional amber banner offers Purchase, Restore Purchases, and Dismiss.
 
 StoreKit purchase testing requires an Xcode StoreKit test configuration or a suitably signed Sandbox build. An ad-hoc signature alone does not make App Store purchases available. Cloud providers require your own keys and bill you separately.
 
@@ -17,7 +17,7 @@ Open `langmin/Langmin.xcodeproj`. The target and shared scheme are named `Langmi
 | Configuration | Access | Entitlements |
 | --- | --- | --- |
 | Debug / Release | 30-day full-access trial, then included free features or verified Pro access | `LangminApp.entitlements`, without CloudKit |
-| AppStore | The same trial and purchase rules | `LangminCloud.entitlements` |
+| AppStore | 30 days from signed acquisition in production; local clock in verified sandboxes | `LangminCloud.entitlements` |
 
 The shared scheme archives with **AppStore**. Debug and Release builds are not App Store submission artifacts.
 
