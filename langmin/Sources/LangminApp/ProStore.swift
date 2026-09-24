@@ -568,8 +568,12 @@ final class ProPaywallController: NSObject, NSWindowDelegate {
         loadingRow.orientation = .horizontal
         loadingRow.spacing = 8
 
-        errorLabel = wrappingLabel("", size: 12, color: .systemRed)
-        retryButton = NSButton(title: localized("retry", "Retry"), target: self, action: #selector(retryLoading(_:)))
+        errorLabel = wrappingLabel("", size: 12, color: .secondaryLabelColor)
+        retryButton = NSButton(
+            title: localized("try_again", "Try Again"),
+            target: self,
+            action: #selector(retryLoading(_:))
+        )
         retryButton.bezelStyle = .rounded
 
         statusLabel = wrappingLabel("", size: 13, color: .labelColor)
@@ -605,7 +609,7 @@ final class ProPaywallController: NSObject, NSWindowDelegate {
         linksRow.spacing = 16
 
         let purchaseStack = NSStackView(views: [
-            loadingRow, errorLabel, retryButton, statusLabel, statusDetailLabel, manageButton,
+            loadingRow, statusLabel, statusDetailLabel, manageButton, errorLabel, retryButton,
             yearlyButton, yearlyCaption, lifetimeButton, familyCaption, termsLabel, linksRow
         ])
         purchaseStack.orientation = .vertical
@@ -622,7 +626,7 @@ final class ProPaywallController: NSObject, NSWindowDelegate {
         }
 
         restoreButton = linkButton(localized("pro_restore_purchases", "Restore Purchases"), size: 12, action: #selector(restorePurchases(_:)))
-        closeButton = NSButton(title: localized("not_now", "Not Now"), target: self, action: #selector(dismiss(_:)))
+        closeButton = NSButton(title: localized("close", "Close"), target: self, action: #selector(dismiss(_:)))
         closeButton.bezelStyle = .rounded
         closeButton.keyEquivalent = "\u{1b}"
         // Keep the native-sized close button pinned to the content edge even when Restore is hidden.
@@ -782,9 +786,15 @@ final class ProPaywallController: NSObject, NSWindowDelegate {
     }
 
     // setRows([loading = false], [error = false], [products = false], [status =
-    // false]): Show the requested panel sections and keep spinner activity
-    // consistent with loading state.
-    private func setRows(loading: Bool = false, error: Bool = false, products: Bool = false, status: Bool = false) {
+    // false], [manage = false]): Show the requested panel sections and keep
+    // spinner activity consistent with loading state.
+    private func setRows(
+        loading: Bool = false,
+        error: Bool = false,
+        products: Bool = false,
+        status: Bool = false,
+        manage: Bool = false
+    ) {
         loadingRow.isHidden = !loading
         // Animate the loading indicator while the loading row is active.
         if loading {
@@ -797,7 +807,7 @@ final class ProPaywallController: NSObject, NSWindowDelegate {
         retryButton.isHidden = !error
         statusLabel.isHidden = !status
         statusDetailLabel.isHidden = !status
-        manageButton.isHidden = !status
+        manageButton.isHidden = !manage
         // Show purchase details together so hidden products do not leave orphaned captions or links.
         for view in [yearlyButton, yearlyCaption, lifetimeButton, familyCaption, termsLabel, linksRow] as [NSView] {
             view.isHidden = !products
@@ -810,11 +820,18 @@ final class ProPaywallController: NSObject, NSWindowDelegate {
         setRows(loading: true)
     }
 
-    // showError(message): Show a recoverable store error using the panel's
-    // error row.
+    // showError(message): Keep the local-trial status visible above a neutral,
+    // recoverable store error.
     private func showError(_ message: String) {
+        let store = ProStore.shared
         errorLabel.stringValue = message
-        setRows(error: true)
+        if store.isAppTrialActive {
+            statusLabel.stringValue = String(format: localized("pro_you_have", "You have %@ Pro."), appName)
+            statusDetailLabel.stringValue = store.statusText()
+            setRows(error: true, status: true)
+        } else {
+            setRows(error: true)
+        }
     }
 
     // showProducts(): Offer yearly and lifetime plans without starting another trial.
@@ -840,7 +857,14 @@ final class ProPaywallController: NSObject, NSWindowDelegate {
             lifetimeButton.title = String(format: localized("pro_lifetime_button", "Buy once for %@"), lifetime.displayPrice)
         }
         termsLabel.stringValue = terms
-        setRows(products: true)
+        // Keep the independent local-trial status visible beside purchase options.
+        if store.isAppTrialActive {
+            statusLabel.stringValue = String(format: localized("pro_you_have", "You have %@ Pro."), appName)
+            statusDetailLabel.stringValue = store.statusText()
+            setRows(products: true, status: true)
+        } else {
+            setRows(products: true)
+        }
         yearlyButton.isHidden = store.yearly == nil
         yearlyCaption.isHidden = store.yearly == nil
         lifetimeButton.isHidden = store.lifetime == nil
@@ -855,8 +879,8 @@ final class ProPaywallController: NSObject, NSWindowDelegate {
         let store = ProStore.shared
         statusLabel.stringValue = String(format: localized("pro_you_have", "You have %@ Pro."), appName)
         statusDetailLabel.stringValue = store.statusText()
-        setRows(status: true)
-        manageButton.isHidden = !(store.entitlement.kind == .subscription && !store.entitlement.isFamilyShared)
+        let canManage = store.entitlement.kind == .subscription && !store.entitlement.isFamilyShared
+        setRows(status: true, manage: canManage)
         restoreButton.isHidden = true
         closeButton.title = localized("ok", "OK")
         // Make OK the primary action once Pro is unlocked, while retaining Escape to dismiss.

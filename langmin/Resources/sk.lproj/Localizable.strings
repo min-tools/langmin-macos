@@ -591,6 +591,7 @@
 "results_empty_hint" = "Zadajte text vľavo a stlačte ⌘↵. Výsledok sa zobrazí tu.";
 "results_loading_title" = "Vytváranie výsledku";
 "retry" = "Skúsiť znova";
+"try_again" = "Skúsiť znova";
 
 /* Rewrite */
 "rewrite" = "Prepis";

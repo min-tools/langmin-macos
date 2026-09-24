@@ -591,6 +591,7 @@
 "results_empty_hint" = "Skriv text till vänster och tryck på ⌘↵ för att se resultatet här.";
 "results_loading_title" = "Skapar ditt resultat";
 "retry" = "Försök igen";
+"try_again" = "Försök igen";
 
 /* Rewrite */
 "rewrite" = "Omskrivning";

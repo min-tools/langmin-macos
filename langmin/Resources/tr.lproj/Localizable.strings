@@ -591,6 +591,7 @@
 "results_empty_hint" = "Sol tarafa metin girin, ardından sonucu burada görmek için ⌘↵ tuşlarına basın.";
 "results_loading_title" = "Sonucunuz hazırlanıyor";
 "retry" = "Yeniden dene";
+"try_again" = "Yeniden dene";
 
 /* Rewrite */
 "rewrite" = "Yeniden Yazım";

@@ -54,6 +54,7 @@ class ProStore {
  enum PurchaseOutcome { case unlocked, pending, cancelled }
  var entitlement = ProEntitlement(kind: .lifetime)
  var isPro: Bool { entitlement.isPro }
+ var isAppTrialActive = false
  var yearly: Product?, lifetime: Product?
  // loadProducts(): Prevent layout tests from fetching live products.
  func loadProducts() async throws { fatalError("Unexpected StoreKit access") }
@@ -72,6 +73,9 @@ for marker in ['let langminControlBorderColor =', 'final class NativeBackgroundV
 source += block(app_source('EditionSupport.swift'), 'enum ProFeature {') + '\n'
 source += app_source('ProEntitlementLogic.swift')
 pro = app_source('ProStore.swift')
+# Keep local-trial timing visible after App Store prices have loaded.
+assert 'if store.isAppTrialActive {' in pro
+assert 'setRows(products: true, status: true)' in pro
 source += pro[pro.index('final class ProPaywallController:'):].replace('private ', '')
 source += app_source('PrivacyPolicy.swift').replace('private ', '')
 source += r'''
@@ -176,6 +180,7 @@ check(reader.textView.visibleRect.maxY >= reader.textView.bounds.maxY - 25, "The
 // Check footer sizing in purchased, loading, and error states.
 for state in ["pro", "loading", "error"] {
  let panel = ProPaywallController(feature: nil)
+ ProStore.shared.isAppTrialActive = state == "error"
  // Select the panel state without entering a store operation.
  switch state {
  // Show the existing-purchase confirmation.
@@ -194,6 +199,17 @@ for state in ["pro", "loading", "error"] {
   check(abs(body.bounds.maxX - frame.maxX - 28) < 1, "The Pro footer stays right-aligned in \(state)")
   check(abs(frame.minY - 24) < 1, "The Pro footer has consistent bottom spacing in \(state)")
   check(frame.size == panel.closeButton.intrinsicContentSize, "The Pro close button uses its natural macOS size in \(state)")
+  check(panel.closeButton.title == (state == "pro" ? "OK" : "Close"), "The Pro close action is named consistently in \(state)")
+  if state == "error" {
+   check(panel.errorLabel.textColor == .secondaryLabelColor, "Store availability is a neutral recoverable message")
+   check(panel.retryButton.title == "Try Again", "The store recovery action uses the shared label")
+   check(!panel.statusLabel.isHidden && !panel.statusDetailLabel.isHidden, "The active trial remains visible above a store error")
+   let statusFrame = panel.statusLabel.convert(panel.statusLabel.bounds, to: body)
+   let errorFrame = panel.errorLabel.convert(panel.errorLabel.bounds, to: body)
+   check(abs(statusFrame.minX - errorFrame.minX) < 1, "Trial status and store error share the leading edge")
+   let statusIsAboveError = body.isFlipped ? statusFrame.midY < errorFrame.midY : statusFrame.midY > errorFrame.midY
+   check(statusIsAboveError, "The active trial appears above the store error")
+  }
   try snapshot(panel.window, "pro-\(state)-\(appearance.rawValue)")
  }
 }

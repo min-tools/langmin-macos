@@ -591,6 +591,7 @@
 "results_empty_hint" = "Introduceți text în stânga, apoi apăsați ⌘↵ pentru a vedea rezultatul aici.";
 "results_loading_title" = "Se creează rezultatul";
 "retry" = "Reîncearcă";
+"try_again" = "Reîncearcă";
 
 /* Rewrite */
 "rewrite" = "Rescriere";

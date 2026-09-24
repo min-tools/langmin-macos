@@ -591,6 +591,7 @@
 "results_empty_hint" = "Wpisz tekst po lewej stronie i naciśnij ⌘↵, aby zobaczyć tutaj wynik.";
 "results_loading_title" = "Tworzenie wyniku";
 "retry" = "Ponów";
+"try_again" = "Ponów";
 
 /* Rewrite */
 "rewrite" = "Parafraza";

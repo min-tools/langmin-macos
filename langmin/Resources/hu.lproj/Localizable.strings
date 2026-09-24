@@ -591,6 +591,7 @@
 "results_empty_hint" = "Írjon be szöveget a bal oldalon, majd nyomja meg a ⌘↵ billentyűkombinációt az eredmény megtekintéséhez.";
 "results_loading_title" = "Az eredmény készítése";
 "retry" = "Újra";
+"try_again" = "Újra";
 
 /* Rewrite */
 "rewrite" = "Átírás";

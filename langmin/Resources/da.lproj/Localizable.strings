@@ -591,6 +591,7 @@
 "results_empty_hint" = "Skriv tekst til venstre, og tryk på ⌘↵ for at se resultatet her.";
 "results_loading_title" = "Opretter dit resultat";
 "retry" = "Prøv igen";
+"try_again" = "Prøv igen";
 
 /* Rewrite */
 "rewrite" = "Omskrivning";

@@ -591,6 +591,7 @@
 "results_empty_hint" = "左側にテキストを入力し、⌘↵を押すと、ここに結果が表示されます。";
 "results_loading_title" = "結果を作成しています";
 "retry" = "再試行";
+"try_again" = "再試行";
 
 /* Rewrite */
 "rewrite" = "書き換え";

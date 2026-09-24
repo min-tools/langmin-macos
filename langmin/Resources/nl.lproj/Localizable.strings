@@ -591,6 +591,7 @@
 "results_empty_hint" = "Voer links tekst in en druk op ⌘↵ om het resultaat hier te zien.";
 "results_loading_title" = "Je resultaat wordt gemaakt";
 "retry" = "Opnieuw";
+"try_again" = "Opnieuw";
 
 /* Rewrite */
 "rewrite" = "Herschrijving";

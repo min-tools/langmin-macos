@@ -591,6 +591,7 @@
 "results_empty_hint" = "在左侧输入文本，然后按 ⌘↵，即可在此处查看结果。";
 "results_loading_title" = "正在生成结果";
 "retry" = "重试";
+"try_again" = "重试";
 
 /* Rewrite */
 "rewrite" = "改写";

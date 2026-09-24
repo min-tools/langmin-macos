@@ -591,6 +591,7 @@
 "results_empty_hint" = "Saisissez du texte à gauche, puis appuyez sur ⌘↵ pour voir le résultat ici.";
 "results_loading_title" = "Création de votre résultat";
 "retry" = "Réessayer";
+"try_again" = "Réessayer";
 
 /* Rewrite */
 "rewrite" = "Réécriture";

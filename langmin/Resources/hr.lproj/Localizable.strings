@@ -591,6 +591,7 @@
 "results_empty_hint" = "Unesite tekst s lijeve strane pa pritisnite ⌘↵ za prikaz rezultata ovdje.";
 "results_loading_title" = "Izrada rezultata";
 "retry" = "Pokušaj ponovno";
+"try_again" = "Pokušaj ponovno";
 
 /* Rewrite */
 "rewrite" = "Prerada";
