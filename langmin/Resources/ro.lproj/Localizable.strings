@@ -773,9 +773,6 @@
 /* Back */
 "wizard_back" = "Înapoi";
 
-/* macOS may ask for clipboard access when you first use a shortcut. */
-"wizard_clipboard_note" = "macOS poate cere acces la clipboard când folosiți prima dată o scurtătură.";
-
 /* Continue */
 "wizard_continue" = "Continuă";
 
@@ -833,8 +830,8 @@
 /* You're all set */
 "wizard_ready_title" = "30 days of full access";
 
-/* Use these shortcuts from another app after copying text. Proofread and Rewrite copy the result. The other four modes show it in the HUD. Open opens a result window; Dismiss closes the HUD.\n\nIn Langmin's main window, these shortcuts select a mode. Press ⌘Return to run it. */
-"wizard_shortcuts_body" = "Copiați text într-o altă aplicație și folosiți aceste scurtături. Corectură și Rescriere copiază rezultatul. Celelalte patru moduri îl afișează în HUD. Deschide deschide o fereastră cu rezultatul; Închide închide HUD-ul.\n\nÎn fereastra principală Langmin, scurtăturile aleg un mod. Apăsați ⌘Return pentru a-l rula.";
+/* Use these shortcuts from another app after copying text.\n\nIn Langmin's main window, these shortcuts select a mode. Press ⌘Return to run it. */
+"wizard_shortcuts_body" = "Copiați text într-o altă aplicație și folosiți aceste scurtături.\n\nÎn fereastra principală Langmin, scurtăturile aleg un mod. Apăsați ⌘Return pentru a-l rula.";
 
 /* Step %d of %d */
 "wizard_step_n_of_m" = "Pasul %d din %d";

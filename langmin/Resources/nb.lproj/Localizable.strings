@@ -773,9 +773,6 @@
 /* Back */
 "wizard_back" = "Tilbake";
 
-/* macOS may ask for clipboard access when you first use a shortcut. */
-"wizard_clipboard_note" = "macOS kan be om tilgang til utklippstavlen første gang du bruker en snarvei.";
-
 /* Continue */
 "wizard_continue" = "Fortsett";
 
@@ -833,8 +830,8 @@
 /* You're all set */
 "wizard_ready_title" = "30 days of full access";
 
-/* Use these shortcuts from another app after copying text. Proofread and Rewrite copy the result. The other four modes show it in the HUD. Open opens a result window; Dismiss closes the HUD.\n\nIn Langmin's main window, these shortcuts select a mode. Press ⌘Return to run it. */
-"wizard_shortcuts_body" = "Kopier tekst i en annen app og bruk disse snarveiene. Korrektur og Omskriving kopierer resultatet. De andre fire modusene viser det i HUD-panelet. Åpne åpner et resultatvindu; Lukk lukker HUD-panelet.\n\nI Langmins hovedvindu velger snarveiene en modus. Trykk ⌘Return for å kjøre den.";
+/* Use these shortcuts from another app after copying text.\n\nIn Langmin's main window, these shortcuts select a mode. Press ⌘Return to run it. */
+"wizard_shortcuts_body" = "Kopier tekst i en annen app og bruk disse snarveiene.\n\nI Langmins hovedvindu velger snarveiene en modus. Trykk ⌘Return for å kjøre den.";
 
 /* Step %d of %d */
 "wizard_step_n_of_m" = "Trinn %d av %d";

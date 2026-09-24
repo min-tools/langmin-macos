@@ -773,9 +773,6 @@
 /* Back */
 "wizard_back" = "Indietro";
 
-/* macOS may ask for clipboard access when you first use a shortcut. */
-"wizard_clipboard_note" = "macOS può chiedere l'accesso agli appunti al primo uso di un'abbreviazione.";
-
 /* Continue */
 "wizard_continue" = "Continua";
 
@@ -833,8 +830,8 @@
 /* You're all set */
 "wizard_ready_title" = "30 days of full access";
 
-/* Use these shortcuts from another app after copying text. Proofread and Rewrite copy the result. The other four modes show it in the HUD. Open opens a result window; Dismiss closes the HUD.\n\nIn Langmin's main window, these shortcuts select a mode. Press ⌘Return to run it. */
-"wizard_shortcuts_body" = "Copia il testo in un’altra app e usa queste scorciatoie. Correzione e Riscrittura copiano il risultato. Le altre quattro modalità lo mostrano nell’HUD. Apri apre una finestra con il risultato; Chiudi chiude l’HUD.\n\nNella finestra principale di Langmin, queste scorciatoie selezionano una modalità. Premi ⌘Return per eseguirla.";
+/* Use these shortcuts from another app after copying text.\n\nIn Langmin's main window, these shortcuts select a mode. Press ⌘Return to run it. */
+"wizard_shortcuts_body" = "Copia il testo in un’altra app e usa queste scorciatoie.\n\nNella finestra principale di Langmin, queste scorciatoie selezionano una modalità. Premi ⌘Return per eseguirla.";
 
 /* Step %d of %d */
 "wizard_step_n_of_m" = "Passo %d di %d";

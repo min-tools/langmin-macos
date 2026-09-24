@@ -14,6 +14,24 @@ wizard = (ROOT / 'langmin/Sources/LangminApp/SetupWizard.swift').read_text()
 assert '30 days of full access' in wizard
 assert 'No subscription starts, and you will not be charged.' in wizard
 assert 'Apple Intelligence, Apple voices, Apple transcription, text editing, and the Library stay free.' in wizard
+assert 'Proofread and Rewrite copy the result.' not in wizard
+assert 'wizard_clipboard_note' not in wizard
+
+localized_sources = [
+    path.read_text()
+    for path in (ROOT / 'langmin/Resources').glob('*.lproj/Localizable.strings')
+]
+assert all('"wizard_clipboard_note"' not in source for source in localized_sources)
+assert all('macOS may ask for clipboard access' not in source for source in localized_sources)
+assert all('Proofread and Rewrite copy the result.' not in source for source in localized_sources)
+shortcut_lines = [
+    line
+    for source in localized_sources
+    for line in source.splitlines()
+    if line.startswith('"wizard_shortcuts_body"')
+]
+assert len(shortcut_lines) == 30
+assert all('HUD' not in line for line in shortcut_lines)
 assert 'case 0: step = welcomeStep()' in wizard
 assert 'case 1: step = providerStep()' in wizard
 assert 'case 2: step = languageStep()' in wizard

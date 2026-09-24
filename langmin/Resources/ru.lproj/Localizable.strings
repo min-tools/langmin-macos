@@ -773,9 +773,6 @@
 /* Back */
 "wizard_back" = "Назад";
 
-/* macOS may ask for clipboard access when you first use a shortcut. */
-"wizard_clipboard_note" = "При первом использовании сочетания клавиш macOS может запросить доступ к буферу обмена.";
-
 /* Continue */
 "wizard_continue" = "Продолжить";
 
@@ -833,8 +830,8 @@
 /* You're all set */
 "wizard_ready_title" = "30 days of full access";
 
-/* Use these shortcuts from another app after copying text. Proofread and Rewrite copy the result. The other four modes show it in the HUD. Open opens a result window; Dismiss closes the HUD.\n\nIn Langmin's main window, these shortcuts select a mode. Press ⌘Return to run it. */
-"wizard_shortcuts_body" = "Скопируйте текст в другом приложении и используйте эти сочетания клавиш. Проверка и Изложение копируют результат. Остальные четыре режима показывают его в HUD. «Открыть» открывает окно с результатом; «Закрыть» закрывает HUD.\n\nВ главном окне Langmin эти сочетания выбирают режим. Нажмите ⌘Return, чтобы запустить его.";
+/* Use these shortcuts from another app after copying text.\n\nIn Langmin's main window, these shortcuts select a mode. Press ⌘Return to run it. */
+"wizard_shortcuts_body" = "Скопируйте текст в другом приложении и используйте эти сочетания клавиш.\n\nВ главном окне Langmin эти сочетания выбирают режим. Нажмите ⌘Return, чтобы запустить его.";
 
 /* Step %d of %d */
 "wizard_step_n_of_m" = "Шаг %d из %d";

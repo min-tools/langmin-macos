@@ -510,18 +510,10 @@ final class SetupWizardController: NSObject, NSWindowDelegate {
 
         let shortcuts = NSTextField(wrappingLabelWithString: localized(
             "wizard_shortcuts_body",
-            "Use these shortcuts from another app after copying text. Proofread and Rewrite copy the result. The other four modes show it in the HUD. Open opens a result window; Dismiss closes the HUD.\n\nIn Langmin's main window, these shortcuts select a mode. Press ⌘Return to run it."
+            "Use these shortcuts from another app after copying text.\n\nIn Langmin's main window, these shortcuts select a mode. Press ⌘Return to run it."
         ))
         shortcuts.font = NSFont.systemFont(ofSize: 12)
         shortcuts.textColor = .secondaryLabelColor
-
-        // Explain the system clipboard prompt before the user tries a shortcut.
-        let clipboardNote = NSTextField(wrappingLabelWithString: localized(
-            "wizard_clipboard_note",
-            "macOS may ask for clipboard access when you first use a shortcut."
-        ))
-        clipboardNote.font = NSFont.systemFont(ofSize: 12)
-        clipboardNote.textColor = .secondaryLabelColor
 
         return stepStack(
             title: localized("wizard_workflow_title", "Always at hand"),
@@ -529,7 +521,7 @@ final class SetupWizardController: NSObject, NSWindowDelegate {
                 "wizard_workflow_body",
                 "Open Langmin at login to keep its menu-bar actions and shortcuts available."
             ),
-            extra: [loginItemCheckbox, shortcutList, shortcuts, clipboardNote]
+            extra: [loginItemCheckbox, shortcutList, shortcuts]
         )
     }
 

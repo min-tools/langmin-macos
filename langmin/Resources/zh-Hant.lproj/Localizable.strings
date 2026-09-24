@@ -773,9 +773,6 @@
 /* Back */
 "wizard_back" = "返回";
 
-/* macOS may ask for clipboard access when you first use a shortcut. */
-"wizard_clipboard_note" = "首次使用快速鍵時，macOS 可能會要求剪貼簿取用權限。";
-
 /* Continue */
 "wizard_continue" = "繼續";
 
@@ -833,8 +830,8 @@
 /* You're all set */
 "wizard_ready_title" = "30 days of full access";
 
-/* Use these shortcuts from another app after copying text. Proofread and Rewrite copy the result. The other four modes show it in the HUD. Open opens a result window; Dismiss closes the HUD.\n\nIn Langmin's main window, these shortcuts select a mode. Press ⌘Return to run it. */
-"wizard_shortcuts_body" = "在其他 App 中複製文字後，使用這些快速鍵。「校對」和「改寫」會複製結果，其他四種模式會在 HUD 中顯示結果。「開啟」會開啟結果視窗，「關閉」會關閉 HUD。\n\n在 Langmin 主視窗中，這些快速鍵用來選擇模式。按 ⌘Return 執行。";
+/* Use these shortcuts from another app after copying text.\n\nIn Langmin's main window, these shortcuts select a mode. Press ⌘Return to run it. */
+"wizard_shortcuts_body" = "在其他 App 中複製文字後，使用這些快速鍵。\n\n在 Langmin 主視窗中，這些快速鍵用來選擇模式。按 ⌘Return 執行。";
 
 /* Step %d of %d */
 "wizard_step_n_of_m" = "第 %d 步，共 %d 步";

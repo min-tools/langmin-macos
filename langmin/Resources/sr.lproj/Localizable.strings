@@ -773,9 +773,6 @@
 /* Back */
 "wizard_back" = "Назад";
 
-/* macOS may ask for clipboard access when you first use a shortcut. */
-"wizard_clipboard_note" = "macOS може да затражи приступ клипборду при првој употреби пречице.";
-
 /* Continue */
 "wizard_continue" = "Настави";
 
@@ -833,8 +830,8 @@
 /* You're all set */
 "wizard_ready_title" = "30 days of full access";
 
-/* Use these shortcuts from another app after copying text. Proofread and Rewrite copy the result. The other four modes show it in the HUD. Open opens a result window; Dismiss closes the HUD.\n\nIn Langmin's main window, these shortcuts select a mode. Press ⌘Return to run it. */
-"wizard_shortcuts_body" = "Копирајте текст у другој апликацији и користите ове пречице. Лектура и Прерада копирају резултат. Остала четири режима приказују га у HUD-у. Отвори отвара прозор са резултатом; Затвори затвара HUD.\n\nУ главном прозору Langmin-а ове пречице бирају режим. Притисните ⌘Return да га покренете.";
+/* Use these shortcuts from another app after copying text.\n\nIn Langmin's main window, these shortcuts select a mode. Press ⌘Return to run it. */
+"wizard_shortcuts_body" = "Копирајте текст у другој апликацији и користите ове пречице.\n\nУ главном прозору Langmin-а ове пречице бирају режим. Притисните ⌘Return да га покренете.";
 
 /* Step %d of %d */
 "wizard_step_n_of_m" = "Корак %d од %d";

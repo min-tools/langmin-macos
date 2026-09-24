@@ -773,9 +773,6 @@
 /* Back */
 "wizard_back" = "Vissza";
 
-/* macOS may ask for clipboard access when you first use a shortcut. */
-"wizard_clipboard_note" = "A macOS a gyorsbillentyű első használatakor hozzáférést kérhet a vágólaphoz.";
-
 /* Continue */
 "wizard_continue" = "Folytatás";
 
@@ -833,8 +830,8 @@
 /* You're all set */
 "wizard_ready_title" = "30 days of full access";
 
-/* Use these shortcuts from another app after copying text. Proofread and Rewrite copy the result. The other four modes show it in the HUD. Open opens a result window; Dismiss closes the HUD.\n\nIn Langmin's main window, these shortcuts select a mode. Press ⌘Return to run it. */
-"wizard_shortcuts_body" = "Másoljon szöveget egy másik appban, majd használja ezeket a billentyűparancsokat. A Lektorálás és az Átírás másolja az eredményt. A másik négy mód a HUD-panelen jeleníti meg. A Megnyitás eredményablakot nyit; a Bezárás bezárja a HUD-ot.\n\nA Langmin főablakában ezek a parancsok módot választanak. A futtatáshoz nyomja meg a ⌘Return billentyűket.";
+/* Use these shortcuts from another app after copying text.\n\nIn Langmin's main window, these shortcuts select a mode. Press ⌘Return to run it. */
+"wizard_shortcuts_body" = "Másoljon szöveget egy másik appban, majd használja ezeket a billentyűparancsokat.\n\nA Langmin főablakában ezek a parancsok módot választanak. A futtatáshoz nyomja meg a ⌘Return billentyűket.";
 
 /* Step %d of %d */
 "wizard_step_n_of_m" = "%d. lépés a(z) %d közül";
