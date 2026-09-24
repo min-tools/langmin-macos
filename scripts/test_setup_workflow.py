@@ -14,8 +14,13 @@ wizard = (ROOT / 'langmin/Sources/LangminApp/SetupWizard.swift').read_text()
 assert '30 days of full access' in wizard
 assert 'No subscription starts, and you will not be charged.' in wizard
 assert 'Apple Intelligence, Apple voices, Apple transcription, text editing, and the Library stay free.' in wizard
-assert 'case 0: step = readyStep()' in wizard
-assert 'if stepIndex == 0 {' in wizard
+assert 'case 0: step = welcomeStep()' in wizard
+assert 'case 1: step = providerStep()' in wizard
+assert 'case 2: step = languageStep()' in wizard
+assert 'case 3: step = audioStep()' in wizard
+assert 'case 4: step = workflowStep()' in wizard
+assert 'default: step = readyStep()' in wizard
+assert 'if stepIndex == stepCount - 1 {' in wizard
 assert 'ProStore.shared.beginAppTrial()' in wizard
 assert 'func windowWillClose(_ notification: Notification) {' in wizard
 
@@ -56,7 +61,7 @@ final class Workflow: NSObject, NSWindowDelegate {
     var backButton: NSButton!
     var laterButton: NSButton!
     var continueButton: NSButton!
-    var stepIndex = 5
+    var stepIndex = 4
     let stepCount = 6
     var stepViews: [Int: NSView] = [:]
     // buildProviders(): Keep provider discovery out of the workflow-layout
@@ -113,7 +118,7 @@ for locale in locales {
     let top = window.frame.maxY
     controller.showStep()
     container.layoutSubtreeIfNeeded()
-    let view = controller.stepViews[5]!
+    let view = controller.stepViews[4]!
     // labels(view): Collect all descendant text labels to check the visible
     // workflow wording.
     func labels(in view: NSView) -> [String] {
