@@ -21,8 +21,6 @@ Open `langmin/Langmin.xcodeproj`. The target and shared scheme are named `Langmi
 
 The shared scheme archives with **AppStore**. Debug and Release builds are not App Store submission artifacts.
 
-For command-line distribution, `scripts/package_app_store.py` signs an existing AppStore archive with explicit signing inputs. It resolves entitlement placeholders from the target's effective Xcode settings and requires the iCloud environment to be the string `Production`. It verifies both the signed app and the app extracted from the finished installer before replacing the previous package. Run the script with `--help` for its arguments.
-
 Ad-hoc signing cannot enable iCloud. A provisioned build needs a developer team and matching CloudKit entitlements. See [iCloud sync](icloud-sync.md).
 
 ## Files and repositories
