@@ -381,9 +381,9 @@ func appendingWebSources(
         return output
     }
 
-    let parsed = parseExplanationResponse(output)
-    // Do not append a Sources section to an empty parsed explanation.
-    guard !parsed.explanation.isEmpty else {
+    // Keep malformed structured output intact for the Explain delivery path
+    // to reject; wrapping it in a new object would hide the decoding failure.
+    guard let parsed = try? parseExplanationResponse(output), !parsed.explanation.isEmpty else {
         return output
     }
     // Honor callers that require visible citation markers before adding a source footer.

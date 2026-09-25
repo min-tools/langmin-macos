@@ -80,6 +80,11 @@ for marker in ['func normalizedLanguageLevel(', 'func languageLevelInstruction('
 source += MAIN[MAIN.index('let languageOptions:'):MAIN.index('// Override the UI language')]
 source += MAIN[MAIN.index('func structuredExplanationCandidates('):MAIN.index('// Text, assets and settings for one result session.')]
 source += block(CLOUD, 'func startCloudTextRequest(')
+# Include source enrichment because it also decodes Explain envelopes.
+for marker in ['func webCitationLabel(', 'func escapedMarkdownLinkLabel(', 'func appendingWebSources(\n']:
+    source += block(CLOUD, marker)
+for marker in ['func removingTrailingSourcesSection(', 'func isSourcesSectionStart(']:
+    source += block(MAIN, marker)
 source += block(MAIN, 'private final class ServiceTextResultBox').replace('private final', 'final')
 source += r'''
 let catalog = modelIDs.map { PreferenceOption(id: $0, title: $0, note: "") }
@@ -369,6 +374,100 @@ for mode in modes {
  }
 }
 allowConsent = true; hasFixtureCredential = true; response = .success("Fixture answer")
+
+// Reproduce a provider JSON failure without reading credentials or making a request.
+let malformedExplanations = [
+ #"{"title":"Love","explanation":""Love" is a feeling.\n\nA bond."}"#,
+ "{\"title\":\"Love\",\"explanation\":\"First paragraph.\nSecond paragraph.\"}",
+ #"{"title":"Love","explanation":"A cut-off answer"#,
+ #"{"title":"Love","explanation":""}"#,
+ #"{"title":"Love"}"#,
+ #"{"title":"Love","explanation":42}"#,
+ "```json\n{\"title\":\"Love\",\"explanation\":\"cut off\n```",
+ #"Here is the answer: {"title":"Love","explanation":""Love" is an emotion."}"#,
+ #""{}""#
+]
+saved.modeTextModels["explain"] = "deepseek:deepseek-fixture"
+for malformed in malformedExplanations {
+ for hud in [false, true] {
+  response = .success(malformed)
+  let launcher = Launcher(), before = requests.count
+  var delivered: Result<String, Error>?
+  launcher.handleAutomation(text: "What is love?", mode: "explain", run: true,
+                            presentation: hud ? .clipboardHUD : .standard,
+                            transformCompletion: hud ? { _, result in delivered = result } : nil)
+  waitFor { !launcher.isGenerating }
+  check(launcher.output.isEmpty && launcher.errors.count == 1, "Malformed Explain JSON fails without displaying its wrapper")
+  check(requests.count == before + 1, "Invalid formatting does not silently switch providers")
+  if hud {
+   if case .failure? = delivered {} else { fatalError("HUD must receive the decoding failure, not JSON text") }
+  }
+ }
+}
+// Valid strings decode once: quotes, paragraph breaks, code escapes and Unicode survive.
+let explanationText = #"""
+"Love" is a feeling.
+
+Keep `\n` and `C:\new\file.txt` literal. Любовь. 愛.
+"""#
+let validExplanation = String(data: try JSONSerialization.data(withJSONObject: ["title": "Understanding Love", "explanation": explanationText]), encoding: .utf8)!
+let doubleEncoded = String(data: try JSONEncoder().encode(validExplanation), encoding: .utf8)!
+for value in [validExplanation, "```json\n" + validExplanation + "\n```", doubleEncoded,
+              "Here is the answer:\n" + validExplanation, "[" + validExplanation + "]"] {
+ let parsed = try parseExplanationResponse(value)
+ check(parsed.topicTitle == "Understanding Love" && parsed.explanation == explanationText, "Explain unwraps JSON without corrupting the answer's literal escapes")
+ response = .success(value)
+ let launcher = Launcher()
+ launcher.handleAutomation(text: "What is love?", mode: "explain", run: true)
+ waitFor { !launcher.isGenerating }
+ check(launcher.output == "Understanding Love\n\n" + explanationText + "\n" && launcher.errors.isEmpty,
+       "A valid response after a malformed one delivers only the readable title and answer")
+}
+let plainExplanation = try parseExplanationResponse("A plain explanation with `code`.")
+check(plainExplanation.explanation == "A plain explanation with `code`.", "Plain Markdown fallback remains readable")
+
+// Legacy multilingual wrappers and ordinary JSON examples still produce readable prose.
+let nested = try parseExplanationResponse(#"{"title":"Love","explanation":{"main":"Main answer.","French":"Réponse française."}}"#)
+check(nested.explanation == "Main answer.\n\n### French\n\nRéponse française.", "Nested language fields remain readable")
+let multiple = try parseExplanationResponse(#"{"title":"Love","explanation":"Main answer."}"# + "\n\n### French\n\n" + #"{"title":"Amour","explanation":"Réponse française."}"#)
+check(multiple.explanation == nested.explanation, "Separate language objects keep their headings and order")
+let jsonExamples = [
+ #"A data example: {"value":42}."#,
+ "[JSON](https://example.test/json) is a data format.",
+ "[1] A reference introduces this explanation.",
+ #"A JSON object such as {"title":"Book"} stores a named value."#,
+ #"The field `"explanation":` holds the answer."#,
+ "The title field stores the book's name.\n\n```json\n{\"title\":\"Book\"}\n```\n\nIt must be a string.",
+ "An API response can look like this:\n\n```json\n{\"title\":\"Love\",\"explanation\":\"An emotion.\"}\n```",
+ "```json\n{\"title\":\"Book\"}\n```\n\nThe title field holds the book's name."
+]
+for example in jsonExamples {
+ let parsed = try parseExplanationResponse(example)
+ check(parsed.topicTitle.isEmpty && parsed.explanation == example,
+       "Prose and code examples containing envelope field names remain intact")
+}
+// Citation enrichment must not turn a broken response into a valid outer envelope.
+let citations = [(title: "Fixture source", url: "https://example.test/reference")]
+for malformed in malformedExplanations {
+ check(appendingWebSources(to: malformed, citations: citations, requireMarkers: false) == malformed,
+       "Sources leave malformed envelopes for the delivery path to reject")
+}
+// JSON examples remain answer content both inside envelopes and after citations.
+for example in jsonExamples {
+ let wrapped = String(data: try JSONSerialization.data(withJSONObject: ["title": "JSON fields", "explanation": example]), encoding: .utf8)!
+ let parsed = try parseExplanationResponse(wrapped)
+ check(parsed.explanation == example, "Valid envelope content is not parsed again as a protocol wrapper")
+ let enriched = appendingWebSources(to: example, citations: citations, requireMarkers: false)
+ let parsedSources = try parseExplanationResponse(enriched)
+ check(parsedSources.explanation.hasPrefix(example) && parsedSources.explanation.contains("### Sources"),
+       "Citation enrichment preserves the explanation and its JSON examples")
+}
+let cited = appendingWebSources(to: validExplanation, citations: citations, requireMarkers: false)
+let parsedCited = try parseExplanationResponse(cited)
+check(parsedCited.topicTitle == "Understanding Love" && parsedCited.explanation.hasPrefix(explanationText)
+      && parsedCited.explanation.contains("[1] [Fixture source](https://example.test/reference)"),
+      "Valid Explain JSON retains readable content and provider citation links")
+response = .success("Fixture answer")
 // A late response cannot replace a newer run's output or metadata.
 let stale = Launcher()
 holdResponse = true

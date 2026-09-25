@@ -6487,6 +6487,14 @@ func fencedResponseBody(_ response: String) -> String? {
         return nil
     }
 
+    // A fence followed by prose is an example within the answer, not a
+    // wrapper around the provider's complete response.
+    if let closing = lines.dropFirst().firstIndex(where: {
+        $0.trimmingCharacters(in: .whitespacesAndNewlines) == "```"
+    }), closing != lines.count - 1 {
+        return nil
+    }
+
     lines.removeFirst()
     // Remove a closing fence only when it occupies the final line.
     if
@@ -6603,12 +6611,47 @@ func structuredExplanationCandidates(_ response: String) -> [String] {
 
     append(response)
     append(fencedResponseBody(response))
-    // Try the object body of each existing candidate as an additional recovery path.
+    // Some providers encode the complete JSON object as a JSON string. Decode
+    // only that wrapper, never replace escape sequences inside the answer.
+    for _ in 0..<2 {
+        for candidate in Array(candidates) {
+            if let decoded = try? JSONDecoder().decode(String.self, from: Data(candidate.utf8)) {
+                append(decoded)
+            }
+        }
+    }
+    // Recover an object only from a response envelope. Extracting arbitrary
+    // braces from prose would replace a JSON tutorial with its code example.
     for candidate in Array(candidates) {
-        append(jsonObjectBody(candidate))
+        if let body = explanationEnvelopeBody(candidate) {
+            append(jsonObjectBody(body))
+        }
     }
 
     return candidates
+}
+
+// explanationEnvelopeBody(response): Locate a top-level response object, with
+// an optional introductory label. Leave JSON examples in prose alone.
+func explanationEnvelopeBody(_ response: String) -> String? {
+    let body = response.trimmingCharacters(in: .whitespacesAndNewlines)
+    // Response objects may also arrive in an array. A leading Markdown link
+    // or citation uses brackets too, so a bracket alone is not an envelope.
+    if body.hasPrefix("{") || body.range(of: #"^\[\s*\{"#, options: .regularExpression) != nil {
+        return body
+    }
+
+    // Tolerate a single preamble such as "Here is the answer:". Inline code,
+    // embedded fences and explanatory text after an object are answer content.
+    guard let start = body.firstIndex(of: "{") else { return nil }
+    let prefix = body[..<start].trimmingCharacters(in: .whitespacesAndNewlines)
+    guard prefix.hasSuffix(":"), !prefix.contains(where: { $0.isNewline }),
+          !prefix.contains("`"), !prefix.contains("~") else { return nil }
+    if let end = body.lastIndex(of: "}"),
+       !body[body.index(after: end)...].trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        return nil
+    }
+    return String(body[start...])
 }
 
 let structuredExplanationPreferredKeys = [
@@ -6868,22 +6911,32 @@ func parseMultipleStructuredExplanationObjects(_ response: String) -> (topicTitl
     return (first.title, explanation)
 }
 
-// parseExplanationResponse(response): Parse the JSON helper output, falling
-// back to plain text if needed.
-func parseExplanationResponse(_ response: String) -> (topicTitle: String, explanation: String) {
-    // Try increasingly permissive wrappers before treating the response as plain Markdown.
-    for candidate in structuredExplanationCandidates(response) {
+// parseExplanationResponse(response): Decode a structured answer or accept
+// plain Markdown. Reject broken envelopes instead of displaying their JSON.
+func parseExplanationResponse(_ response: String) throws -> (topicTitle: String, explanation: String) {
+    let candidates = structuredExplanationCandidates(response)
+    // Try supported wrappers before treating the response as plain Markdown.
+    for candidate in candidates {
         // Use the first candidate that satisfies the structured explanation contract.
         if let parsed = parseStructuredExplanationCandidate(candidate) {
             return parsed
         }
     }
 
-    // Recover separate generated objects when no single wrapper parsed successfully.
-    if let parsed = parseMultipleStructuredExplanationObjects(response) {
-        return parsed
+    let envelopes = candidates.compactMap(explanationEnvelopeBody)
+    // Recover separate generated objects inside an envelope, never examples
+    // embedded in an otherwise plain Markdown answer.
+    for envelope in envelopes {
+        if let parsed = parseMultipleStructuredExplanationObjects(envelope) {
+            return parsed
+        }
     }
 
+    // Failed response containers cannot fall through to the Markdown renderer.
+    // Field names appearing in ordinary prose do not identify an envelope.
+    if !envelopes.isEmpty {
+        throw HelperFailure(message: "The selected text model returned an unreadable explanation. Please try again.")
+    }
     return ("", normalizedGeneratedMarkdown(response))
 }
 
@@ -23506,7 +23559,7 @@ final class LauncherController: NSObject, NSWindowDelegate, NSTextFieldDelegate,
                         // Decode the response before preparing the explanation's linked assets.
                         do {
                             let response = try result.get()
-                            let parsed = parseExplanationResponse(response)
+                            let parsed = try parseExplanationResponse(response)
                             // A structured response must contain usable explanation text.
                             guard !parsed.explanation.isEmpty else {
                                 throw HelperFailure(message: "The selected text model returned an empty explanation.")
