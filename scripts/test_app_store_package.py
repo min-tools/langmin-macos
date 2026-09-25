@@ -4,13 +4,17 @@ from pathlib import Path
 import copy
 import datetime
 import json
+import hashlib
 import plistlib
+import shutil
+import subprocess
+import sys
 import tempfile
 import unittest
 from unittest import mock
 
 from package_app_store import (ENVIRONMENT, app_store_settings, profile_entitlements,
-                               resolve_entitlements, verify_bundle, verify_entitlements)
+                               resolve_entitlements, verify_app, verify_bundle, verify_entitlements)
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -122,6 +126,60 @@ class AppStorePackageTests(unittest.TestCase):
         for key in info:
             with self.subTest(key=key), self.assertRaises(ValueError):
                 verify_bundle(info | {key: 'stale'}, settings)
+
+    # signing_fixture(): Create isolated bundle metadata and a public certificate fixture.
+    def signing_fixture(self):
+        app = self.root / 'Fixture.app'
+        (app / 'Contents/MacOS').mkdir(parents=True)
+        info = {'CFBundleIdentifier': 'test.signer.fixture', 'CFBundleExecutable': 'Fixture',
+                'CFBundlePackageType': 'APPL', 'CFBundleShortVersionString': '1.0', 'CFBundleVersion': '1'}
+        (app / 'Contents/Info.plist').write_bytes(plistlib.dumps(info))
+        settings = {'PRODUCT_BUNDLE_IDENTIFIER': 'test.signer.fixture',
+                    'MARKETING_VERSION': '1.0', 'CURRENT_PROJECT_VERSION': '1'}
+        certificate = self.root / 'certificate.cer'
+        certificate.write_bytes(b'public test certificate')
+        return app, settings, certificate
+
+    # test_actual_signer_is_required(): The validated profile certificate must
+    # constrain both signed-app and extracted-package verification.
+    def test_actual_signer_is_required(self):
+        app, settings, certificate = self.signing_fixture()
+        expected = {ENVIRONMENT: 'Production'}
+        with mock.patch('package_app_store.subprocess.run') as command, mock.patch(
+                'package_app_store.subprocess.check_output', return_value=plistlib.dumps(expected)):
+            verify_app(app, expected, settings, certificate)
+        fingerprint = hashlib.sha1(certificate.read_bytes()).hexdigest()
+        command.assert_called_once_with([
+            'codesign', '--verify', '--deep', '--strict',
+            f'-R=certificate leaf = H"{fingerprint}"', str(app)
+        ], check=True)
+
+    # test_signer_failure_stops_verification(): A wrong certificate cannot pass
+    # merely because the bundle metadata and entitlements match.
+    def test_signer_failure_stops_verification(self):
+        app, settings, certificate = self.signing_fixture()
+        with mock.patch('package_app_store.subprocess.run', side_effect=subprocess.CalledProcessError(3, 'codesign')), mock.patch(
+                'package_app_store.subprocess.check_output') as entitlements:
+            with self.assertRaises(subprocess.CalledProcessError):
+                verify_app(app, {ENVIRONMENT: 'Production'}, settings, certificate)
+        entitlements.assert_not_called()
+
+    # test_adhoc_signature_is_rejected(): Exercise real codesign with a temporary
+    # executable, without reading a Keychain or accessing distribution credentials.
+    @unittest.skipUnless(sys.platform == 'darwin' and shutil.which('codesign') and shutil.which('xcrun'),
+                         'Native signature verification requires macOS developer tools')
+    def test_adhoc_signature_is_rejected(self):
+        app, settings, certificate = self.signing_fixture()
+        expected = {ENVIRONMENT: 'Production'}
+        entitlements = self.root / 'entitlements.plist'
+        entitlements.write_bytes(plistlib.dumps(expected))
+        subprocess.run(['xcrun', 'clang', '-x', 'c', '-o', str(app / 'Contents/MacOS/Fixture'), '-'],
+                       input=b'int main(void) { return 0; }\n', check=True)
+        subprocess.run(['codesign', '--force', '--sign', '-', '--entitlements', str(entitlements), str(app)], check=True)
+        # Establish that this is a valid signature before checking its release signer.
+        subprocess.run(['codesign', '--verify', '--deep', '--strict', str(app)], check=True)
+        with self.assertRaises(subprocess.CalledProcessError):
+            verify_app(app, expected, settings, certificate)
 
     # test_distribution_profile_validation(): Reject expired, development,
     # mismatched, and unauthorized profiles using synthetic certificate bytes.

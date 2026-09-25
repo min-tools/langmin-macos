@@ -115,10 +115,14 @@ def profile_entitlements(profile, bundle_id, certificate):
     return allowed
 
 
-# verify_app(app, expected, settings): Verify the signature and read its actual
-# entitlements; a correct source plist alone does not validate a release artifact.
-def verify_app(app, expected, settings):
-    subprocess.run(['codesign', '--verify', '--deep', '--strict', str(app)], check=True)
+# verify_app(app, expected, settings, certificate): Verify the actual signer,
+# entitlements and bundle version before accepting a release artifact.
+def verify_app(app, expected, settings, certificate):
+    # The identity argument must resolve to the certificate authorized by the profile.
+    # Apple's requirement language identifies certificates by their SHA-1 fingerprint.
+    fingerprint = hashlib.sha1(Path(certificate).read_bytes()).hexdigest()
+    requirement = f'-R=certificate leaf = H"{fingerprint}"'
+    subprocess.run(['codesign', '--verify', '--deep', '--strict', requirement, str(app)], check=True)
     actual = plistlib.loads(subprocess.check_output([
         'codesign', '-d', '--xml', '--entitlements', '-', str(app)
     ], stderr=subprocess.DEVNULL))
@@ -155,7 +159,7 @@ def package_app(args):
             'codesign', '--force', '--timestamp', '--options', 'runtime', *keychain,
             '--sign', args.application_identity, '--entitlements', str(entitlements), str(signed_app),
         ], check=True)
-        verify_app(signed_app, expected, settings)
+        verify_app(signed_app, expected, settings, args.certificate)
         candidate = work / 'Langmin.pkg'
         subprocess.run([
             'productbuild', '--component', str(signed_app), '/Applications', *keychain,
@@ -167,7 +171,7 @@ def package_app(args):
         packaged_apps = list(extracted.rglob('Langmin.app'))
         if len(packaged_apps) != 1:
             raise ValueError('Expected one Langmin app in the installer.')
-        verify_app(packaged_apps[0], expected, settings)
+        verify_app(packaged_apps[0], expected, settings, args.certificate)
         candidate.replace(output)
     print(f'Verified {output}: iCloud environment is Production', flush=True)
 
