@@ -5567,7 +5567,7 @@ struct AppleProofreadingResponse: Codable {
 }
 
 // appleProofreadingText(json, input): Decode a complete correction and retain
-// the source's layout and code. Reject missing lines instead of publishing a
+// the source's layout and code. Reject missing prose instead of publishing a
 // partial result. Outer whitespace follows the existing editing cleanup.
 func appleProofreadingText(_ json: String, input: String) throws -> String {
     let response = try JSONDecoder().decode(AppleProofreadingResponse.self, from: Data(json.utf8))
@@ -5575,21 +5575,62 @@ func appleProofreadingText(_ json: String, input: String) throws -> String {
     let sourceText = input.trimmingCharacters(in: .whitespacesAndNewlines)
     let failure = HelperFailure(message: "Apple Intelligence changed the text's structure. Try again or choose another text model.")
     let inlineCode = try NSRegularExpression(pattern: #"(?<!`)(`+)(?!`).*?(?<!`)\1(?!`)"#, options: .dotMatchesLineSeparators)
+    // codeBlocks(text): Locate each Markdown code block by its source lines.
+    // Group runs by block identity so adjacent blocks remain separate.
+    func codeBlocks(_ text: String) throws -> [Range<Int>] {
+        let markdown = try AttributedString(markdown: text, options: .init(
+            interpretedSyntax: .full, appliesSourcePositionAttributes: true
+        ))
+        let lineCount = text.components(separatedBy: "\n").count
+        var blocks: [Int: Range<Int>] = [:]
+        for run in markdown.runs {
+            // Ignore prose, including indented list items and continuations.
+            guard let position = run.markdownSourcePosition,
+                  let code = run.presentationIntent?.components.first(where: {
+                      if case .codeBlock = $0.kind { return true }
+                      return false
+                  }) else { continue }
+            // Reject incompatible line coordinates instead of indexing outside the source.
+            guard position.startLine > 0, position.endLine >= position.startLine,
+                  position.endLine <= lineCount else { throw failure }
+            let lines = (position.startLine - 1)..<position.endLine
+            // One block may have multiple attributed runs; retain its full extent.
+            if let existing = blocks[code.identity] {
+                blocks[code.identity] = min(existing.lowerBound, lines.lowerBound)..<max(existing.upperBound, lines.upperBound)
+            } else {
+                blocks[code.identity] = lines
+            }
+        }
+        return blocks.values.sorted { $0.lowerBound < $1.lowerBound }
+    }
+    let sourceLines = sourceText.components(separatedBy: "\n")
+    let originalBlocks = try codeBlocks(sourceText)
+    let revisedBlocks = try codeBlocks(output)
+    // Missing or added blocks cannot be safely paired with source code.
+    guard originalBlocks.count == revisedBlocks.count else { throw failure }
+    var restoredLines = output.components(separatedBy: "\n")
+    // Restore whole code blocks before comparing layout. The model may change
+    // their length or omit a closing fence; only surrounding prose is editable.
+    for (original, revised) in zip(originalBlocks, revisedBlocks).reversed() {
+        restoredLines.replaceSubrange(revised, with: sourceLines[original])
+    }
+    let codeRestored = restoredLines.joined(separator: "\n")
     let sourceNSString = sourceText as NSString
-    let outputNSString = output as NSString
+    let outputNSString = codeRestored as NSString
     let originalSpans = inlineCode.matches(in: sourceText, range: NSRange(location: 0, length: sourceNSString.length))
-    let revisedSpans = inlineCode.matches(in: output, range: NSRange(location: 0, length: outputNSString.length))
+    let revisedSpans = inlineCode.matches(in: codeRestored, range: NSRange(location: 0, length: outputNSString.length))
     // Match complete spans, including inline code that crosses a line boundary.
     guard originalSpans.count == revisedSpans.count else { throw failure }
-    let restored = NSMutableString(string: output)
+    let restored = NSMutableString(string: codeRestored)
     // Replace backwards so earlier ranges keep their original offsets.
     for (original, replacement) in zip(originalSpans, revisedSpans).reversed() {
         restored.replaceCharacters(in: replacement.range, with: sourceNSString.substring(with: original.range))
     }
-    let sourceLines = sourceText.components(separatedBy: "\n")
     var outputLines = (restored as String).components(separatedBy: "\n")
     // Every prose line must have a counterpart before restoring its layout.
     guard !output.isEmpty, outputLines.count == sourceLines.count else { throw failure }
+    let codeLines = Set(originalBlocks.flatMap { $0 })
+    // Keep explicit fence tracking for empty blocks, which have no attributed runs.
     var fence: (marker: Character, count: Int)?
 
     // Restore code verbatim and keep each prose line's indentation and spacing.
@@ -5614,8 +5655,8 @@ func appleProofreadingText(_ json: String, input: String) throws -> String {
             outputLines[index] = source
             continue
         }
-        // Indented Markdown code also stays byte-for-byte unchanged.
-        if source.hasPrefix("    ") || source.hasPrefix("\t") {
+        // Actual Markdown code stays unchanged; indented list prose remains editable.
+        if codeLines.contains(index) {
             outputLines[index] = source
             continue
         }

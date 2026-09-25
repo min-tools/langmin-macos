@@ -231,6 +231,38 @@ func expectFailure(_ name: String, _ operation: () throws -> Void) {
         check(multilineCode == "Use `helo\nworld` here.", "Code spanning lines is restored without proofreading its contents")
         let indentedCode = try appleProofreadingText(proofreadJSON("A note.\n\n    value = 'hello'"), input: "A note.\n\n    value = 'helo'")
         check(indentedCode == "A note.\n\n    value = 'helo'", "Indented code is retained while surrounding prose remains editable")
+        // List indentation is prose unless Markdown actually marks it as code.
+        for original in ["- Notes\n    - This sentense have errors.", "1. Notes\n    1. This sentense have errors.", "- Notes\n\t- This sentense have errors.", "- Notes\n\n    This sentense have errors.", "A note.\n    This sentense have errors."] {
+            let corrected = original.replacingOccurrences(of: "This sentense have errors.", with: "This sentence has errors.")
+            let result = try appleProofreadingText(proofreadJSON(corrected), input: original)
+            check(result == corrected, "Corrections survive in nested lists and indented paragraph continuations")
+        }
+        // Protect real code inside list items and block quotes as well as at the top level.
+        for code in ["    value = 'helo'", "- Notes\n\n      value = 'helo'", "> ~~~python\n> value = 'helo'\n> ~~~", "- Notes\n\n    ~~~python\n    value = 'helo'\n    ~~~", "~~~python\n~~~"] {
+            let original = "This sentense have errors.\n\n" + code
+            let corrected = original.replacingOccurrences(of: "This sentense have errors.", with: "This sentence has errors.")
+            let generated = corrected.replacingOccurrences(of: "'helo'", with: "'hello'")
+            let result = try appleProofreadingText(proofreadJSON(generated), input: original)
+            check(result == corrected, "Corrections preserve code inside lists, quotes and empty fences")
+        }
+        // Reproduce the real local-model response: corrected list prose, edited
+        // quoted code, and a missing closing fence must retain the original code.
+        let quotedList = "- Notes\n    - This sentense have errors.\n\n> ~~~python\n> message = \"helo\"\n> ~~~"
+        let quotedListCorrected = quotedList.replacingOccurrences(of: "This sentense have errors.", with: "This sentence has errors.")
+        let truncatedCode = "- Notes\n    - This sentence has errors.\n\n> ~~~python\n> message = \"hello\""
+        let restoredQuotedList = try appleProofreadingText(proofreadJSON(truncatedCode), input: quotedList)
+        check(restoredQuotedList == quotedListCorrected, "A missing closing code fence does not discard valid list corrections")
+        // Restore added, removed and reformatted code lines without relaxing prose checks.
+        let blocksSource = "Please sends it.\n\n~~~python\nvalue = 'helo'\n~~~\n\nKeep this paragraph.\n\n```swift\nlet helo = 1\n```"
+        let blocksChanged = "Please send it.\n\n~~~python\n# Added code comment\nvalue = 'hello'\n~~~\n\nKeep this paragraph.\n\n```swift\nlet hello = 1"
+        let restoredBlocks = try appleProofreadingText(proofreadJSON(blocksChanged), input: blocksSource)
+        check(restoredBlocks == blocksSource.replacingOccurrences(of: "Please sends", with: "Please send"), "Whole code restoration preserves surrounding prose and multiple block boundaries")
+        expectFailure("A missing fence must not swallow a following paragraph") {
+            _ = try appleProofreadingText(proofreadJSON("Please send it.\n\n~~~python\nvalue = 'hello'\n\nKeep this paragraph."), input: "Please sends it.\n\n~~~python\nvalue = 'helo'\n~~~\n\nKeep this paragraph.")
+        }
+        expectFailure("Missing code blocks cannot be paired with different content") {
+            _ = try appleProofreadingText(proofreadJSON("Please send it.\n\nKeep this paragraph."), input: blocksSource)
+        }
         expectFailure("Missing lines must fail, not silently discard a paragraph") { _ = try appleProofreadingText(proofreadJSON("First."), input: "First.\n\nSecond.") }
         expectFailure("Missing inline code must fail") { _ = try appleProofreadingText(proofreadJSON("Use this."), input: "Use `this`.") }
         expectFailure("A model cannot fill an original blank line") { _ = try appleProofreadingText(proofreadJSON("First.\nAdded.\nSecond."), input: "First.\n\nSecond.") }
@@ -335,13 +367,15 @@ func expectFailure(_ name: String, _ operation: () throws -> Void) {
         let markdown = "## Notes\n\nPlease sends the report to Anna by 3 PM.\n\n- Run `git status --short`.\n- Keep [the guide](https://example.test/guide)."
         let escaped = "Please sends the report.\n\nUse `\\n` for a newline and `C:\\new\\report.txt` for the path.\n\n```python\nmessage = \"helo\\nworld\"\n```"
         let original = "Write a clean, well-structured Markdown dictionary entry that is genuinely useful and pleasant to read: precise definitions, natural examples, and clear organisation."
+        let quotedList = "- Notes\n    - This sentense have errors.\n\n> ~~~python\n> message = \"helo\"\n> ~~~"
         let regressions: [(String, String, String)] = [
+            ("quoted-list", quotedList, quotedList.replacingOccurrences(of: "This sentense have errors.", with: "This sentence has errors.")),
             ("grammar", "Write a cleen, well-structured Markdown dictionary entry that are useful and plesant to read.", "Write a clean, well-structured Markdown dictionary entry that is useful and pleasant to read."),
             ("markdown", markdown, markdown.replacingOccurrences(of: "Please sends", with: "Please send")),
             ("spanish-request", "Por favor, escribe una historia sobre un perro.", "Por favor, escribe una historia sobre un perro.")
         ]
         var cases: [(String, String, String)] = []
-        // Repeated fresh sessions catch unstable fixes to the three original failures.
+        // Repeated fresh sessions cover the reported grammar and Markdown failures.
         for iteration in 1...3 {
             cases += regressions.map { ("\($0.0)-\(iteration)", $0.1, $0.2) }
         }
