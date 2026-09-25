@@ -3,6 +3,7 @@ import Cocoa
 // Name editor-only attributes used to preserve block identity and custom inline formatting.
 extension NSAttributedString.Key {
     static let resultEditorBlock = NSAttributedString.Key("LangminEditorBlock")
+    static let resultEditorCodeFence = NSAttributedString.Key("LangminEditorCodeFence")
     static let resultEditorHeading = NSAttributedString.Key("LangminEditorHeading")
     static let resultEditorSeparator = NSAttributedString.Key("LangminEditorSeparator")
     static let resultEditorSourceEntry = NSAttributedString.Key("LangminEditorSourceEntry")
@@ -154,22 +155,29 @@ enum ResultTextFormatting {
                 var code = string.substring(with: codeRange)
                 // Remove one trailing code newline before enclosing the block in a fence.
                 if code.hasSuffix("\n") { code.removeLast() }
-                let sourceLine = block?.markdown.components(separatedBy: "\n").first?.trimmingCharacters(in: .whitespaces) ?? ""
+                let sourceLine = (text.attribute(.resultEditorCodeFence, at: index, effectiveRange: nil) as? String)
+                    ?? block?.markdown.components(separatedBy: "\n").first?.trimmingCharacters(in: .whitespaces) ?? ""
                 let marker = sourceLine.first
                 let fenceLength = sourceLine.prefix(while: { $0 == marker }).count
-                // Reuse the original fence style and language when the saved opening line is valid.
+                var markdown: String
+                // Keep the language and choose a fence longer than literal backticks in the code.
                 if (marker == "`" || marker == "~"), fenceLength >= 3 {
                     let language = String(sourceLine.dropFirst(fenceLength))
                     let fence = String(repeating: "`", count: max(3, longestBacktickRun(code) + 1))
-                    result.append(fence + language + "\n" + code + "\n" + fence)
+                    markdown = fence + language + "\n" + code + "\n" + fence
                 } else if block != nil {
                     // Tables use the same monospaced view but must remain Markdown tables.
-                    result.append(code)
+                    markdown = code
                 } else {
                     // Choose a new fence longer than any literal backtick run in the code.
                     let fence = String(repeating: "`", count: max(3, longestBacktickRun(code) + 1))
-                    result.append(fence + "\n" + code + "\n" + fence)
+                    markdown = fence + "\n" + code + "\n" + fence
                 }
+                // Quote every line, including blank code lines and the fence delimiters.
+                if (text.attribute(.langminBlockquoteBar, at: index, effectiveRange: nil) as? Bool) == true {
+                    markdown = markdown.components(separatedBy: "\n").map { "> " + $0 }.joined(separator: "\n")
+                }
+                result.append(markdown)
                 index = NSMaxRange(codeRange)
                 continue
             }

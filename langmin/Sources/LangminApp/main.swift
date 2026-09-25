@@ -7809,10 +7809,13 @@ class ViewerResultTextView: DictionaryIllustrationTextView {
                 return
             }
 
+            // Leave the quotation bar outside a quoted code block's background.
+            let quoteIndent: CGFloat = (storage.attribute(.langminBlockquoteBar, at: range.location,
+                                                         effectiveRange: nil) as? Bool) == true ? 20 : 0
             let rect = NSRect(
-                x: origin.x,
+                x: origin.x + quoteIndent,
                 y: origin.y + minY - 7,
-                width: max(0, bounds.width - origin.x - textContainerInset.width),
+                width: max(0, bounds.width - origin.x - textContainerInset.width - quoteIndent),
                 height: maxY - minY + 14
             )
             // Skip invisible or zero-width block backgrounds.
@@ -10321,7 +10324,6 @@ final class ViewerSession: NSObject, AVAudioPlayerDelegate, NSWindowDelegate, NS
             index += 1
         }
 
-        let paragraphs = markdownParagraphGroups(from: quoteLines)
         let style = viewerParagraphStyle(
             lineSpacing: 3,
             paragraphSpacing: 10,
@@ -10330,10 +10332,29 @@ final class ViewerSession: NSObject, AVAudioPlayerDelegate, NSWindowDelegate, NS
         )
 
         let barStart = result.length
-        // Render each quote paragraph with the shared indentation and quote attributes.
-        for paragraph in paragraphs {
+        var quoteIndex = 0
+        // Parse fences before joining prose so quoted code keeps its literal lines.
+        while quoteIndex < quoteLines.count {
+            // Blank quote lines separate prose paragraphs and fenced blocks.
+            if isMarkdownBlankLine(quoteLines[quoteIndex]) {
+                quoteIndex += 1
+                continue
+            }
+            // Use the same delimiter rules for quoted and top-level code fences.
+            if let fence = markdownFence(in: quoteLines[quoteIndex]) {
+                quoteIndex = appendMarkdownCodeFence(lines: quoteLines, startIndex: quoteIndex,
+                                                    fence: fence, to: result, quoteIndent: 20)
+                continue
+            }
+            let paragraphStart = quoteIndex
+            // Stop prose at a fence even when no blank line precedes it.
+            while quoteIndex < quoteLines.count,
+                  !isMarkdownBlankLine(quoteLines[quoteIndex]),
+                  markdownFence(in: quoteLines[quoteIndex]) == nil {
+                quoteIndex += 1
+            }
             appendMarkdownParagraph(
-                paragraphText(from: paragraph),
+                paragraphText(from: Array(quoteLines[paragraphStart..<quoteIndex])),
                 to: result,
                 color: .secondaryLabelColor,
                 paragraphStyle: style,
@@ -10352,13 +10373,14 @@ final class ViewerSession: NSObject, AVAudioPlayerDelegate, NSWindowDelegate, NS
         return index
     }
 
-    // appendMarkdownCodeFence(lines, startIndex, fence, result): Read a fenced
-    // code block until its matching closing delimiter or the end of input.
+    // appendMarkdownCodeFence(lines, startIndex, fence, result, [quoteIndent]):
+    // Read literal code through its closing fence, inset when inside a quote.
     func appendMarkdownCodeFence(
         lines: [String],
         startIndex: Int,
         fence: MarkdownFence,
-        to result: NSMutableAttributedString
+        to result: NSMutableAttributedString,
+        quoteIndent: CGFloat = 0
     ) -> Int {
         var index = startIndex + 1
         var codeLines: [String] = []
@@ -10375,7 +10397,11 @@ final class ViewerSession: NSObject, AVAudioPlayerDelegate, NSWindowDelegate, NS
             index += 1
         }
 
-        appendMarkdownCodeBlock(dedentedMarkdownCode(codeLines), to: result)
+        let renderedStart = result.length
+        appendMarkdownCodeBlock(dedentedMarkdownCode(codeLines), to: result, quoteIndent: quoteIndent)
+        // Remember this fence's language even when its enclosing quote is edited.
+        result.addAttribute(.resultEditorCodeFence, value: lines[startIndex].trimmingCharacters(in: .whitespaces),
+                            range: NSRange(location: renderedStart, length: result.length - renderedStart))
         return index
     }
 
@@ -10407,9 +10433,9 @@ final class ViewerSession: NSObject, AVAudioPlayerDelegate, NSWindowDelegate, NS
             .joined(separator: "\n")
     }
 
-    // appendMarkdownCodeBlock(code, result): Render code lines with shared
-    // block identity so drawing and editing preserve their grouping.
-    func appendMarkdownCodeBlock(_ code: String, to result: NSMutableAttributedString) {
+    // appendMarkdownCodeBlock(code, result, [quoteIndent]): Render code with
+    // shared block identity and optional indentation inside a quotation.
+    func appendMarkdownCodeBlock(_ code: String, to result: NSMutableAttributedString, quoteIndent: CGFloat = 0) {
         let lines = code.isEmpty ? [" "] : code.components(separatedBy: "\n")
         let blockID = UUID().uuidString
         var lastAttributes: [NSAttributedString.Key: Any] = [:]
@@ -10425,8 +10451,8 @@ final class ViewerSession: NSObject, AVAudioPlayerDelegate, NSWindowDelegate, NS
                     lineSpacing: 2,
                     paragraphSpacing: isLast ? 18 : 0,
                     paragraphSpacingBefore: isFirst ? (result.length == 0 ? 8 : 12) : 0,
-                    firstLineHeadIndent: 12,
-                    headIndent: 12
+                    firstLineHeadIndent: 12 + quoteIndent,
+                    headIndent: 12 + quoteIndent
                 ),
                 monospaced: true
             )
@@ -10878,6 +10904,12 @@ final class ViewerSession: NSObject, AVAudioPlayerDelegate, NSWindowDelegate, NS
             return nil
         }
 
+        // Backticks in an opening backtick fence's info string make it inline
+        // text instead, for example a quoted ```code``` span.
+        if marker == "`", trimmed.dropFirst(length).contains("`") {
+            return nil
+        }
+
         return MarkdownFence(marker: marker, length: length)
     }
 
@@ -11054,8 +11086,8 @@ final class ViewerSession: NSObject, AVAudioPlayerDelegate, NSWindowDelegate, NS
         stripMarkdownIndent(line, count: leadingWhitespaceCount(in: line)).hasPrefix(">")
     }
 
-    // stripMarkdownBlockQuoteMarker(line): Remove one quotation marker while
-    // preserving non-quote input unchanged.
+    // stripMarkdownBlockQuoteMarker(line): Remove the marker and its optional
+    // separating space, preserving code indentation and trailing whitespace.
     func stripMarkdownBlockQuoteMarker(_ line: String) -> String {
         let trimmed = stripMarkdownIndent(line, count: leadingWhitespaceCount(in: line))
         // Leave lines without a quote marker unchanged.
@@ -11063,7 +11095,12 @@ final class ViewerSession: NSObject, AVAudioPlayerDelegate, NSWindowDelegate, NS
             return line
         }
 
-        return String(trimmed.dropFirst()).trimmingCharacters(in: .whitespaces)
+        let content = trimmed.dropFirst()
+        // Only one space or tab belongs to the quote marker itself.
+        if content.first == " " || content.first == "\t" {
+            return String(content.dropFirst())
+        }
+        return String(content)
     }
 
     // isMarkdownTableStart(lines, startIndex): Require a header row followed by

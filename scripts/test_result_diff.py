@@ -148,6 +148,44 @@ func verify(_ before: String, _ after: String, _ name: String) -> NSAttributedSt
  }
  return diff
 }
+// Both fence styles remain literal code inside a quotation and at the top level.
+let quotedFenceSample = "- Notes\n    - This sentence has errors.\n\n> ~~~python\n> message = \"helo\"\n> ~~~"
+for fence in ["~~~", "```", "~~~~", "````"] {
+ let code = "message = \"helo\"\n\n    print(message)"
+ let plain = fence + "python\n" + code + "\n" + fence
+ let quoted = "> Before.\n>\n" + plain.components(separatedBy: "\n").map { "> " + $0 }.joined(separator: "\n") + "\n>\n> After."
+ for markdown in [plain, quoted] {
+  let rendered = session.markdownAttributedText(from: markdown)
+  check(rendered.string.contains(code), "\(fence) in \(markdown.debugDescription): code retains its lines and relative indentation; got \(rendered.string.debugDescription)")
+  check(!rendered.string.contains(fence), "\(fence): fence markers are not visible")
+  let offset = (rendered.string as NSString).range(of: "message").location
+  let attrs = rendered.attributes(at: offset, effectiveRange: nil)
+  check(attrs[.langminCodeBlock] != nil && (attrs[.font] as! NSFont).isFixedPitch, "\(fence): fenced content is a real code block")
+  check(!NSFontManager.shared.traits(of: attrs[.font] as! NSFont).contains(.italicFontMask), "\(fence): quoted code is not italic prose")
+  if markdown == quoted {
+   check(attrs[.langminBlockquoteBar] as? Bool == true, "\(fence): code retains its quote bar")
+   let after = (rendered.string as NSString).range(of: "After.").location
+   check(rendered.string.hasPrefix("Before.") && after != NSNotFound && rendered.attribute(.langminCodeBlock, at: after, effectiveRange: nil) == nil, "\(fence): quotation prose stays outside its code block")
+  }
+ }
+ // Unchanged quotes reuse their Markdown; editing code keeps its quote and language.
+ let editable = NSMutableAttributedString(attributedString: session.markdownAttributedText(from: quoted, forEditing: true))
+ check(ResultTextFormatting.markdown(from: editable) == quoted, "\(fence): entering the editor preserves the original quoted Markdown")
+ editable.replaceCharacters(in: (editable.string as NSString).range(of: "helo"), with: "hello")
+ let saved = ResultTextFormatting.markdown(from: editable)
+ check(saved.contains("> ```python\n> message = \"hello\"\n> \n>     print(message)\n> ```"), "\(fence): edited code retains quote scope, language and blank lines")
+ check(session.markdownAttributedText(from: saved).string == editable.string, "\(fence): edited quote renders the same text after saving")
+}
+let mismatchedFence = session.markdownAttributedText(from: "> ~~~~python\n> first\n> ~~~\n> ```\n> last\n> ~~~~~")
+check(mismatchedFence.string == "first\n~~~\n```\nlast", "Shorter or mismatched fences remain literal code")
+let unclosedFence = session.markdownAttributedText(from: "> ~~~python\n> message = \"helo\"\n\nOutside.")
+check(unclosedFence.string == "message = \"helo\"\nOutside.", "An unclosed quoted fence stops at the end of its quote")
+// Backtick code spans on a quote line must not become empty fenced blocks.
+let inlineQuote = session.markdownAttributedText(from: "> ```literal_code```")
+check(inlineQuote.string == "literal_code" && inlineQuote.attribute(.langminCodeBlock, at: 0, effectiveRange: nil) == nil,
+      "A quoted inline code span is not mistaken for a block fence")
+let ordinaryQuote = session.markdownAttributedText(from: "> A normal quotation.\n> Another line.")
+check(ordinaryQuote.string == "A normal quotation. Another line.", "Ordinary quotes keep their existing paragraph layout")
 let before = """
 Дизајн интерфејса
 
@@ -297,6 +335,7 @@ for appearance in [NSAppearance.Name.aqua, .darkAqua] {
  let suffix = appearance == .aqua ? "light" : "dark"
  snapshot(example, name: "diff-list-" + suffix, appearance: appearance)
  snapshot(session.markdownAttributedText(from: after), name: "result-list-" + suffix, appearance: appearance)
+ snapshot(session.markdownAttributedText(from: quotedFenceSample), name: "quoted-fence-" + suffix, appearance: appearance)
  snapshot(rich, name: "diff-rich-" + suffix, appearance: appearance)
  snapshot(session.markdownAttributedText(from: richAfter), name: "result-rich-" + suffix, appearance: appearance)
 }
