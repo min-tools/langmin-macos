@@ -653,6 +653,8 @@ final class SetupWizardController: NSObject, NSWindowDelegate {
                 forKey: PreferenceKey.preferredTextModels
             )
             preferencesStore.set(defaultModel, forKey: PreferenceKey.explanationModel)
+            // Completing model setup applies its new default to every mode.
+            preferencesStore.set([String: String](), forKey: PreferenceKey.modeTextModels)
             // A remembered launcher choice must not override the model just chosen in setup.
             preferencesStore.set(defaultModel, forKey: PreferenceKey.launcherExplanationModel)
             (NSApp.delegate as? AppDelegate)?.launcherController.refreshModelOptions(selecting: defaultModel)

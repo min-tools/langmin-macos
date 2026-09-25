@@ -120,6 +120,7 @@ let preferencesStore = langminPreferencesStore()
 // Preference keys stay explicit so Settings migrations remain predictable.
 enum PreferenceKey {
     static let explanationModel = "explanationModel"
+    static let modeTextModels = "modeTextModels"
     static let preferredTextModels = "preferredTextModels"
     static let customBaseURL = "customBaseURL"
     static let customModelName = "customModelName"
@@ -2720,6 +2721,24 @@ func defaultEnabledExplanationModel(_ preferences: AppPreferences) -> String {
     return enabledIDs.first ?? defaultExplanationModel
 }
 
+// enabledExplanationModel(mode, preferences, [globalModel = nil],
+// [explicitModel = nil]): Resolve one request without using disabled models.
+// URL overrides are temporary; mode assignments fall back to the global choice.
+func enabledExplanationModel(
+    for mode: String,
+    preferences: AppPreferences,
+    globalModel: String? = nil,
+    explicitModel: String? = nil
+) -> String {
+    let enabled = Set(enabledExplanationModelOptions(preferences).map(\.id))
+    let candidates = [explicitModel, preferences.modeTextModels[mode], globalModel]
+    // Honor the first available choice; stale assignments never enable providers.
+    for case let model? in candidates where enabled.contains(model) {
+        return model
+    }
+    return defaultEnabledExplanationModel(preferences)
+}
+
 // Built-in OpenAI speech models.
 let ttsModelOptions: [PreferenceOption] = [
     PreferenceOption(id: "gpt-4o-mini-tts", title: "GPT-4o Mini TTS", note: "voice instructions"),
@@ -3317,6 +3336,8 @@ let fontSizeOptions: [PreferenceOption] = [
 // Saved app preferences.
 struct AppPreferences {
     var explanationModel: String = defaultExplanationModel
+    // Mode assignments also apply to global shortcuts and selected-text Services.
+    var modeTextModels: [String: String] = [:]
     var preferredTextModels: [String] = defaultPreferredTextModelIDs
     var customBaseURL: String = defaultCustomBaseURL
     var customModelName: String = defaultCustomModelName
@@ -3616,6 +3637,7 @@ func loadAppPreferences() -> AppPreferences {
             PreferenceKey.explanationModel,
             fallback: defaultExplanationModel
         ),
+        modeTextModels: preferencesStore.dictionary(forKey: PreferenceKey.modeTextModels) as? [String: String] ?? [:],
         preferredTextModels: preferredTextModels,
         customBaseURL: storedPreferenceString(
             PreferenceKey.customBaseURL,
@@ -3927,6 +3949,7 @@ func selectedPreferenceID(
 // preferences without storing any API key.
 func writePreferences(_ preferences: AppPreferences, launcherPreferences: LauncherPreferences) {
     preferencesStore.set(preferences.explanationModel, forKey: PreferenceKey.explanationModel)
+    preferencesStore.set(preferences.modeTextModels, forKey: PreferenceKey.modeTextModels)
     preferencesStore.set(
         encodeTextModelList(preferences.preferredTextModels),
         forKey: PreferenceKey.preferredTextModels
@@ -15720,6 +15743,7 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
 
         return AppPreferences(
             explanationModel: nonEmpty(explanationModel, fallback: defaultExplanationModel),
+            modeTextModels: live.modeTextModels,
             preferredTextModels: preferredTextModels,
             customBaseURL: customBaseURLField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines),
             customModelName: customModelField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -18801,6 +18825,8 @@ final class LauncherController: NSObject, NSWindowDelegate, NSTextFieldDelegate,
     var pendingRunPresentation: LauncherRunPresentation = .standard
     // An explicit URL language overrides the saved target list for this request.
     var pendingExplicitTranslationTargetID: String?
+    // A URL-supplied model lasts for this request, never changing saved choices.
+    var pendingExplicitModelID: String?
     var logicalFocusIndex = 0
     var lastEscapePress: TimeInterval = 0
     // Dictionary headword for the current request; cleared before each submission.
@@ -20915,10 +20941,10 @@ final class LauncherController: NSObject, NSWindowDelegate, NSTextFieldDelegate,
         rebuildModeChips()
     }
 
-    // modeHasOptions(mode): Every mode except Proofread has at least one option
-    // behind its chip.
+    // modeHasOptions(mode): Every supported mode has a model selector behind
+    // its chip.
     func modeHasOptions(_ mode: String) -> Bool {
-        !secondaryOptions(for: mode).isEmpty || languageLevelModes.contains(mode)
+        launcherModeOptions.contains { $0.id == mode }
     }
 
     // chipSuffix(mode): Show the translation target and, when needed, the
@@ -21004,6 +21030,7 @@ final class LauncherController: NSObject, NSWindowDelegate, NSTextFieldDelegate,
     // option chevrons.
     func refreshChipDecorations() {
         var widthsChanged = false
+        let preferences = loadAppPreferences()
         // Update each chip's selection and presentation from the current mode.
         for chip in modeChips {
             let selected = chip.modeID == selectedMode
@@ -21016,6 +21043,13 @@ final class LauncherController: NSObject, NSWindowDelegate, NSTextFieldDelegate,
             }
             chip.suffixText = suffix
             chip.showsChevron = chevron
+            let model = enabledExplanationModel(
+                for: chip.modeID, preferences: preferences,
+                globalModel: globalModelIDForRun(preferences: preferences)
+            )
+            let modelName = preferenceDisplayValue(for: model, options: enabledExplanationModelOptions(preferences))
+            chip.toolTip = modelName
+            chip.setAccessibilityHelp(modelName)
         }
         if widthsChanged, chipsColumn?.superview != nil, !modeChips.isEmpty {
             // Re-wrap rows only when a chip's width change alters the row count.
@@ -21330,6 +21364,24 @@ final class LauncherController: NSObject, NSWindowDelegate, NSTextFieldDelegate,
                 )))
             }
 
+            // Every mode, including Proofread, can select from the global shortlist.
+            if !rows.isEmpty { rows.append(.separator) }
+            let preferences = loadAppPreferences()
+            let model = enabledExplanationModel(
+                for: mode, preferences: preferences,
+                globalModel: self.globalModelIDForRun(preferences: preferences)
+            )
+            rows.append(.item(PaletteItem(
+                id: "mode-model",
+                title: localized("mode_ai_model", "AI model"),
+                detail: preferenceDisplayValue(for: model, options: enabledExplanationModelOptions(preferences)),
+                chevron: true,
+                action: { [weak self] in
+                    // Keep this menu scoped to its mode, even if launcher focus changes.
+                    guard let self else { return .close }
+                    return .push(self.modelSelectionPage(mode: mode))
+                }
+            )))
             return rows
         })
     }
@@ -21636,12 +21688,24 @@ final class LauncherController: NSObject, NSWindowDelegate, NSTextFieldDelegate,
         // Model selection remains fixed while generation is in progress.
         guard !isGenerating else { return }
         let anchorView: NSView? = sender as? NSView ?? modelFooterButton
-        let page = PalettePage(rows: { [weak self] _ in
+        // Anchor the model palette only when its initiating control exists.
+        if let anchorView {
+            presentPalette(modelSelectionPage(), anchorRect: screenRect(of: anchorView), width: 380)
+        }
+    }
+
+    // modelSelectionPage([mode = nil]): Share enabled models and provider groups
+    // between the all-mode selector and each mode's own picker.
+    func modelSelectionPage(mode: String? = nil) -> PalettePage {
+        PalettePage(rows: { [weak self] _ in
             // A released launcher supplies no model-picker rows.
             guard let self else { return [] }
             let preferences = loadAppPreferences()
             let options = enabledExplanationModelOptions(preferences)
-            let currentID = self.selectedModelIDForRun(preferences: preferences)
+            let global = self.globalModelIDForRun(preferences: preferences)
+            let currentID = mode.map {
+                enabledExplanationModel(for: $0, preferences: preferences, globalModel: global)
+            } ?? global
             var rows: [PaletteRow] = []
             let appleOptions = options.filter { textProvider(for: $0.id).provider == .apple }
             let providerOptions = options.filter { textProvider(for: $0.id).provider != .apple }
@@ -21651,7 +21715,7 @@ final class LauncherController: NSObject, NSWindowDelegate, NSTextFieldDelegate,
                 rows.append(.header(localized("on_this_mac", "On this Mac")))
                 // List local models before remote-provider choices.
                 for option in appleOptions {
-                    rows.append(.item(self.modelPaletteItem(option: option, detail: nil, currentID: currentID)))
+                    rows.append(.item(self.modelPaletteItem(option: option, detail: nil, currentID: currentID, mode: mode)))
                 }
             }
             // Omit the provider heading when no remote choices are available.
@@ -21663,28 +21727,28 @@ final class LauncherController: NSObject, NSWindowDelegate, NSTextFieldDelegate,
                     rows.append(.item(self.modelPaletteItem(
                         option: option,
                         detail: modelProviderSectionName(provider),
-                        currentID: currentID
+                        currentID: currentID,
+                        mode: mode
                     )))
                 }
             }
-            rows.append(.separator)
-            // Model keys and the custom endpoint are configured in Settings → Models.
-            rows.append(.item(PaletteItem(
-                id: "all-models",
-                title: localized("all_models", "All models"),
-                chevron: true,
-                action: { [weak self] in
-                    // Opening the full model catalog requires a live launcher.
-                    guard let self else { return .close }
-                    return .push(self.allModelsPage())
-                }
-            )))
+            // Only the master selector can edit the shared shortlist.
+            if mode == nil {
+                rows.append(.separator)
+                // Model keys and the custom endpoint are configured in Settings → Models.
+                rows.append(.item(PaletteItem(
+                    id: "all-models",
+                    title: localized("all_models", "All models"),
+                    chevron: true,
+                    action: { [weak self] in
+                        // Opening the full model catalog requires a live launcher.
+                        guard let self else { return .close }
+                        return .push(self.allModelsPage())
+                    }
+                )))
+            }
             return rows
         })
-        // Anchor the model palette only when its initiating control exists.
-        if let anchorView {
-            presentPalette(page, anchorRect: screenRect(of: anchorView), width: 380)
-        }
     }
 
     // allModelsPage(): Edit the enabled-model list in place. At least one model
@@ -21755,9 +21819,8 @@ final class LauncherController: NSObject, NSWindowDelegate, NSTextFieldDelegate,
         refreshModelOptions()
     }
 
-    // modelPaletteItem(option, detail, currentID): Build a selectable model row
-    // with provider-specific decoration and current-model state.
-    private func modelPaletteItem(option: PreferenceOption, detail: String?, currentID: String) -> PaletteItem {
+    // modelPaletteItem(option, detail, currentID, mode): Build a scoped model row.
+    private func modelPaletteItem(option: PreferenceOption, detail: String?, currentID: String, mode: String?) -> PaletteItem {
         PaletteItem(
             id: option.id,
             icon: textProvider(for: option.id).provider == .apple ? "sparkles" : nil,
@@ -21765,27 +21828,48 @@ final class LauncherController: NSObject, NSWindowDelegate, NSTextFieldDelegate,
             detail: detail,
             checked: option.id == currentID,
             action: { [weak self] in
-                // Do not apply a model selection after its launcher has disappeared.
-                guard let self else { return .close }
-                setPopupSelection(
-                    self.modelBox,
-                    id: option.id,
-                    options: enabledExplanationModelOptions(),
-                    fallbackID: option.id
-                )
-                self.saveLauncherChoicesIfNeeded()
-                self.updateModelFooter()
+                self?.selectTextModel(option.id, for: mode)
                 return .close
             }
         )
     }
 
-    // updateModelFooter(): Match the footer label to the selected model.
+    // selectTextModel(id, [mode = nil]): Save a mode assignment or apply a new
+    // global choice to all modes, including shortcuts and Services.
+    func selectTextModel(_ id: String, for mode: String? = nil) {
+        var preferences = loadAppPreferences()
+        // Revalidate open menu actions after changes to the shared shortlist.
+        guard !isGenerating, enabledExplanationModelOptions(preferences).contains(where: { $0.id == id }) else { return }
+        if let mode {
+            // Unknown modes must not create unused persistent assignments.
+            guard launcherModeOptions.contains(where: { $0.id == mode }) else { return }
+            preferences.modeTextModels[mode] = id
+        } else {
+            // The master selector explicitly replaces every mode's choice.
+            preferences.explanationModel = id
+            preferences.modeTextModels.removeAll()
+            setPopupSelection(modelBox, id: id, options: enabledExplanationModelOptions(preferences), fallbackID: id)
+        }
+        pendingExplicitModelID = nil
+        saveAppPreferences(preferences)
+        // Re-enabling remembered choices must not revive an older global model.
+        if mode == nil {
+            var launcherPreferences = loadLauncherPreferences()
+            launcherPreferences.explanationModel = id
+            saveLauncherPreferences(launcherPreferences)
+        }
+        saveLauncherChoicesIfNeeded()
+        updateModelFooter()
+        refreshChipDecorations()
+    }
+
+    // updateModelFooter(): Keep the master selector labeled with the global model.
     func updateModelFooter() {
         // Footer model updates wait until the footer button exists.
         guard modelFooterButton != nil else { return }
         let preferences = loadAppPreferences()
-        let id = selectedModelIDForRun(preferences: preferences)
+        let id = globalModelIDForRun(preferences: preferences)
+        modelFooterButton.toolTip = localized("model_for_all_modes", "Choose a model for all modes")
         modelFooterButton.footerTitle = preferenceDisplayValue(
             for: id,
             options: enabledExplanationModelOptions(preferences),
@@ -21982,6 +22066,7 @@ final class LauncherController: NSObject, NSWindowDelegate, NSTextFieldDelegate,
             fallbackID: defaultEnabledExplanationModel(preferences)
         )
         updateModelFooter()
+        refreshChipDecorations()
     }
 
     // selectedLauncherMode(): Current launcher mode ID, repaired to explain
@@ -21994,6 +22079,7 @@ final class LauncherController: NSObject, NSWindowDelegate, NSTextFieldDelegate,
     // row in sync.
     func applySelectedMode(_ mode: String) {
         pendingExplicitTranslationTargetID = nil
+        pendingExplicitModelID = nil
         let validMode = launcherModeOptions.contains(where: { $0.id == mode }) ? mode : "explain"
         selectedMode = validMode
         if !modeChips.isEmpty {
@@ -22132,9 +22218,19 @@ final class LauncherController: NSObject, NSWindowDelegate, NSTextFieldDelegate,
         }
     }
 
-    // selectedModelIDForRun(preferences): Resolve the model selected for
-    // submission from enabled options and the saved default.
+    // selectedModelIDForRun(preferences): Use this mode's saved model unless an
+    // enabled URL override was supplied for the pending request.
     func selectedModelIDForRun(preferences: AppPreferences) -> String {
+        enabledExplanationModel(
+            for: selectedLauncherMode(), preferences: preferences,
+            globalModel: globalModelIDForRun(preferences: preferences),
+            explicitModel: pendingExplicitModelID
+        )
+    }
+
+    // globalModelIDForRun(preferences): Resolve the master selector independently
+    // of per-mode and temporary request choices.
+    func globalModelIDForRun(preferences: AppPreferences) -> String {
         selectedPreferenceID(
             from: modelBox,
             options: enabledExplanationModelOptions(preferences),
@@ -22322,6 +22418,7 @@ final class LauncherController: NSObject, NSWindowDelegate, NSTextFieldDelegate,
         inputView.string = ""
         updateFooterStatus(busy: false, text: "")
         updateModelFooter()
+        refreshChipDecorations()
         updateLauncherControlVisibility(preferences: preferences)
     }
 
@@ -22395,13 +22492,7 @@ final class LauncherController: NSObject, NSWindowDelegate, NSTextFieldDelegate,
         let enabledModels = enabledExplanationModelOptions(preferences)
         // Use an explicit model only if it is currently enabled.
         if let model, enabledModels.contains(where: { $0.id == model }) {
-            setPopupSelection(
-                modelBox,
-                id: model,
-                options: enabledModels,
-                fallbackID: defaultEnabledExplanationModel(preferences)
-            )
-            updateModelFooter()
+            pendingExplicitModelID = model
         }
 
         inputView.string = text
@@ -22438,7 +22529,7 @@ final class LauncherController: NSObject, NSWindowDelegate, NSTextFieldDelegate,
         let secondary = selectedSecondaryID(for: mode)
 
         launcherPreferences.mode = mode
-        launcherPreferences.explanationModel = selectedModelIDForRun(preferences: preferences)
+        launcherPreferences.explanationModel = globalModelIDForRun(preferences: preferences)
         // Remember the level selector's current choice when the control exists.
         if let levelBox {
             launcherPreferences.languageLevel = selectedPreferenceID(
@@ -22519,6 +22610,7 @@ final class LauncherController: NSObject, NSWindowDelegate, NSTextFieldDelegate,
             explicitTranslationTargetID: pendingExplicitTranslationTargetID
         )
         run.conversation = ResultConversation(originalRequest: question, modelID: model)
+        pendingExplicitModelID = nil
         pendingTransformCompletion = nil
         pendingRunPresentation = .standard
         pendingExplicitTranslationTargetID = nil
@@ -25052,7 +25144,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         let preferences = loadAppPreferences()
-        let model = defaultEnabledExplanationModel(preferences)
+        let model = enabledExplanationModel(for: mode, preferences: preferences)
         // Treat declined or timed-out remote sharing as a failed Service request.
         guard confirmRemoteTextSharingIfNeeded(input: text, model: model, deadline: deadline) else {
             let timedOut = DispatchTime.now().uptimeNanoseconds >= deadline.uptimeNanoseconds

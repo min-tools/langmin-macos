@@ -979,3 +979,7 @@
 "wizard_trial_after_langmin" = "Apple Intelligence, Apple voices, Apple transcription, text editing, and the Library stay free. Other Pro features require a purchase.";
 "wizard_trial_plans_title" = "Keep Pro";
 "wizard_trial_plans_body" = "Choose a yearly plan or lifetime access at any time.";
+
+/* Per-mode model selection */
+"mode_ai_model" = "Modelo de IA";
+"model_for_all_modes" = "Elegir un modelo para todos los modos";

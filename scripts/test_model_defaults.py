@@ -117,6 +117,8 @@ final class Launcher {
  // updateModelFooter(): Keep this production dependency inactive in the
  // isolated fixture.
  func updateModelFooter() {}
+ // refreshChipDecorations(): Leave native chip rendering outside this fixture.
+ func refreshChipDecorations() {}
 }
 // Record setup requests and expose the fixture launcher.
 final class AppDelegate {
@@ -254,11 +256,13 @@ check(defaultPreferredTextModelIDs == [
 check(AppPreferences().explanationModel == apple, "Fresh installs default to Apple Intelligence")
 let form = SettingsFixture()
 saved.explanationModel = deepSeek
+saved.modeTextModels = ["proofread": "gpt-6-luna"]
 saved.preferredTextModels = [deepSeek]
 saved.explanationEffort = "detailed"
 saved.extraLanguages = ["ru", "sr"]
 saved.languageLevel = "b2"
 form.populated = saved
+check(form.collectPreferences().modeTextModels == saved.modeTextModels, "An ordinary Settings save preserves per-mode models")
 check(form.collectPreferences().explanationModel == deepSeek, "An ordinary save preserves the chosen model")
 check(form.collectPreferences().preferredTextModels == [deepSeek], "An ordinary save preserves enabled models")
 check(form.collectPreferences().extraLanguages == ["ru", "sr"], "An ordinary save preserves launcher language choices")
@@ -271,6 +275,7 @@ form.resetDefaults(nil)
 check(form.populated?.explanationModel == apple, "Reset populates the default form")
 check(saved.explanationModel == deepSeek, "Reset stays a draft until Save")
 let reset = form.collectPreferences()
+check(reset.modeTextModels.isEmpty, "Reset clears per-mode models")
 check(reset.explanationModel == apple, "Saving Reset replaces a saved DeepSeek default with Apple")
 check(reset.preferredTextModels == defaultPreferredTextModelIDs, "Reset restores Apple even when it was disabled")
 check(defaultEnabledExplanationModel(reset) == apple, "The enabled-model fallback cannot select a cloud model after reset")
@@ -297,7 +302,7 @@ check(saved.explanationModel == deepSeek, "Setup handoff waits for the assistant
 func finishSetup(_ ids: [String], available: Bool) {
  appleAvailable = available
  saved = AppPreferences()
- preferencesStore.values = [PreferenceKey.explanationModel: deepSeek, PreferenceKey.launcherExplanationModel: deepSeek]
+ preferencesStore.values = [PreferenceKey.explanationModel: deepSeek, PreferenceKey.launcherExplanationModel: deepSeek, PreferenceKey.modeTextModels: ["proofread": deepSeek]]
  let wizard = WizardFixture()
  // Place Apple last to ensure priority comes from policy, not row order.
  wizard.providers = ids.map { WizardFixture.Provider(id: $0 == apple ? "apple" : $0, modelID: $0) }
@@ -308,6 +313,7 @@ func finishSetup(_ ids: [String], available: Bool) {
  }
  wizard.finish()
  check(wizard.window!.closed, "Completed setup closes its window")
+ if !ids.isEmpty { check((preferencesStore.values[PreferenceKey.modeTextModels] as? [String: String])?.isEmpty == true, "Model setup clears old per-mode assignments") }
 }
 // Check that Apple remains the default when selected alongside a cloud provider.
 for cloud in [deepSeek, "gpt-6-sol", "anthropic:claude-sonnet-5"] {

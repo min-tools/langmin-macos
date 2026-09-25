@@ -8,6 +8,8 @@ The parts of Langmin that are not obvious from the window: how modes and models 
 
 Add API keys or a custom endpoint in **Settings → Models**. Keys are stored in the macOS Keychain.
 
+The bottom-left model selector sets the model for **all modes** and clears any individual assignments. To use a different model for one mode, select its chip, click it again, then open **AI model**. Each mode lists only models enabled under the main selector’s **All models** menu. These assignments are saved for the launcher, global shortcuts, menu-bar actions, and Services, even when **Remember launcher choices** is off. If an assigned model is disabled or removed, that mode uses the global model until the assignment is available again.
+
 Text providers: Apple Intelligence, OpenAI, Anthropic, Google Gemini, xAI Grok, DeepSeek, and custom endpoints. Narration: Apple voices, OpenAI, or Grok. Audio transcription: Apple or OpenAI.
 
 A custom endpoint is a server that supports OpenAI chat completions. You can run [LM Studio](https://lmstudio.ai/docs/developer/openai-compat) or [Ollama](https://docs.ollama.com/api/openai-compatibility) on your Mac, or use a hosted service such as [Groq](https://console.groq.com/docs/openai).
