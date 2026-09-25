@@ -275,6 +275,7 @@ func verify(_ launcher: Launcher, mode: String, model: String, sourceText: Strin
  check(request.provider == providerNames[modelIDs.firstIndex(of: model)!], "\(mode): dispatch reaches the assigned provider")
  check(request.model == expectedModel, "\(mode): provider receives the assigned model \(model)")
  check(request.prompt.input == sourceText, "\(mode): source text reaches the actual prompt intact")
+ check(request.prompt.prefersLowLatencyResponse == (mode != "explain"), "\(mode): submission carries the cloud latency policy")
  check(consentModels.last == model, "\(mode): consent uses the same provider as generation")
  check(launcher.finishedRun?.conversation?.modelID == model, "\(mode): saved conversation retains the selected model")
  check(launcher.lastRunTextModel == model && launcher.progressModels.allSatisfy { $0 == model }, "\(mode): result and progress labels identify the actual model")
@@ -344,6 +345,7 @@ for (index, mode) in modes.enumerated() {
   verify(service.launcherController, mode: mode, model: model, sourceText: input)
  }
  check(error == nil && requests.count == before + 1, "\(mode): Service completes exactly one request")
+ check(requests.last!.prompt.prefersLowLatencyResponse == (mode != "explain"), "\(mode): Services share the window and HUD latency policy")
  check(requests.last!.model == (model == customModelID ? saved.customModelName : textProvider(for: model).model), "\(mode): Service dispatches to its assigned provider")
 }
 pasteboard.releaseGlobally()

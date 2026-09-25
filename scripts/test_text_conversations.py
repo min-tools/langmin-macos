@@ -37,7 +37,8 @@ struct AppPreferences {
  var geminiEndpointOverride = ""
 }
 // loadAppPreferences(): Provide the preferences configured by this fixture.
-func loadAppPreferences() -> AppPreferences { AppPreferences() }
+var fixturePreferences = AppPreferences()
+func loadAppPreferences() -> AppPreferences { fixturePreferences }
 // resolvedOverride(value, fallback): Use the configured string override or its
 // built-in fallback.
 func resolvedOverride(_ value: String, default fallback: String) -> String { value.isEmpty ? fallback : value }
@@ -273,20 +274,90 @@ for label in ["DeepSeek", "Grok", "Custom endpoint"] {
   }
  }
 }
-// Only simple dictionary lookups opt out of expensive provider reasoning defaults.
+// Built-in source transformations share their fast provider settings across
+// window, HUD and Services requests; custom endpoints retain their own defaults.
+let transforms: [(String, ExplanationPrompt.LocalSourceTask)] = [
+ ("Proofread", .proofread), ("Rephrase", .rephrase), ("Humanize", .humanize),
+ ("Concise", .concise), ("Elaborate", .elaborate), ("Summarize", .summarize),
+ ("Translate", .translate)
+]
+var latencyCases: [(String, ExplanationPrompt, Bool)] = []
+for (name, task) in transforms {
+ var prompt = ExplanationPrompt(instructions: "Transform the source without adding facts.", input: "Please sent the report tomorow.")
+ prompt.appleSourceTask = task
+ latencyCases.append((name, prompt, true))
+ // A follow-up can change tasks even if source-transform metadata was retained.
+ prompt.conversationMessages = [TextConversationMessage(role: .user, content: "Why is this correct?")]
+ latencyCases.append((name + " follow-up", prompt, false))
+}
+// Real translation prompts must reach the same policy without changing target metadata.
+latencyCases.append(("Translation with two targets", translationCases[0], true))
+for format: ExplanationPrompt.LocalFormat in [.dictionary, .explanation, .text] {
+ var prompt = ExplanationPrompt(instructions: "Answer the question.", input: "What is love?")
+ prompt.appleFormat = format
+ latencyCases.append(("\(format)", prompt, format == .dictionary))
+ // A dictionary result can also lead to an open-ended follow-up question.
+ prompt.conversationMessages = [TextConversationMessage(role: .user, content: "Explain the history.")]
+ latencyCases.append(("\(format) follow-up", prompt, false))
+}
 for label in ["DeepSeek", "Grok", "Custom endpoint"] {
- for model in ["deepseek-v4-pro", "deepseek-flash", "grok-4.7", "grok-4", "custom-model"] {
-  for dictionary in [false, true] {
-   var prompt = ExplanationPrompt(instructions: "Define the word.", input: "Karate")
-   prompt.appleFormat = dictionary ? .dictionary : .text
+ for model in ["deepseek-v4-pro", "deepseek-flash", "grok-4.5", "grok-4.6", "grok-4.7", "grok-4", "custom-model"] {
+  for (name, prompt, fast) in latencyCases {
    let payload = try body(startOpenAICompatibleTextRequest(baseURL: "https://example.test", apiKey: "fixture", model: model, prompt: prompt, emptyMessage: "empty", providerLabel: label, completion: complete))
-   let disableThinking = dictionary && label == "DeepSeek" && ["deepseek-v4-pro", "deepseek-flash"].contains(model)
-   let lowEffort = dictionary && label == "Grok" && model == "grok-4.7"
-   check(((payload["thinking"] as? [String: String])?["type"] == "disabled") == disableThinking, "DeepSeek lookup thinking policy stays provider and model scoped")
-   check((payload["reasoning_effort"] as? String == "low") == lowEffort, "Grok lookup effort stays provider and model scoped")
+   let supportsThinkingToggle = label == "DeepSeek" && ["deepseek-v4-pro", "deepseek-flash"].contains(model)
+   let supportsLowEffort = label == "Grok" && ["grok-4.5", "grok-4.6", "grok-4.7"].contains(model)
+   check(((payload["thinking"] as? [String: String])?["type"] == "disabled") == (fast && supportsThinkingToggle), "\(name): DeepSeek thinking policy is scoped to supported models and tasks")
+   check((payload["reasoning_effort"] as? String == "low") == (fast && supportsLowEffort), "\(name): Grok effort policy is scoped to supported models and tasks")
+   let preservesOutputBudget = fast && supportsThinkingToggle && prompt.appleSourceTask != nil
+   check((payload["max_tokens"] as? Int) == (preservesOutputBudget ? 65_536 : nil), "\(name): Disabling DeepSeek thinking must not lower the source-transform output budget")
+   let messages = payload["messages"] as! [[String: String]]
+   check(Array(messages.dropFirst()) == prompt.chatMessages, "\(name): Fast settings preserve every input and conversation message")
   }
  }
 }
+// Exercise actual Responses and Messages bodies for each task, endpoint and
+// research setting. Models without the supported effort control remain unchanged.
+let openAILatencyModels: [(String, Bool)] = [
+ ("gpt-6-astra", true), ("gpt-6-sol", true), ("gpt-6-luna", true),
+ ("gpt-5.6-sol", true), ("gpt-5.6-terra", true), ("gpt-5.6-luna", true), ("gpt-5.5", true),
+ ("gpt-5.4", false), ("gpt-5.4-mini", false), ("gpt-5.4-nano", false),
+ ("gpt-4.1", false), ("gpt-4.1-mini", false), ("custom-model", false)
+]
+let claudeLatencyModels: [(String, Bool)] = [
+ ("claude-fable-5-1", true), ("claude-fable-5", true),
+ ("claude-opus-5-5", true), ("claude-sonnet-5", true),
+ ("claude-haiku-4-5", false), ("custom-model", false)
+]
+for customEndpoint in [false, true] {
+ fixturePreferences.openAIEndpointOverride = customEndpoint ? "https://custom.test/responses" : ""
+ fixturePreferences.anthropicEndpointOverride = customEndpoint ? "https://custom.test/messages" : ""
+ for research in [false, true] {
+  for (name, prompt, fast) in latencyCases {
+   for (model, supportsEffort) in openAILatencyModels {
+    let payload = try body(startOpenAITextRequest(apiKey: "fixture", model: model, prompt: prompt, emptyMessage: "empty", research: research, completion: complete))
+    let expected = fast && supportsEffort && !research && !customEndpoint
+    check((payload["reasoning"] as? [String: String]) == (expected ? ["effort": "low"] : nil), "\(name): Responses effort is scoped to supported models, tasks and endpoints")
+    check(payload["instructions"] as? String == promptApplyingCustomInstructions(prompt).instructions, "\(name): Responses effort preserves task and custom instructions")
+    // Inspect both Responses input shapes so no source text is lost.
+    if prompt.conversationMessages.isEmpty {
+     check(payload["input"] as? String == prompt.input, "\(name): Responses effort preserves the full source")
+    } else {
+     // Follow-ups keep every role and message in their original order.
+     check(payload["input"] as? [[String: String]] == prompt.chatMessages, "\(name): Responses effort preserves the conversation")
+    }
+    check(payload["store"] as? Bool == false && (payload["tools"] != nil) == research && payload["service_tier"] == nil, "\(name): Responses preserves storage, research and service tier")
+   }
+   for (model, supportsEffort) in claudeLatencyModels {
+    let payload = try body(startAnthropicTextRequest(apiKey: "fixture", model: model, prompt: prompt, emptyMessage: "empty", research: research, completion: complete))
+    let expected = fast && supportsEffort && !research && !customEndpoint
+    check((payload["output_config"] as? [String: String]) == (expected ? ["effort": "low"] : nil), "\(name): Claude effort is scoped to supported models, tasks and endpoints")
+    check(payload["system"] as? String == promptApplyingCustomInstructions(prompt).instructions && payload["messages"] as? [[String: String]] == prompt.chatMessages, "\(name): Claude effort preserves instructions and all source messages")
+    check(payload["max_tokens"] as? Int == 8192 && payload["thinking"] == nil && (payload["tools"] != nil) == research && payload["service_tier"] == nil, "\(name): Claude retains its output budget, thinking compatibility, research and service tier")
+   }
+  }
+ }
+}
+fixturePreferences = AppPreferences()
 let original = "Explain love."
 let result = "Love is a feeling of care and closeness."
 let turns = [

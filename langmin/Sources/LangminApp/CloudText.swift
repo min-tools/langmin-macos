@@ -501,11 +501,17 @@ func startOpenAICompatibleTextRequest(
     if providerLabel == "DeepSeek", prompt.appleFormat == .explanation {
         body["response_format"] = ["type": "json_object"]
     }
-    // Dictionary lookups do not need the high reasoning defaults of these
-    // providers. Restrict their options to known models and their own adapters.
-    if prompt.appleFormat == .dictionary {
+    // Routine edits and lookups should not inherit high reasoning defaults.
+    if prompt.prefersLowLatencyResponse {
+        // These DeepSeek models support direct answers without a thinking phase.
         if providerLabel == "DeepSeek", ["deepseek-v4-pro", "deepseek-flash"].contains(model) {
             body["thinking"] = ["type": "disabled"]
+            // Preserve the former 64K output allowance for source transforms;
+            // non-thinking defaults to 8K, which can cut off long translations.
+            if prompt.appleSourceTask != nil {
+                body["max_tokens"] = 65_536
+            }
+        // Supported Grok models can reduce reasoning, but cannot disable it.
         } else if providerLabel == "Grok", ["grok-4.5", "grok-4.6", "grok-4.7"].contains(model) {
             body["reasoning_effort"] = "low"
         }
@@ -575,6 +581,14 @@ func startOpenAITextRequest(
         "input": prompt.conversationMessages.isEmpty ? prompt.input as Any : prompt.chatMessages,
         "store": false
     ]
+
+    // These built-in models reason by default. Lower effort for source edits
+    // and lookups, preserving research, custom endpoints and older model defaults.
+    if prompt.prefersLowLatencyResponse, !research, endpoint == openAIResponsesEndpoint,
+       ["gpt-6-astra", "gpt-6-sol", "gpt-6-luna", "gpt-5.6-sol",
+        "gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.5"].contains(model) {
+        body["reasoning"] = ["effort": "low"]
+    }
 
     // Add the web-search tool only when research was requested.
     if research {
@@ -652,6 +666,13 @@ func startAnthropicTextRequest(
         "system": prompt.instructions,
         "messages": prompt.chatMessages
     ]
+    // Use the supported effort control for routine edits and lookups. Newer
+    // Claude models always think; disabling thinking would reject the request.
+    if prompt.prefersLowLatencyResponse, !research, endpoint == anthropicMessagesEndpoint,
+       ["claude-fable-5-1", "claude-fable-5", "claude-opus-5-5", "claude-sonnet-5"].contains(model) {
+        body["output_config"] = ["effort": "low"]
+    }
+
     // Add Anthropic's configured search tool only for research requests.
     if research {
         let searchToolType = resolvedOverride(

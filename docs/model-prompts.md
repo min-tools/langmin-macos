@@ -49,9 +49,13 @@ On macOS 26.4 or later, Langmin counts instructions, input and any output schema
 
 The local request has a 90-second cancellation deadline. Context overflow returns an actionable error. There is deliberately no hard response-token cap: Apple's API can otherwise return a cut-off sentence or JSON object as a successful response. See [Apple's context-window guidance](https://developer.apple.com/documentation/technotes/tn3193-managing-the-on-device-foundation-model-s-context-window).
 
-## Cloud lookup latency
+## Cloud response latency
 
-Dictionary requests explicitly disable thinking for the built-in DeepSeek models and use low reasoning effort for supported Grok models. Their defaults otherwise enable high reasoning effort, which adds latency to a simple lookup. Other tasks and custom endpoints keep their existing behavior. See the [DeepSeek thinking settings](https://api-docs.deepseek.com/guides/thinking_mode/) and [xAI reasoning settings](https://docs.x.ai/developers/model-capabilities/text/reasoning).
+Proofread, all Rewrite styles, Summarize, Translate and Dictionary request faster responses from supported built-in cloud models. DeepSeek disables thinking; GPT-6, GPT-5.6, GPT-5.5, Grok 4.5–4.7 and Claude Fable 5/5.1, Opus 5.5 and Sonnet 5 use low effort. These models otherwise spend more time reasoning by default. Models such as GPT-5.4, which already defaults to no reasoning, keep their existing settings.
+
+The same policy applies in the main window, clipboard HUD and Services. Explain, research, follow-up conversations and custom endpoints retain their existing settings. Prompts, source text and output validation are unchanged. DeepSeek source transformations explicitly retain their previous 64K output allowance, because disabling thinking would otherwise lower it to 8K. Lower effort trades reasoning depth for speed; live response time still depends on the provider and input.
+
+Provider references: [OpenAI reasoning](https://developers.openai.com/api/docs/guides/reasoning), [Claude effort](https://platform.claude.com/docs/en/build-with-claude/effort), [DeepSeek thinking](https://api-docs.deepseek.com/guides/thinking_mode/) and [output limits](https://api-docs.deepseek.com/api/create-chat-completion/), and [xAI reasoning](https://docs.x.ai/developers/model-capabilities/text/reasoning).
 
 Cloud Dictionary requests have a 60-second total deadline; other cloud text requests have 180 seconds. This includes connection retries and time spent receiving keep-alive bytes, which do not count as a completed answer. Cancellation, timeout and a late response can deliver only one completion.
 

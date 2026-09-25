@@ -4579,6 +4579,12 @@ struct ExplanationPrompt {
     var appleDictionaryTranslationCode: String? = nil
     var appleSourceTask: LocalSourceTask? = nil
 
+    // Source-task metadata also identifies cloud edits and lookups that should
+    // favor a quick response. Explain and follow-ups retain provider defaults.
+    var prefersLowLatencyResponse: Bool {
+        conversationMessages.isEmpty && (appleSourceTask != nil || appleFormat == .dictionary)
+    }
+
     // Keep single-turn input unchanged and preserve speaker roles for follow-ups.
     var messages: [TextConversationMessage] {
         conversationMessages.isEmpty ? [TextConversationMessage(role: .user, content: input)] : conversationMessages
