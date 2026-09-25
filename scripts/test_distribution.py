@@ -53,6 +53,9 @@ class DistributionTests(unittest.TestCase):
                 self.assertNotIn('LANGMIN_LOCAL_BUILD', effective.get('OTHER_SWIFT_FLAGS', ''))
                 self.assertEqual('LANGMIN_APP_STORE' in effective.get('SWIFT_ACTIVE_COMPILATION_CONDITIONS', ''), name == 'AppStore')
                 self.assertEqual(effective['CODE_SIGN_ENTITLEMENTS'], 'LangminCloud.entitlements' if name == 'AppStore' else 'LangminApp.entitlements')
+                if name == 'AppStore':
+                    # Store archives must resolve the cloud environment to one value.
+                    self.assertEqual(effective['LANGMIN_ICLOUD_ENVIRONMENT'], 'Production')
 
     # test_xcode_includes_every_swift_file_once(self): The Xcode source list
     # must match the standalone builder, including every cloud feature.
