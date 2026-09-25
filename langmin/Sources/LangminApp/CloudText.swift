@@ -496,6 +496,11 @@ func startOpenAICompatibleTextRequest(
             ["role": "system", "content": prompt.instructions]
         ] + prompt.chatMessages
     ]
+    // DeepSeek's JSON mode requests valid JSON; Explain's prompt defines its fields.
+    // Other tasks return Markdown, and custom endpoints may not support this option.
+    if providerLabel == "DeepSeek", prompt.appleFormat == .explanation {
+        body["response_format"] = ["type": "json_object"]
+    }
     // Dictionary lookups do not need the high reasoning defaults of these
     // providers. Restrict their options to known models and their own adapters.
     if prompt.appleFormat == .dictionary {

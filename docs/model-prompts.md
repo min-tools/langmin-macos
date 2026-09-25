@@ -23,6 +23,8 @@ Dictionary prefers English for spellings shared with English when no other langu
 
 Linked-page prompts distinguish reports, proposed fixes and confirmed outcomes. They identify excerpts and allow images only through supplied candidate IDs. Research instructions request citations only for consulted sources; local requests cannot claim live verification.
 
+Explain decodes the title and Markdown answer before display. It accepts fenced or string-encoded JSON and plain Markdown, but rejects broken JSON envelopes instead of showing their keys and escapes. DeepSeek Explain requests enable [JSON Output](https://api-docs.deepseek.com/guides/json_mode/) as well as requesting the format in the prompt; other modes keep their existing output format.
+
 ## Apple Intelligence
 
 The local adapter uses explicit prompt metadata, never searches instruction wording to infer the task. Explain, Rewrite, Proofread, Dictionary and Translate have dedicated local instructions. Summarize and follow-ups use the shared prompts. Proofread, each Rewrite style, Summarize and Translate name their task next to the complete source, quoted as a JSON string. Explain and Dictionary receive their topics directly; follow-ups retain their conversational task.

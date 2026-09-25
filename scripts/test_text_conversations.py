@@ -256,6 +256,23 @@ for dictionary in [false, true] {
   check(task.totalTimeout == limit && task.request.timeoutInterval == limit, "Cloud adapters enforce the complete request deadline")
  }
 }
+
+// DeepSeek Explain requests enforce JSON; prose modes and custom endpoints do not.
+for label in ["DeepSeek", "Grok", "Custom endpoint"] {
+ for model in ["deepseek-flash", "deepseek-v4-pro"] {
+  for format: ExplanationPrompt.LocalFormat in [.explanation, .dictionary, .text, .translation, .proofread] {
+   var prompt = ExplanationPrompt(instructions: "Return JSON with title and explanation string fields.", input: "What is love?")
+   prompt.appleFormat = format
+   let payload = try body(startOpenAICompatibleTextRequest(baseURL: "https://example.test", apiKey: "fixture", model: model,
+                     prompt: prompt, emptyMessage: "empty", providerLabel: label, completion: complete))
+   if label == "DeepSeek" && format == .explanation {
+    check((payload["response_format"] as? [String: String]) == ["type": "json_object"], "DeepSeek Explain enables JSON Output")
+   } else {
+    check(payload["response_format"] == nil, "Other tasks and endpoints retain their existing output format")
+   }
+  }
+ }
+}
 // Only simple dictionary lookups opt out of expensive provider reasoning defaults.
 for label in ["DeepSeek", "Grok", "Custom endpoint"] {
  for model in ["deepseek-v4-pro", "deepseek-flash", "grok-4.7", "grok-4", "custom-model"] {
