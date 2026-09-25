@@ -62,9 +62,10 @@ func openAICompatibleChatURL(from base: String) -> URL? { URL(string: base + "/c
 // credential loaders or response callbacks are used by these payload tests.
 final class RetryingDataTask {
  let request: URLRequest
- // init(request, completion): Capture the request without starting transport or
+ let totalTimeout: TimeInterval?
+ // init(request, [totalTimeout], completion): Capture the request without starting transport or
  // calling its completion.
- init(request: URLRequest, completion: @escaping (Data?, URLResponse?, Error?) -> Void) { self.request = request }
+ init(request: URLRequest, totalTimeout: TimeInterval? = nil, completion: @escaping (Data?, URLResponse?, Error?) -> Void) { self.request = request; self.totalTimeout = totalTimeout }
 }
 // openAIErrorMessage(data): Leave OpenAI error parsing outside this
 // request-payload fixture.
@@ -240,6 +241,35 @@ check(modelSupportsWebResearch("gpt-6-astra") && modelSupportsWebResearch("anthr
 // Fable returns thinking blocks as well as answer text. Keep only the answer.
 let fableResponse = Data(#"{"content":[{"type":"thinking","thinking":"","signature":"fixture"},{"type":"text","text":"The answer."}]}"#.utf8)
 check(anthropicOutputText(from: fableResponse) == "The answer.", "Fable thinking blocks do not enter the visible answer or saved history")
+// Every cloud adapter must connect its request to a total deadline.
+for dictionary in [false, true] {
+ var prompt = ExplanationPrompt(instructions: "Define the word.", input: "Karate")
+ prompt.appleFormat = dictionary ? .dictionary : .text
+ let tasks = [
+  try startOpenAICompatibleTextRequest(baseURL: "https://example.test", apiKey: "fixture", model: "fixture", prompt: prompt, emptyMessage: "empty", completion: complete),
+  try startOpenAITextRequest(apiKey: "fixture", model: "fixture", prompt: prompt, emptyMessage: "empty", research: false, completion: complete),
+  try startAnthropicTextRequest(apiKey: "fixture", model: "fixture", prompt: prompt, emptyMessage: "empty", completion: complete),
+  try startGeminiTextRequest(apiKey: "fixture", model: "fixture", prompt: prompt, emptyMessage: "empty", completion: complete)
+ ]
+ for task in tasks {
+  let limit: TimeInterval = dictionary ? 60 : speechRequestTimeout
+  check(task.totalTimeout == limit && task.request.timeoutInterval == limit, "Cloud adapters enforce the complete request deadline")
+ }
+}
+// Only simple dictionary lookups opt out of expensive provider reasoning defaults.
+for label in ["DeepSeek", "Grok", "Custom endpoint"] {
+ for model in ["deepseek-v4-pro", "deepseek-flash", "grok-4.7", "grok-4", "custom-model"] {
+  for dictionary in [false, true] {
+   var prompt = ExplanationPrompt(instructions: "Define the word.", input: "Karate")
+   prompt.appleFormat = dictionary ? .dictionary : .text
+   let payload = try body(startOpenAICompatibleTextRequest(baseURL: "https://example.test", apiKey: "fixture", model: model, prompt: prompt, emptyMessage: "empty", providerLabel: label, completion: complete))
+   let disableThinking = dictionary && label == "DeepSeek" && ["deepseek-v4-pro", "deepseek-flash"].contains(model)
+   let lowEffort = dictionary && label == "Grok" && model == "grok-4.7"
+   check(((payload["thinking"] as? [String: String])?["type"] == "disabled") == disableThinking, "DeepSeek lookup thinking policy stays provider and model scoped")
+   check((payload["reasoning_effort"] as? String == "low") == lowEffort, "Grok lookup effort stays provider and model scoped")
+  }
+ }
+}
 let original = "Explain love."
 let result = "Love is a feeling of care and closeness."
 let turns = [

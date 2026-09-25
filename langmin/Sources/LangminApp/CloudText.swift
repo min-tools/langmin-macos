@@ -482,21 +482,32 @@ func startOpenAICompatibleTextRequest(
     let prompt = promptApplyingCustomInstructions(prompt)
     var request = URLRequest(url: url)
     request.httpMethod = "POST"
-    request.timeoutInterval = speechRequestTimeout
+    // Bound simple lookups more tightly than long-form generation.
+    request.timeoutInterval = prompt.appleFormat == .dictionary ? 60 : speechRequestTimeout
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
     let key = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
     // Allow compatible endpoints without authentication when no key was configured.
     if !key.isEmpty {
         request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
     }
-    request.httpBody = try JSONSerialization.data(withJSONObject: [
+    var body: [String: Any] = [
         "model": model,
         "messages": [
             ["role": "system", "content": prompt.instructions]
         ] + prompt.chatMessages
-    ])
+    ]
+    // Dictionary lookups do not need the high reasoning defaults of these
+    // providers. Restrict their options to known models and their own adapters.
+    if prompt.appleFormat == .dictionary {
+        if providerLabel == "DeepSeek", ["deepseek-v4-pro", "deepseek-flash"].contains(model) {
+            body["thinking"] = ["type": "disabled"]
+        } else if providerLabel == "Grok", ["grok-4.5", "grok-4.6", "grok-4.7"].contains(model) {
+            body["reasoning_effort"] = "low"
+        }
+    }
+    request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-    return RetryingDataTask(request: request) { data, response, error in
+    return RetryingDataTask(request: request, totalTimeout: request.timeoutInterval) { data, response, error in
         // Propagate network failures before trying to parse response data.
         if let error {
             completion(.failure(error))
@@ -548,7 +559,8 @@ func startOpenAITextRequest(
     let endpoint = resolvedOverrideURL(preferences.openAIEndpointOverride, default: openAIResponsesEndpoint)
     var request = URLRequest(url: endpoint)
     request.httpMethod = "POST"
-    request.timeoutInterval = speechRequestTimeout
+    // Bound simple lookups more tightly than long-form generation.
+    request.timeoutInterval = prompt.appleFormat == .dictionary ? 60 : speechRequestTimeout
     request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
@@ -571,7 +583,7 @@ func startOpenAITextRequest(
 
     request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-    return RetryingDataTask(request: request) { data, response, error in
+    return RetryingDataTask(request: request, totalTimeout: request.timeoutInterval) { data, response, error in
         // Deliver OpenAI transport errors without attempting response parsing.
         if let error {
             completion(.failure(error))
@@ -623,7 +635,8 @@ func startAnthropicTextRequest(
     let endpoint = resolvedOverrideURL(preferences.anthropicEndpointOverride, default: anthropicMessagesEndpoint)
     var request = URLRequest(url: endpoint)
     request.httpMethod = "POST"
-    request.timeoutInterval = speechRequestTimeout
+    // Bound simple lookups more tightly than long-form generation.
+    request.timeoutInterval = prompt.appleFormat == .dictionary ? 60 : speechRequestTimeout
     request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
     request.setValue(resolvedOverride(preferences.anthropicVersionOverride, default: anthropicAPIVersion), forHTTPHeaderField: "anthropic-version")
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -650,7 +663,7 @@ func startAnthropicTextRequest(
     }
     request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-    return RetryingDataTask(request: request) { data, response, error in
+    return RetryingDataTask(request: request, totalTimeout: request.timeoutInterval) { data, response, error in
         // Deliver Anthropic transport failures before parsing content.
         if let error {
             completion(.failure(error))
@@ -712,7 +725,8 @@ func startGeminiTextRequest(
 
     var request = URLRequest(url: url)
     request.httpMethod = "POST"
-    request.timeoutInterval = speechRequestTimeout
+    // Bound simple lookups more tightly than long-form generation.
+    request.timeoutInterval = prompt.appleFormat == .dictionary ? 60 : speechRequestTimeout
     request.setValue(apiKey, forHTTPHeaderField: "x-goog-api-key")
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
@@ -734,7 +748,7 @@ func startGeminiTextRequest(
     }
     request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-    return RetryingDataTask(request: request) { data, response, error in
+    return RetryingDataTask(request: request, totalTimeout: request.timeoutInterval) { data, response, error in
         // Deliver Gemini transport failures before parsing candidates.
         if let error {
             completion(.failure(error))

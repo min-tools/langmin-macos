@@ -30,6 +30,7 @@ def block(text, marker):
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--live-apple', action='store_true')
+parser.add_argument('--live-apple-dictionary', action='store_true', help='Run the live dictionary regressions only')
 parser.add_argument('--live-apple-editing', action='store_true', help='Run only the live local editing regressions')
 parser.add_argument('--compile-only', action='store_true')
 parser.add_argument('--output', type=Path)
@@ -74,7 +75,7 @@ source += block(MAIN, 'struct AppleDictionaryEntry:')
 source += block(MAIN, 'struct AppleTranslationResponse:')
 source += block(MAIN, 'struct AppleDictionaryResponse:')
 # Compile these production declarations with the fixture’s minimal dependencies.
-for marker in ['func appleResponseSchema(', 'func appleDictionaryMarkdown(', 'func appleIntelligenceText(', 'func appleIntelligenceResponse(']:
+for marker in ['func appleResponseSchema(', 'func appleDictionaryMarkdown(', 'func decodedAppleDictionaryEntry(', 'func appleDictionaryTranslationPrompt(', 'func appleIntelligenceText(', 'func appleIntelligenceResponse(']:
     source += '@available(macOS 26.0, *)\n' + block(MAIN, marker)
 source += r'''
 var checks = 0
@@ -215,6 +216,17 @@ func expectFailure(_ name: String, _ operation: () throws -> Void) {
             let english = AppleDictionaryEntry(language: "English", word: "river", partOfSpeech: "Noun", definition: "A natural stream of water.", examples: ["They crossed the river.", "A river runs through town."])
             let french = AppleDictionaryEntry(language: "French", word: "rivière", partOfSpeech: "Nom", definition: "Un cours d'eau naturel.", examples: ["Ils ont traversé la rivière.", "Une rivière traverse la ville."])
             let bilingual = dictionaryPrompt(input: "river", targetLanguage: "", style: "detailed", extraLanguages: ["French", "English"])
+            expectFailure("A false recognition flag cannot expose generated entries") {
+                _ = try decodedAppleDictionaryEntry(#"{"isRecognized":false,"entries":[{"language":"English","word":"qzxvplm","partOfSpeech":"noun","definition":"Invented.","examples":["Invented."]}]}"#)
+            }
+            expectFailure("A recognized response still requires a complete entry") { _ = try decodedAppleDictionaryEntry(#"{"isRecognized":true}"#) }
+            let frenchRequest = try appleDictionaryTranslationPrompt(bilingual, entry: english, targetCode: "fr")
+            let sourceEntry = try JSONDecoder().decode(AppleDictionaryEntry.self, from: Data(frenchRequest.input.utf8))
+            check(sourceEntry.definition == english.definition && sourceEntry.examples == english.examples, "Dictionary translations receive the validated meaning and exact examples")
+            check(frenchRequest.appleDictionaryTranslationCode == "fr" && frenchRequest.requestedOutputLanguageCodes == ["fr"] && frenchRequest.appleDictionaryExampleCount == 2, "Each local dictionary translation names one language and preserves its example count")
+            let sourceSchema = String(decoding: try JSONEncoder().encode(appleResponseSchema(bilingual)!), as: UTF8.self)
+            let targetSchema = String(decoding: try JSONEncoder().encode(appleResponseSchema(frenchRequest)!), as: UTF8.self)
+            check(sourceSchema.contains("river") && targetSchema.contains("French"), "Source spelling and translated field language reach the actual generation schema")
             let markdown = try appleDictionaryMarkdown([english, french], prompt: bilingual)
             check(markdown.hasPrefix("# river\n") && markdown.contains("## English") && markdown.contains("## French"), "Structured entries render one headword and canonical language headings")
             check(markdown.contains("## Nom: rivière"), "Translated word remains available for pronunciation")
@@ -264,6 +276,11 @@ func expectFailure(_ name: String, _ operation: () throws -> Void) {
             try (prompt.instructions + "\n\n--- INPUT ---\n" + prompt.input).write(to: folder.appendingPathComponent(name + ".txt"), atomically: true, encoding: .utf8)
         }
         print("\(checks) prompt and context checks passed; \(fixtures.count) prompt fixtures written")
+        // The focused audit tests semantic output rather than only successful decoding.
+        if CommandLine.arguments.contains("--live-apple-dictionary") {
+            if #available(macOS 26.4, *) { try await liveDictionary(folder: folder) }
+            else { throw HelperFailure(message: "Live Apple checks require macOS 26.4 or later") }
+        }
         // Run live dictionary and general-mode checks only when explicitly requested.
         if CommandLine.arguments.contains("--live-apple") {
             // Live auditing requires the supported tokenizer and model APIs.
@@ -377,6 +394,52 @@ func expectFailure(_ name: String, _ operation: () throws -> Void) {
     }
 
     @available(macOS 26.4, *)
+    // liveDictionary(folder): Reproduce the reported words and verify language,
+    // spelling, examples and unknown-word rejection over repeated real calls.
+    static func liveDictionary(folder: URL) async throws {
+        var failures: [String] = []
+        for iteration in 1...3 {
+            for (word, style, extras) in [("Karate", "standard", [String]()), ("record", "detailed", []), ("river", "standard", ["French"])] {
+                let name = "dictionary-\(word)-\(iteration)"
+                let start = Date()
+                do {
+                    let result = try await appleIntelligenceText(prompt: dictionaryPrompt(input: word, targetLanguage: "", style: style, extraLanguages: extras))
+                    try result.write(to: folder.appendingPathComponent("answer-" + name + ".txt"), atomically: true, encoding: .utf8)
+                    guard result.hasPrefix("# " + word + "\n"), result.contains("\n> *") else {
+                        failures.append(name + ": wrong headword or missing example"); continue
+                    }
+                    let parts = result.components(separatedBy: "## French")
+                    let recognizer = NLLanguageRecognizer()
+                    recognizer.processString(parts[0])
+                    if recognizer.dominantLanguage != .english { failures.append(name + ": wrong original language") }
+                    if !extras.isEmpty {
+                        if parts.count != 2 { failures.append(name + ": missing French section") }
+                        else {
+                            // Check the definition separately; a French headword or example must not hide English prose.
+                            let definition = parts[1].components(separatedBy: "\n").first { $0.hasPrefix("1. ") } ?? ""
+                            recognizer.reset(); recognizer.processString(definition)
+                            if recognizer.dominantLanguage != .french { failures.append(name + ": definition is not French") }
+                        }
+                    }
+                    print("\(name): \(String(format: "%.1f", Date().timeIntervalSince(start)))s")
+                } catch {
+                    failures.append(name + ": " + error.localizedDescription)
+                }
+            }
+        }
+        for word in ["qzxvplm", "zxqjvtrp"] {
+            do {
+                _ = try await appleIntelligenceText(prompt: dictionaryPrompt(input: word, targetLanguage: "", style: "short", extraLanguages: []))
+                failures.append(word + ": fabricated entry")
+            } catch {
+                if !error.localizedDescription.contains("established meaning") { failures.append(word + ": " + error.localizedDescription) }
+            }
+        }
+        guard failures.isEmpty else { throw HelperFailure(message: failures.joined(separator: "\n")) }
+        print("11 live dictionary regressions passed")
+    }
+
+    @available(macOS 26.4, *)
     // liveApple(folder): Measure representative real Apple model requests using
     // explicit live opt-in.
     static func liveApple(folder: URL) async throws {
@@ -482,6 +545,7 @@ subprocess.run(['swiftc', *swift_fixture_args(), '-O', '-parse-as-library', '-mo
 # Run compiled assertions unless the caller requested compilation only.
 if not args.compile_only:
     flags = ['--live-apple'] if args.live_apple else ['--live-apple-editing'] if args.live_apple_editing else []
+    if args.live_apple_dictionary: flags.append('--live-apple-dictionary')
     subprocess.run([str(folder / 'tests'), str(folder)] + flags,
                    check=True, timeout=750 if flags else 30)
 print(f'Artifacts: {folder}')
