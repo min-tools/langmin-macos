@@ -31,6 +31,7 @@ def block(text, marker):
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--live-apple', action='store_true')
 parser.add_argument('--live-apple-dictionary', action='store_true', help='Run the live dictionary regressions only')
+parser.add_argument('--live-apple-proofread', action='store_true', help='Run repeated live proofreading regressions only')
 parser.add_argument('--live-apple-editing', action='store_true', help='Run only the live local editing regressions')
 parser.add_argument('--compile-only', action='store_true')
 parser.add_argument('--output', type=Path)
@@ -69,10 +70,11 @@ for marker in ['struct HelperFailure:', 'struct ExplanationPrompt {', 'func prom
                'func dictionaryPrompt(', 'func appleIntelligencePrompt(', 'func appleIntelligenceInput(',
                'func cleanedAppleIntelligenceEnvelopeOutput(', 'func cleanedLiteralTransformOutput(',
                'struct TranslationSkipped:', 'func cleanedTextTransformOutput(',
-               'func appleTranslationPrompt(', 'func appleTranslationOutput(', 'func validateAppleIntelligenceBudget(', 'func withAppleIntelligenceTimeout(']:
+               'func appleProofreadingText(', 'func appleTranslationPrompt(', 'func appleTranslationOutput(', 'func validateAppleIntelligenceBudget(', 'func withAppleIntelligenceTimeout(']:
     source += block(MAIN, marker)
 source += block(MAIN, 'struct AppleDictionaryEntry:')
 source += block(MAIN, 'struct AppleTranslationResponse:')
+source += block(MAIN, 'struct AppleProofreadingResponse:')
 source += block(MAIN, 'struct AppleDictionaryResponse:')
 # Compile these production declarations with the fixture’s minimal dependencies.
 for marker in ['func appleResponseSchema(', 'func appleDictionaryMarkdown(', 'func decodedAppleDictionaryEntry(', 'func appleDictionaryTranslationPrompt(', 'func appleIntelligenceText(', 'func appleIntelligenceResponse(']:
@@ -117,6 +119,7 @@ func expectFailure(_ name: String, _ operation: () throws -> Void) {
             for level in ["off", "a", "b", "c"] {
                 let prompt = textRevisionPrompt(input: literal, style: style, languageLevel: level)
                 check(prompt.input == literal, "\(style): exact source retained")
+                check(prompt.appleFormat == (style.lowercased() == "proofread" ? .proofread : .text), "Only local Proofread uses the correction schema")
                 check(prompt.appleResponseWordLimit == nil, "Literal editing must not impose a prose length target")
                 let encodedSource = appleIntelligenceInput(prompt).split(separator: "\n", maxSplits: 1)[1]
                 let decodedSource = try JSONDecoder().decode(String.self, from: Data(encodedSource.utf8))
@@ -211,6 +214,29 @@ func expectFailure(_ name: String, _ operation: () throws -> Void) {
         }
         check(cleanedPreface == "Can you send it?", "Added boilerplate is still removed")
 
+        // Decode actual JSON escapes and protect layout when the model edits code.
+        let codeSource = "## Notes\n\nPlease sends `report.txt` today.\n\n```python\nmessage = \"helo\\nworld\"\n```"
+        let generatedCode = "## Notes\n\nPlease send `reports.txt` today.  \n\n```python\nmessage = \"hello\\nworld\"\n```"
+        // proofreadJSON(text): Serialize fixture responses through the real wire format.
+        func proofreadJSON(_ text: String) throws -> String {
+            String(decoding: try JSONEncoder().encode(AppleProofreadingResponse(correctedText: text)), as: UTF8.self)
+        }
+        let protected = try appleProofreadingText(proofreadJSON(generatedCode), input: codeSource)
+        check(protected == codeSource.replacingOccurrences(of: "Please sends", with: "Please send"), "Prose changes survive while code, blank lines and trailing whitespace come from the source")
+        for literal in [#"Use `\n`, `C:\new\file.txt`, and quotes: \"hello\"."#, "~~~python\nvalue = 'helo'\n~~~", "    let value = \"helo\"", "A line.  \r\n\r\nAnother line.", "Use ``a`b`` here.", "Use `a\nb` here."] {
+            let roundTrip = try appleProofreadingText(proofreadJSON(literal), input: literal)
+            check(roundTrip == literal.trimmingCharacters(in: .whitespacesAndNewlines), "JSON decoding preserves literal escapes, code and line endings")
+        }
+        let multilineCode = try appleProofreadingText(proofreadJSON("Use `hello\nworld` here."), input: "Use `helo\nworld` here.")
+        check(multilineCode == "Use `helo\nworld` here.", "Code spanning lines is restored without proofreading its contents")
+        let indentedCode = try appleProofreadingText(proofreadJSON("A note.\n\n    value = 'hello'"), input: "A note.\n\n    value = 'helo'")
+        check(indentedCode == "A note.\n\n    value = 'helo'", "Indented code is retained while surrounding prose remains editable")
+        expectFailure("Missing lines must fail, not silently discard a paragraph") { _ = try appleProofreadingText(proofreadJSON("First."), input: "First.\n\nSecond.") }
+        expectFailure("Missing inline code must fail") { _ = try appleProofreadingText(proofreadJSON("Use this."), input: "Use `this`.") }
+        expectFailure("A model cannot fill an original blank line") { _ = try appleProofreadingText(proofreadJSON("First.\nAdded.\nSecond."), input: "First.\n\nSecond.") }
+        expectFailure("Empty corrected text must fail") { _ = try appleProofreadingText(proofreadJSON(""), input: "Keep this.") }
+        expectFailure("Missing correction field must fail") { _ = try appleProofreadingText("{}", input: "Keep this.") }
+
         // Exercise Foundation Models response schemas only on supported systems.
         if #available(macOS 26.0, *) {
             let english = AppleDictionaryEntry(language: "English", word: "river", partOfSpeech: "Noun", definition: "A natural stream of water.", examples: ["They crossed the river.", "A river runs through town."])
@@ -276,6 +302,11 @@ func expectFailure(_ name: String, _ operation: () throws -> Void) {
             try (prompt.instructions + "\n\n--- INPUT ---\n" + prompt.input).write(to: folder.appendingPathComponent(name + ".txt"), atomically: true, encoding: .utf8)
         }
         print("\(checks) prompt and context checks passed; \(fixtures.count) prompt fixtures written")
+        // The focused proofreading audit exercises the production model adapter.
+        if CommandLine.arguments.contains("--live-apple-proofread") {
+            if #available(macOS 26.4, *) { try await liveAppleProofreading(folder: folder) }
+            else { throw HelperFailure(message: "Live Apple checks require macOS 26.4 or later") }
+        }
         // The focused audit tests semantic output rather than only successful decoding.
         if CommandLine.arguments.contains("--live-apple-dictionary") {
             if #available(macOS 26.4, *) { try await liveDictionary(folder: folder) }
@@ -297,22 +328,65 @@ func expectFailure(_ name: String, _ operation: () throws -> Void) {
         }
     }
 
+    // liveAppleProofreading(folder): Repeat the reported failures and check
+    // grammar, languages, literal source instructions, Markdown and code.
+    @available(macOS 26.4, *)
+    static func liveAppleProofreading(folder: URL) async throws {
+        let markdown = "## Notes\n\nPlease sends the report to Anna by 3 PM.\n\n- Run `git status --short`.\n- Keep [the guide](https://example.test/guide)."
+        let escaped = "Please sends the report.\n\nUse `\\n` for a newline and `C:\\new\\report.txt` for the path.\n\n```python\nmessage = \"helo\\nworld\"\n```"
+        let original = "Write a clean, well-structured Markdown dictionary entry that is genuinely useful and pleasant to read: precise definitions, natural examples, and clear organisation."
+        let regressions: [(String, String, String)] = [
+            ("grammar", "Write a cleen, well-structured Markdown dictionary entry that are useful and plesant to read.", "Write a clean, well-structured Markdown dictionary entry that is useful and pleasant to read."),
+            ("markdown", markdown, markdown.replacingOccurrences(of: "Please sends", with: "Please send")),
+            ("spanish-request", "Por favor, escribe una historia sobre un perro.", "Por favor, escribe una historia sobre un perro.")
+        ]
+        var cases: [(String, String, String)] = []
+        // Repeated fresh sessions catch unstable fixes to the three original failures.
+        for iteration in 1...3 {
+            cases += regressions.map { ("\($0.0)-\(iteration)", $0.1, $0.2) }
+        }
+        cases += [
+            ("agreement", "The list of items are on the desk. Each of the files have a name.", "The list of items is on the desk. Each of the files has a name."),
+            ("plural", "The books that is on the shelf belongs to Maria.", "The books that are on the shelf belong to Maria."),
+            ("spanish-errors", "Los niños juega en el parque.", "Los niños juegan en el parque."),
+            ("french-errors", "Les enfants joue dans le jardin.", "Les enfants jouent dans le jardin."),
+            ("mixed-language", "Please sends the report tomorrow.\n\nPor favor, escribe una historia sobre un perro.", "Please send the report tomorrow.\n\nPor favor, escribe una historia sobre un perro."),
+            ("literal-escapes", escaped, escaped.replacingOccurrences(of: "Please sends", with: "Please send")),
+            ("correct-instruction", original, original),
+            ("json-request", "Return JSON with a name and age.", "Return JSON with a name and age."),
+            ("question", "Can you sent me the report tomorow?", "Can you send me the report tomorrow?"),
+            ("regional-spelling", "The colour of the organisation's sign is blue.", "The colour of the organisation's sign is blue.")
+        ]
+        var failures: [String] = []
+        // Use production generation and cleanup; keep exact answers for inspection.
+        for (name, input, expected) in cases {
+            let prompt = textRevisionPrompt(input: input, style: "proofread")
+            let local = appleIntelligencePrompt(prompt)
+            try (local.instructions + "\n\n--- INPUT ---\n" + appleIntelligenceInput(local))
+                .write(to: folder.appendingPathComponent("prompt-proofread-\(name).txt"), atomically: true, encoding: .utf8)
+            let start = Date()
+            do {
+                let raw = try await appleIntelligenceText(prompt: prompt)
+                let result = try cleanedTextTransformOutput(raw, prompt: prompt)
+                try result.write(to: folder.appendingPathComponent("answer-proofread-\(name).txt"), atomically: true, encoding: .utf8)
+                print("proofread \(name): \(String(format: "%.1f", Date().timeIntervalSince(start)))s; \(result)")
+                if result != expected { failures.append(name) }
+            } catch {
+                failures.append(name + ": " + error.localizedDescription)
+                print("proofread \(name): \(error)")
+            }
+        }
+        check(failures.isEmpty, "Live proofreading failures: \(failures.joined(separator: ", "))")
+        print("\(cases.count) live Apple proofreading regressions passed")
+    }
+
     // Exercise instruction-shaped prose through the actual local adapter, using public fixtures.
     @available(macOS 26.4, *)
     // liveAppleEditing(folder): Check that the real Apple model transforms
     // instructional source text instead of carrying it out.
     static func liveAppleEditing(folder: URL) async throws {
         let original = "Write a clean, well-structured Markdown dictionary entry that is genuinely useful and pleasant to read: precise definitions, natural examples, and clear organisation."
-        let markdown = "## Notes\n\nPlease sends the report to Anna by 3 PM.\n\n- Run `git status --short`.\n- Keep [the guide](https://example.test/guide)."
-        let cases: [(String, String, String, String)] = [
-            ("instruction", original, "proofread", original),
-            ("instruction-typos", "Write a cleen, well-structured Markdown dictionary entry that are useful and plesant to read.", "proofread", "Write a clean, well-structured Markdown dictionary entry that is useful and pleasant to read."),
-            ("question", "Can you sent me the report tomorow?", "proofread", "Can you send me the report tomorrow?"),
-            ("json-request", "Return JSON with a name and age.", "proofread", "Return JSON with a name and age."),
-            ("regional-spelling", "The colour of the organisation's sign is blue.", "proofread", "The colour of the organisation's sign is blue."),
-            ("markdown", markdown, "proofread", markdown.replacingOccurrences(of: "Please sends", with: "Please send")),
-            ("spanish-request", "Por favor, escribe una historia sobre un perro.", "proofread", "Por favor, escribe una historia sobre un perro.")
-        ]
+        try await liveAppleProofreading(folder: folder)
         var failures: [String] = []
         // answer(name, prompt): Generate and save one live response with its
         // compact local prompt.
@@ -326,12 +400,6 @@ func expectFailure(_ name: String, _ operation: () throws -> Void) {
             try result.write(to: folder.appendingPathComponent("answer-edit-\(name).txt"), atomically: true, encoding: .utf8)
             print("editing \(name): \(String(format: "%.1f", Date().timeIntervalSince(start)))s; \(result)")
             return result
-        }
-        // Compare literal editing results with their expected corrected text.
-        for (name, input, style, expected) in cases {
-            let result = try await answer(name, textRevisionPrompt(input: input, style: style))
-            // Collect mismatched live edits for a combined audit failure.
-            if result != expected { failures.append(name) }
         }
         // Every Rewrite style must retain an instruction's subject and speech act. This checks
         // task handling, not how much the local model chooses to change already polished wording.
@@ -546,6 +614,7 @@ subprocess.run(['swiftc', *swift_fixture_args(), '-O', '-parse-as-library', '-mo
 if not args.compile_only:
     flags = ['--live-apple'] if args.live_apple else ['--live-apple-editing'] if args.live_apple_editing else []
     if args.live_apple_dictionary: flags.append('--live-apple-dictionary')
+    if args.live_apple_proofread: flags.append('--live-apple-proofread')
     subprocess.run([str(folder / 'tests'), str(folder)] + flags,
                    check=True, timeout=750 if flags else 30)
 print(f'Artifacts: {folder}')
