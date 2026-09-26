@@ -301,6 +301,33 @@ final class ResultEditorToolbarView: NSView {
     }
 }
 
+// Align the paragraph label and match the font-size arrows' trailing space.
+private final class ResultParagraphPopUpButtonCell: NSPopUpButtonCell {
+    static let trailingInset: CGFloat = 4
+
+    // drawTitle(title, frame, controlView): Raise only the label by one point
+    // so the arrows and clickable area retain their native positions.
+    override func drawTitle(_ title: NSAttributedString, withFrame frame: NSRect, in controlView: NSView) -> NSRect {
+        super.drawTitle(title, withFrame: frame.offsetBy(dx: 0, dy: controlView.isFlipped ? -1 : 1), in: controlView)
+    }
+
+    // draw(cellFrame, controlView): Inset the native label and arrows
+    // while leaving the full control clickable.
+    override func draw(withFrame cellFrame: NSRect, in controlView: NSView) {
+        var contentFrame = cellFrame
+        contentFrame.size.width = max(0, contentFrame.width - Self.trailingInset)
+        super.draw(withFrame: contentFrame, in: controlView)
+    }
+}
+
+// Align the font-size label with the neighboring paragraph label.
+private final class ResultFontSizePopUpButtonCell: NSPopUpButtonCell {
+    // drawTitle(title, frame, controlView): Raise only the label by half a point.
+    override func drawTitle(_ title: NSAttributedString, withFrame frame: NSRect, in controlView: NSView) -> NSRect {
+        super.drawTitle(title, withFrame: frame.offsetBy(dx: 0, dy: controlView.isFlipped ? -0.5 : 0.5), in: controlView)
+    }
+}
+
 // A temporary rich-text draft. Only Done writes back to the result.
 final class ResultTextEditorView: NSView, NSTextViewDelegate, NSPopoverDelegate {
     let input = ResultEditorTextView()
@@ -313,6 +340,7 @@ final class ResultTextEditorView: NSView, NSTextViewDelegate, NSPopoverDelegate 
     let toolbarControls = ResultEditorToolbarView()
     let styleMenu = NSPopUpButton()
     let sizeMenu = NSPopUpButton()
+    private var styleWidth: NSLayoutConstraint!
     var linkPopover: NSPopover?
     private var overflowFormatKeys: [String] = []
     private var overflowHasStyles = false
@@ -371,6 +399,7 @@ final class ResultTextEditorView: NSView, NSTextViewDelegate, NSPopoverDelegate 
         }
         // Let preferred widths include padding without increasing the window's fitting width.
         let flexibleWidth = NSLayoutConstraint.Priority(rawValue: NSLayoutConstraint.Priority.fittingSizeCompression.rawValue - 1)
+        styleMenu.cell = ResultParagraphPopUpButtonCell(textCell: "", pullsDown: false)
         styleMenu.addItems(withTitles: ["Paragraph", "Heading 1", "Heading 2", "Heading 3", "Bullet List", "Numbered List", "Quote"])
         styleMenu.target = self
         styleMenu.action = #selector(changeParagraphStyle(_:))
@@ -380,7 +409,8 @@ final class ResultTextEditorView: NSView, NSTextViewDelegate, NSPopoverDelegate 
         styleMenu.font = .systemFont(ofSize: 13)
         styleMenu.translatesAutoresizingMaskIntoConstraints = false
         styleMenu.heightAnchor.constraint(equalToConstant: 28).isActive = true
-        let styleWidth = styleMenu.widthAnchor.constraint(equalToConstant: 120)
+        // Selection refresh includes label, native arrow and trailing padding.
+        styleWidth = styleMenu.widthAnchor.constraint(equalToConstant: 0)
         styleWidth.priority = flexibleWidth
         styleWidth.isActive = true
         styleMenu.setContentHuggingPriority(.init(1), for: .horizontal)
@@ -388,6 +418,7 @@ final class ResultTextEditorView: NSView, NSTextViewDelegate, NSPopoverDelegate 
         let styles = ResultToolbarButtonGroup()
         styles.addButton(styleMenu)
         // Point sizes apply to the selection; the paragraph menu remains independent.
+        sizeMenu.cell = ResultFontSizePopUpButtonCell(textCell: "", pullsDown: false)
         sizeMenu.addItem(withTitle: "—")
         sizeMenu.lastItem?.isEnabled = false
         // Populate the font-size menu with supported common point sizes.
@@ -484,7 +515,7 @@ final class ResultTextEditorView: NSView, NSTextViewDelegate, NSPopoverDelegate 
             // current toolbar compaction choices.
             func requiredWidth() -> CGFloat {
                 let widths: [CGFloat] = [hideStrike ? 96 : 128, hideScripts ? 0 : 64, 64,
-                    hideParagraphs ? 0 : 96, hideStyle ? 56 : 176,
+                    hideParagraphs ? 0 : 96, hideStyle ? 56 : self.styleWidth.constant + 56,
                     hideParagraphs ? 32 : 0, compact ? 64 : completionWidth]
                 let visible = widths.filter { $0 > 0 }
                 return visible.reduce(0, +) + CGFloat(visible.count - 1) * 12
@@ -830,6 +861,16 @@ final class ResultTextEditorView: NSView, NSTextViewDelegate, NSPopoverDelegate 
             sizeMenu.selectItem(at: 0)
         }
         styleMenu.selectItem(at: paragraphs.first ?? 0)
+        // Keep the arrows beside the selected label instead of reserving empty space.
+        let title = styleMenu.titleOfSelectedItem ?? ""
+        let menuFont = styleMenu.font ?? .systemFont(ofSize: 13)
+        let width = ceil((title as NSString).size(withAttributes: [.font: menuFont]).width)
+            + 28 + ResultParagraphPopUpButtonCell.trailingInset
+        // Refit the toolbar only when changing paragraph styles changes its width.
+        if styleWidth.constant != width {
+            styleWidth.constant = width
+            toolbarControls.needsLayout = true
+        }
     }
 
     private var selectedParagraphChoices: [Int] {
