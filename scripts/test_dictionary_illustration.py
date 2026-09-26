@@ -225,6 +225,9 @@ final class SettingsLayoutFixture: NSObject {
  var advancedInstructionsSeparator = NSBox()
  var settingsSeparators: [ObjectIdentifier: NSBox] = [:]
  var settingsInfoTooltips: [ObjectIdentifier: String] = [:]
+ // Other Settings sections may register a collapsible narration row.
+ var autoNarrateModesView: NSStackView?
+ var autoNarrateModesRow: NSGridRow?
  // selectPreferencesSection(sender): Keep this production dependency inactive
  // in the isolated fixture.
  @objc func selectPreferencesSection(_ sender: NSButton) {}

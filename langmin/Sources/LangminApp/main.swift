@@ -14513,6 +14513,9 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
     var transcriptionSettings: TranscriptionSettingsControls!
     // Auto-Narrate mode checkboxes, keyed by mode id (see autoNarrateModeOptions).
     var autoNarrateModeButtons: [String: NSButton] = [:]
+    // Keep the mode controls and their label in one collapsible form row.
+    var autoNarrateModesView: NSStackView!
+    var autoNarrateModesRow: NSGridRow?
     var resetButton: NSButton!
     // Show the current Pro access state without repeating purchase controls in Settings.
     var proStatusLabel: NSTextField!
@@ -14801,6 +14804,8 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
         narrateBeforeOpenBox.font = NSFont.systemFont(ofSize: 13)
         narrateBeforeOpenBox.menu = makeReaderChoiceMenu()
         narrateBeforeOpenBox.refusesFirstResponder = false
+        narrateBeforeOpenBox.target = self
+        narrateBeforeOpenBox.action = #selector(narrationDefaultChanged(_:))
         narrateBeforeOpenBox.translatesAutoresizingMaskIntoConstraints = false
         settingsInfoTooltips[ObjectIdentifier(narrateBeforeOpenBox)] = "Create narration before showing a result. Choose None to add audio later. This list uses your Reader Voices selection."
 
@@ -14882,11 +14887,14 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
         let autoNarrateModesRow2 = NSStackView(views: Array(autoNarrateModeButtonsOrdered.dropFirst(3)))
         autoNarrateModesRow2.orientation = .horizontal
         autoNarrateModesRow2.spacing = 16
+        autoNarrateModesView = NSStackView(views: [autoNarrateModesRow1, autoNarrateModesRow2])
+        autoNarrateModesView.orientation = .vertical
+        autoNarrateModesView.alignment = .leading
+        autoNarrateModesView.spacing = 10
         addSettingsTab(.reading, rows: [
             ("Reader Voices", voiceBox),
             ("Auto-Narrate", narrateBeforeOpenBox),
-            ("Apply To", autoNarrateModesRow1),
-            ("", autoNarrateModesRow2),
+            ("Apply To", autoNarrateModesView),
             ("Dictionary Voice", dictionaryVoiceBox)
         ])
         // Give transcription and illustration providers their own settings
@@ -15079,6 +15087,10 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
         // Choose vertical alignment for each form row according to its control layout.
         for rowIndex in 0..<grid.numberOfRows {
             let control = rows[rowIndex].1
+            // Collapse the Apply To label and both checkbox lines together.
+            if control === autoNarrateModesView {
+                autoNarrateModesRow = grid.row(at: rowIndex)
+            }
             let isVerticalStack = (control as? NSStackView)?.orientation == .vertical
             let isWrappingNote = (control as? NSTextField)?.maximumNumberOfLines == 0
             let isScrollView = control is NSScrollView
@@ -15339,6 +15351,22 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
         let current = selectedReaderChoiceID(narrateBeforeOpenBox)
         narrateBeforeOpenBox.menu = makeReaderChoiceMenu(allowed: voiceBox.selectedIDs)
         selectReaderChoice(narrateBeforeOpenBox, id: current)
+        syncAutoNarrateModeVisibility()
+    }
+
+    // syncAutoNarrateModeVisibility(): Hide mode choices when no voice is
+    // selected, retaining their states for the next time narration is enabled.
+    func syncAutoNarrateModeVisibility() {
+        let hidden = selectedReaderChoiceID(narrateBeforeOpenBox) == "none"
+        autoNarrateModesRow?.isHidden = hidden
+        // Hidden descendants must also leave the keyboard focus cycle.
+        autoNarrateModesView?.isHidden = hidden
+    }
+
+    // narrationDefaultChanged(sender): Update the form immediately after the
+    // Auto-Narrate voice changes.
+    @objc func narrationDefaultChanged(_ sender: Any?) {
+        syncAutoNarrateModeVisibility()
     }
 
     // rebuildDictionaryVoiceMenu(): Same, for the Dictionary Voice picker.
@@ -15653,6 +15681,7 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
         // Restore the saved voice if it is in the shortlist; otherwise select None.
         narrateBeforeOpenBox.menu = makeReaderChoiceMenu(allowed: voiceBox.selectedIDs)
         selectReaderChoice(narrateBeforeOpenBox, id: preferences.launcherReader)
+        syncAutoNarrateModeVisibility()
         dictionaryVoiceBox.menu = makeReaderChoiceMenu(allowed: voiceBox.selectedIDs)
         selectReaderChoice(dictionaryVoiceBox, id: preferences.dictionaryVoice)
         // Restore each automatic-narration checkbox from the saved mode selection.

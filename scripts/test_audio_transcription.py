@@ -126,6 +126,9 @@ final class SettingsLayoutFixture: NSObject, NSTextFieldDelegate {
     var advancedInstructionsSeparator = NSBox()
     var settingsSeparators: [ObjectIdentifier: NSBox] = [:]
     var settingsInfoTooltips: [ObjectIdentifier: String] = [:]
+    // Other Settings sections may register a collapsible narration row.
+    var autoNarrateModesView: NSStackView?
+    var autoNarrateModesRow: NSGridRow?
     // updateAPIKeyPlaceholders(): Exercise page selection without reading
     // credentials or moving focus into mock forms.
     func updateAPIKeyPlaceholders() {}
