@@ -515,6 +515,39 @@ select("A new heading", in: heading)
 heading.styleMenu.selectItem(at: 2)
 heading.changeParagraphStyle(heading.styleMenu)
 check(heading.markdown == "## A new heading", "Heading style exports Markdown")
+// Switching paragraph styles must update both the font and its displayed size,
+// including text with a previously chosen inline font size.
+let sizingSession = ViewerSession()
+sizingSession.config = ViewerConfig(textPath: "", fontSize: 14, audioPath: "", title: "Sizing fixture", cleanupDir: "")
+for origin in ["plain", "resized", "saved", "code", "superscript"] {
+ let text = "Style size"
+ let markdown = origin == "saved" ? "<span style=\"font-size: 18pt\">Style size</span>" : text
+ let styleSizing = ResultTextEditorView(markdown: markdown,
+  text: sizingSession.markdownAttributedText(from: markdown, forEditing: true), fontSize: 14)
+ select(text, in: styleSizing)
+ // Reproduce stored sizes from manual resizing, saved text, code and script formatting.
+ if origin == "resized" || origin == "superscript" { styleSizing.setFontSize(18) }
+ if origin == "code" { styleSizing.format("code") }
+ if origin == "superscript" { styleSizing.format("sup") }
+ for (choice, expected) in [(2, 18), (3, 16), (1, 21), (0, 14), (4, 14), (5, 14), (6, 14), (2, 18)] {
+  styleSizing.styleMenu.selectItem(at: choice)
+  styleSizing.changeParagraphStyle(styleSizing.styleMenu)
+  let actual = attributes(text, in: styleSizing.input.attributedString())
+  let glyphSize = CGFloat(expected) * (origin == "superscript" ? 0.72 : 1)
+  check(abs((actual[.font] as! NSFont).pointSize - glyphSize) < 0.01, "Paragraph style \(choice) uses the correct glyph size for \(origin) text")
+  check(ResultTextFormatting.baseSize(in: actual) == CGFloat(expected), "Paragraph style \(choice) uses \(expected) base points for \(origin) text")
+  check(styleSizing.sizeMenu.title == String(expected), "Paragraph style \(choice) displays \(expected) points for \(origin) text")
+  let reopened = sizingSession.markdownAttributedText(from: styleSizing.markdown)
+  check(abs((attributes(text, in: reopened)[.font] as! NSFont).pointSize - glyphSize) < 0.01, "Paragraph style \(choice) retains its font size when reopened for \(origin) text")
+  // End the native event's undo group, as separate menu clicks do in the app.
+  RunLoop.main.run(until: Date().addingTimeInterval(0.01))
+ }
+ // Style changes must remain undoable after replacing an explicit inline size.
+ styleSizing.input.undoManager!.undo()
+ check(styleSizing.sizeMenu.title == "14", "Undo restores the previous paragraph size for \(origin) text")
+ styleSizing.input.undoManager!.redo()
+ check(styleSizing.sizeMenu.title == "18", "Redo restores the heading size for \(origin) text")
+}
 let blank = editor("")
 blank.styleMenu.selectItem(at: 1)
 blank.changeParagraphStyle(blank.styleMenu)

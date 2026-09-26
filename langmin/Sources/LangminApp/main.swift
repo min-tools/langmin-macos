@@ -9599,7 +9599,7 @@ final class ViewerSession: NSObject, AVAudioPlayerDelegate, NSWindowDelegate, NS
         )
         var attributes = viewerTextAttributes(
             weight: .semibold,
-            size: config.fontSize * scale,
+            size: (config.fontSize * scale).rounded(),
             paragraphStyle: style
         )
         attributes[.resultEditorHeading] = clampedLevel

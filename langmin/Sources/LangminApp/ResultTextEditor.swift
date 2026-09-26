@@ -818,11 +818,12 @@ final class ResultTextEditorView: NSView, NSTextViewDelegate, NSPopoverDelegate 
             }
         }
         let sizes = selection.map { ResultTextFormatting.baseSize(in: $0) }
-        // Display the selected point size when all runs agree within the rounding tolerance.
+        // Display whole points when the selected runs share the same font size.
         if let size = sizes.first, sizes.allSatisfy({ abs($0 - size) < 0.05 }) {
-            let title = size == size.rounded() ? String(Int(size)) : String(format: "%.1f", Double(size))
-            sizeMenu.item(at: 0)?.title = title
-            sizeMenu.selectItem(at: sizeMenu.itemArray.firstIndex { ($0.representedObject as? CGFloat) == size } ?? 0)
+            // Round imported fractional sizes for display without changing their text.
+            let displayedSize = size.rounded()
+            sizeMenu.item(at: 0)?.title = String(Int(displayedSize))
+            sizeMenu.selectItem(at: sizeMenu.itemArray.firstIndex { ($0.representedObject as? CGFloat) == displayedSize } ?? 0)
         } else {
             // Use a mixed-value marker when selected runs have different font sizes.
             sizeMenu.item(at: 0)?.title = "—"
@@ -878,7 +879,7 @@ final class ResultTextEditorView: NSView, NSTextViewDelegate, NSPopoverDelegate 
             style.lineSpacing = 3
             style.paragraphSpacing = 12
             let level = (1...3).contains(choice) ? choice : 0
-            let size = fontSize * ([1: 1.5, 2: 1.3, 3: 1.16][level] ?? 1)
+            let size = (fontSize * ([1: 1.5, 2: 1.3, 3: 1.16][level] ?? 1)).rounded()
             var attributes: [NSAttributedString.Key: Any] = [
                 .font: NSFont.systemFont(ofSize: size, weight: level > 0 ? .semibold : .regular),
                 .foregroundColor: NSColor.labelColor, .paragraphStyle: style
@@ -930,7 +931,7 @@ final class ResultTextEditorView: NSView, NSTextViewDelegate, NSPopoverDelegate 
         }
         let full = NSRange(location: 0, length: fragment.length)
         let level = (1...3).contains(choice) ? choice : 0
-        let size = fontSize * ([1: 1.5, 2: 1.3, 3: 1.16][level] ?? 1)
+        let size = (fontSize * ([1: 1.5, 2: 1.3, 3: 1.16][level] ?? 1)).rounded()
         let beforeStyle = NSAttributedString(attributedString: fragment)
         beforeStyle.enumerateAttributes(in: full) { attributes, run, _ in
             let previous = attributes[.font] as? NSFont ?? NSFont.systemFont(ofSize: fontSize)
@@ -945,6 +946,8 @@ final class ResultTextEditorView: NSView, NSTextViewDelegate, NSPopoverDelegate 
             updated[.font] = font
             updated[.foregroundColor] = attributes[.link] == nil ? NSColor.labelColor : NSColor.linkColor
             updated[.paragraphStyle] = style
+            // Replace a stored inline size so it cannot override the new paragraph style.
+            if attributes[.resultEditorFontSize] != nil { updated[.resultEditorFontSize] = size }
             updated.removeValue(forKey: .resultEditorScriptBaseSize)
             fragment.setAttributes(ResultTextFormatting.typography(updated), range: run)
         }
