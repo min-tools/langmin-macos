@@ -118,6 +118,7 @@ let preferencesStore = langminPreferencesStore()
 enum PreferenceKey {
     static let explanationModel = "explanationModel"
     static let modeTextModels = "modeTextModels"
+    static let modeThinking = "modeThinking"
     static let preferredTextModels = "preferredTextModels"
     static let customBaseURL = "customBaseURL"
     static let customModelName = "customModelName"
@@ -3331,6 +3332,8 @@ struct AppPreferences {
     var explanationModel: String = defaultExplanationModel
     // Mode assignments also apply to global shortcuts and selected-text Services.
     var modeTextModels: [String: String] = [:]
+    // Thinking choices belong to modes, independently of their selected models.
+    var modeThinking: [String: String] = [:]
     var preferredTextModels: [String] = defaultPreferredTextModelIDs
     var customBaseURL: String = defaultCustomBaseURL
     var customModelName: String = defaultCustomModelName
@@ -3627,6 +3630,7 @@ func loadAppPreferences() -> AppPreferences {
             fallback: defaultExplanationModel
         ),
         modeTextModels: preferencesStore.dictionary(forKey: PreferenceKey.modeTextModels) as? [String: String] ?? [:],
+        modeThinking: preferencesStore.dictionary(forKey: PreferenceKey.modeThinking) as? [String: String] ?? [:],
         preferredTextModels: preferredTextModels,
         customBaseURL: storedPreferenceString(
             PreferenceKey.customBaseURL,
@@ -3923,6 +3927,7 @@ func selectedPreferenceID(
 func writePreferences(_ preferences: AppPreferences, launcherPreferences: LauncherPreferences) {
     preferencesStore.set(preferences.explanationModel, forKey: PreferenceKey.explanationModel)
     preferencesStore.set(preferences.modeTextModels, forKey: PreferenceKey.modeTextModels)
+    preferencesStore.set(preferences.modeThinking, forKey: PreferenceKey.modeThinking)
     preferencesStore.set(
         encodeTextModelList(preferences.preferredTextModels),
         forKey: PreferenceKey.preferredTextModels
@@ -4522,6 +4527,36 @@ struct StructuredExplanation: Decodable {
 
 // Prepared text request, with optional native conversation history.
 struct ExplanationPrompt {
+    // Provider capability checks expose only distinct, supported effort levels.
+    enum Thinking: String, CaseIterable {
+        case automatic, off, low, medium, high
+
+        // Localized labels shared by the mode menu and its selection page.
+        var title: String {
+            switch self {
+            // Automatic applies the task policy without pinning every mode.
+            case .automatic: return localized("thinking_automatic", "Automatic")
+            // Off is offered only when the provider can disable reasoning.
+            case .off: return localized("thinking_off", "Off")
+            // The remaining labels correspond to explicit API effort levels.
+            case .low: return localized("thinking_low", "Low")
+            case .medium: return localized("thinking_medium", "Medium")
+            case .high: return localized("thinking_high", "High")
+            }
+        }
+
+        // API effort spelling differs from the user-facing Off label.
+        var apiEffort: String? {
+            switch self {
+            // Automatic is resolved by the app, never sent as an API effort.
+            case .automatic: return nil
+            case .off: return "none"
+            default: return rawValue
+            }
+        }
+    }
+    // A missing choice uses Automatic at request creation.
+    var thinking: Thinking? = nil
     // Select the local model's expected output format for parsing and rendering.
     enum LocalFormat { case text, proofread, explanation, dictionary, translation }
     // Identify source-text transformations separately from tasks that generate new content.
@@ -4547,12 +4582,6 @@ struct ExplanationPrompt {
     // A local dictionary translation fills one language-specific schema at a time.
     var appleDictionaryTranslationCode: String? = nil
     var appleSourceTask: LocalSourceTask? = nil
-
-    // Source-task metadata also identifies cloud edits and lookups that should
-    // favor a quick response. Explain and follow-ups retain provider defaults.
-    var prefersLowLatencyResponse: Bool {
-        conversationMessages.isEmpty && (appleSourceTask != nil || appleFormat == .dictionary)
-    }
 
     // Keep single-turn input unchanged and preserve speaker roles for follow-ups.
     var messages: [TextConversationMessage] {
@@ -6146,11 +6175,12 @@ func startExplanationRequest(
         ),
         emptyMessage: "The selected text model returned an empty explanation.",
         research: research,
+        mode: "explain",
         completion: completion
     )
 }
 
-// startTextRequest(model, prompt, emptyMessage, [research = false],
+// startTextRequest(model, prompt, emptyMessage, [research = false], [mode = nil],
 // completion): Start one native text-generation request and return its
 // cancellable task.
 func startTextRequest(
@@ -6158,10 +6188,19 @@ func startTextRequest(
     prompt: ExplanationPrompt,
     emptyMessage: String,
     research: Bool = false,
+    mode: String? = nil,
     completion: @escaping (Result<String, Error>) -> Void
 ) throws -> TextRequestHandle {
     // Route remote models through their provider implementation.
-    if textProvider(for: model).provider != .apple {
+    let resolved = textProvider(for: model)
+    if resolved.provider != .apple {
+        var prompt = prompt
+        // Resolve the saved mode choice once so an in-flight request is stable.
+        if let mode {
+            let preferences = loadAppPreferences()
+            prompt.thinking = cloudThinkingSelection(preferences.modeThinking[mode], provider: resolved.provider,
+                                                    model: resolved.model, preferences: preferences)
+        }
         return try startCloudTextRequest(model: model, prompt: prompt, emptyMessage: emptyMessage,
                                          research: research, completion: completion)
     }
@@ -15924,6 +15963,7 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
         return AppPreferences(
             explanationModel: nonEmpty(explanationModel, fallback: defaultExplanationModel),
             modeTextModels: live.modeTextModels,
+            modeThinking: live.modeThinking,
             preferredTextModels: preferredTextModels,
             customBaseURL: customBaseURLField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines),
             customModelName: customModelField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -21556,8 +21596,63 @@ final class LauncherController: NSObject, NSWindowDelegate, NSTextFieldDelegate,
                     return .push(self.modelSelectionPage(mode: mode))
                 }
             )))
+            let resolved = textProvider(for: model)
+            // Offer thinking only when the selected model and endpoint support it.
+            if let thinking = cloudThinkingSelection(preferences.modeThinking[mode], provider: resolved.provider,
+                                                     model: resolved.model, preferences: preferences) {
+                rows.append(.item(PaletteItem(
+                    id: "mode-thinking",
+                    title: localized("thinking", "Thinking"),
+                    detail: thinking.title,
+                    chevron: true,
+                    action: { [weak self] in
+                        // A released launcher cannot open a new thinking page.
+                        guard let self else { return .close }
+                        return .push(self.thinkingSelectionPage(mode: mode))
+                    }
+                )))
+            }
             return rows
         })
+    }
+
+    // thinkingSelectionPage(mode): Show the saved mode choice independently
+    // of the model shortlist and other modes' settings.
+    func thinkingSelectionPage(mode: String) -> PalettePage {
+        PalettePage(rows: { [weak self] _ in
+            // Closed launchers no longer supply interactive settings rows.
+            guard let self else { return [] }
+            let preferences = loadAppPreferences()
+            let model = enabledExplanationModel(for: mode, preferences: preferences,
+                                               globalModel: self.globalModelIDForRun(preferences: preferences))
+            let resolved = textProvider(for: model)
+            let choices = cloudThinkingOptions(provider: resolved.provider, model: resolved.model, preferences: preferences)
+            let current = cloudThinkingSelection(preferences.modeThinking[mode], provider: resolved.provider,
+                                                 model: resolved.model, preferences: preferences)
+            return [.header(localized("thinking", "Thinking"))] + choices.map { choice in
+                .item(PaletteItem(id: choice.rawValue, title: choice.title, checked: choice == current, action: { [weak self] in
+                    self?.selectThinking(choice, for: mode)
+                    return .close
+                }))
+            }
+        })
+    }
+
+    // selectThinking(choice, mode): Persist a valid mode's thinking choice,
+    // rechecking availability in case an open menu became stale.
+    func selectThinking(_ choice: ExplanationPrompt.Thinking, for mode: String) {
+        var preferences = loadAppPreferences()
+        // Running requests and unknown modes cannot change saved choices.
+        guard !isGenerating, launcherModeOptions.contains(where: { $0.id == mode }) else { return }
+        let model = enabledExplanationModel(for: mode, preferences: preferences,
+                                           globalModel: globalModelIDForRun(preferences: preferences))
+        let resolved = textProvider(for: model)
+        // Model or endpoint changes can invalidate an already-open menu.
+        guard cloudThinkingOptions(provider: resolved.provider, model: resolved.model, preferences: preferences).contains(choice) else { return }
+        // Keep explicit choices even when another mode or global model changes.
+        preferences.modeThinking[mode] = choice.rawValue
+        saveAppPreferences(preferences)
+        refreshChipDecorations()
     }
 
     // dictionaryVoicePage(): List dictionary pronunciation voices by provider
@@ -23257,7 +23352,8 @@ final class LauncherController: NSObject, NSWindowDelegate, NSTextFieldDelegate,
             let task = try startTextRequest(
                 model: model,
                 prompt: prompt,
-                emptyMessage: "The selected text model returned an empty result."
+                emptyMessage: "The selected text model returned an empty result.",
+                mode: mode
             ) { [weak self] result in
                 DispatchQueue.main.async {
                     // Delete output from a text request whose launcher run has been superseded.
@@ -23419,7 +23515,8 @@ final class LauncherController: NSObject, NSWindowDelegate, NSTextFieldDelegate,
                     outputLanguage: outputLanguage, research: research, extraLanguages: extraLanguages,
                     languageLevel: languageLevel), run: run, detailed: detailed),
                 emptyMessage: "The selected text model returned an empty explanation.",
-                research: research
+                research: research,
+                mode: "explain"
             ) { [weak self] result in
                 DispatchQueue.main.async {
                     // Ignore a completed explanation belonging to an obsolete run.
@@ -25333,7 +25430,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             request = try startTextRequest(
                 model: model,
                 prompt: prompt,
-                emptyMessage: "The selected text model returned an empty result."
+                emptyMessage: "The selected text model returned an empty result.",
+                mode: mode
             ) { result in
                 box.finish(result)
                 CFRunLoopWakeUp(waitingRunLoop)

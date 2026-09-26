@@ -134,7 +134,7 @@ for marker in ['enum TextModelProvider {', 'func textProvider(', 'func modelSupp
                'func translationLanguageCode(', 'func promptLanguageNames(', 'func translationSourceLanguageInstructions(',
                'struct TranslationSkipped:', 'func cleanedLiteralTransformOutput(',
                'func cleanedTextTransformOutput(', 'func translationPrompt(',
-               'func appleIntelligencePrompt(', 'func startOpenAICompatibleTextRequest(',
+               'func appleIntelligencePrompt(', 'func cloudThinkingOptions(', 'func cloudThinkingSelection(', 'func cloudThinkingForRequest(', 'func startOpenAICompatibleTextRequest(',
                'func startOpenAITextRequest(', 'func startAnthropicTextRequest(', 'func startGeminiTextRequest(']:
     source += block(marker) + '\n'
 
@@ -274,8 +274,8 @@ for label in ["DeepSeek", "Grok", "Custom endpoint"] {
   }
  }
 }
-// Built-in source transformations share their fast provider settings across
-// window, HUD and Services requests; custom endpoints retain their own defaults.
+// Automatic uses Low only for initial proofreading and rewriting. Other
+// tasks and follow-ups omit effort; explicit choices override that policy.
 let transforms: [(String, ExplanationPrompt.LocalSourceTask)] = [
  ("Proofread", .proofread), ("Rephrase", .rephrase), ("Humanize", .humanize),
  ("Concise", .concise), ("Elaborate", .elaborate), ("Summarize", .summarize),
@@ -285,31 +285,51 @@ var latencyCases: [(String, ExplanationPrompt, Bool)] = []
 for (name, task) in transforms {
  var prompt = ExplanationPrompt(instructions: "Transform the source without adding facts.", input: "Please sent the report tomorow.")
  prompt.appleSourceTask = task
- latencyCases.append((name, prompt, true))
+ latencyCases.append((name, prompt, ["Proofread", "Rephrase", "Humanize", "Concise", "Elaborate"].contains(name)))
  // A follow-up can change tasks even if source-transform metadata was retained.
  prompt.conversationMessages = [TextConversationMessage(role: .user, content: "Why is this correct?")]
  latencyCases.append((name + " follow-up", prompt, false))
 }
 // Real translation prompts must reach the same policy without changing target metadata.
-latencyCases.append(("Translation with two targets", translationCases[0], true))
+latencyCases.append(("Translation with two targets", translationCases[0], false))
 for format: ExplanationPrompt.LocalFormat in [.dictionary, .explanation, .text] {
  var prompt = ExplanationPrompt(instructions: "Answer the question.", input: "What is love?")
  prompt.appleFormat = format
- latencyCases.append(("\(format)", prompt, format == .dictionary))
+ latencyCases.append(("\(format)", prompt, false))
  // A dictionary result can also lead to an open-ended follow-up question.
  prompt.conversationMessages = [TextConversationMessage(role: .user, content: "Explain the history.")]
  latencyCases.append(("\(format) follow-up", prompt, false))
 }
+// Explicit choices apply to all tasks, including research and follow-ups.
+for (name, original, automaticLow) in latencyCases {
+ for choice in ExplanationPrompt.Thinking.allCases {
+  var prompt = original
+  prompt.thinking = choice
+  latencyCases.append((name + " " + choice.rawValue, prompt, automaticLow))
+ }
+}
 for label in ["DeepSeek", "Grok", "Custom endpoint"] {
  for model in ["deepseek-v4-pro", "deepseek-flash", "grok-4.5", "grok-4.6", "grok-4.7", "grok-4", "custom-model"] {
-  for (name, prompt, fast) in latencyCases {
+  for (name, prompt, automaticLow) in latencyCases {
    let payload = try body(startOpenAICompatibleTextRequest(baseURL: "https://example.test", apiKey: "fixture", model: model, prompt: prompt, emptyMessage: "empty", providerLabel: label, completion: complete))
    let supportsThinkingToggle = label == "DeepSeek" && ["deepseek-v4-pro", "deepseek-flash"].contains(model)
    let supportsLowEffort = label == "Grok" && ["grok-4.5", "grok-4.6", "grok-4.7"].contains(model)
-   check(((payload["thinking"] as? [String: String])?["type"] == "disabled") == (fast && supportsThinkingToggle), "\(name): DeepSeek thinking policy is scoped to supported models and tasks")
-   check((payload["reasoning_effort"] as? String == "low") == (fast && supportsLowEffort), "\(name): Grok effort policy is scoped to supported models and tasks")
-   let preservesOutputBudget = fast && supportsThinkingToggle && prompt.appleSourceTask != nil
-   check((payload["max_tokens"] as? Int) == (preservesOutputBudget ? 65_536 : nil), "\(name): Disabling DeepSeek thinking must not lower the source-transform output budget")
+   let automatic = prompt.thinking == nil || prompt.thinking == .automatic
+   let sendsEffort = !automatic || automaticLow
+   let deepSeekOff = prompt.thinking == .off
+   let thinkingType: String? = supportsThinkingToggle && sendsEffort ? (deepSeekOff ? "disabled" : "enabled") : nil
+   check((payload["thinking"] as? [String: String])?["type"] == thinkingType, "\(name): DeepSeek Off is distinct from Low thinking")
+   var compatibleEffort: String?
+   if supportsThinkingToggle && sendsEffort && !deepSeekOff {
+    compatibleEffort = automatic || prompt.thinking == .low ? "low" : "high"
+   } else if supportsLowEffort && sendsEffort {
+    compatibleEffort = prompt.thinking == .medium ? "medium" : prompt.thinking == .high ? "high" : "low"
+   }
+   check(payload["reasoning_effort"] as? String == compatibleEffort, "\(name): Compatible adapters send only distinct supported levels")
+   check(!["xhigh", "max"].contains(payload["reasoning_effort"] as? String ?? ""), "Effort above High is never requested")
+   let previouslyUsedLargerBudget = prompt.appleSourceTask != nil || prompt.appleFormat != .dictionary || !prompt.conversationMessages.isEmpty
+   let preservesOutputBudget = deepSeekOff && supportsThinkingToggle && previouslyUsedLargerBudget
+   check((payload["max_tokens"] as? Int) == (preservesOutputBudget ? 65_536 : nil), "\(name): Disabling DeepSeek thinking must not lower the existing output budget")
    let messages = payload["messages"] as! [[String: String]]
    check(Array(messages.dropFirst()) == prompt.chatMessages, "\(name): Fast settings preserve every input and conversation message")
   }
@@ -332,11 +352,14 @@ for customEndpoint in [false, true] {
  fixturePreferences.openAIEndpointOverride = customEndpoint ? "https://custom.test/responses" : ""
  fixturePreferences.anthropicEndpointOverride = customEndpoint ? "https://custom.test/messages" : ""
  for research in [false, true] {
-  for (name, prompt, fast) in latencyCases {
+  for (name, prompt, automaticLow) in latencyCases {
    for (model, supportsEffort) in openAILatencyModels {
     let payload = try body(startOpenAITextRequest(apiKey: "fixture", model: model, prompt: prompt, emptyMessage: "empty", research: research, completion: complete))
-    let expected = fast && supportsEffort && !research && !customEndpoint
-    check((payload["reasoning"] as? [String: String]) == (expected ? ["effort": "low"] : nil), "\(name): Responses effort is scoped to supported models, tasks and endpoints")
+    let automatic = prompt.thinking == nil || prompt.thinking == .automatic
+    let requested: String? = automatic ? (automaticLow ? "low" : nil)
+        : prompt.thinking == .off && model == "gpt-6-astra" ? "low" : prompt.thinking?.apiEffort
+    let expected: [String: String]? = supportsEffort && !customEndpoint ? requested.map { ["effort": $0] } : nil
+    check((payload["reasoning"] as? [String: String]) == expected, "\(name): Responses effort is scoped to supported models, tasks and endpoints")
     check(payload["instructions"] as? String == promptApplyingCustomInstructions(prompt).instructions, "\(name): Responses effort preserves task and custom instructions")
     // Inspect both Responses input shapes so no source text is lost.
     if prompt.conversationMessages.isEmpty {
@@ -349,12 +372,52 @@ for customEndpoint in [false, true] {
    }
    for (model, supportsEffort) in claudeLatencyModels {
     let payload = try body(startAnthropicTextRequest(apiKey: "fixture", model: model, prompt: prompt, emptyMessage: "empty", research: research, completion: complete))
-    let expected = fast && supportsEffort && !research && !customEndpoint
-    check((payload["output_config"] as? [String: String]) == (expected ? ["effort": "low"] : nil), "\(name): Claude effort is scoped to supported models, tasks and endpoints")
+    let automatic = prompt.thinking == nil || prompt.thinking == .automatic
+    let requested: String? = automatic ? (automaticLow ? "low" : nil)
+        : prompt.thinking == .off ? "low" : prompt.thinking?.apiEffort
+    let expected: [String: String]? = supportsEffort && !customEndpoint ? requested.map { ["effort": $0] } : nil
+    check((payload["output_config"] as? [String: String]) == expected, "\(name): Claude effort is scoped to supported models, tasks and endpoints")
     check(payload["system"] as? String == promptApplyingCustomInstructions(prompt).instructions && payload["messages"] as? [[String: String]] == prompt.chatMessages, "\(name): Claude effort preserves instructions and all source messages")
     check(payload["max_tokens"] as? Int == 8192 && payload["thinking"] == nil && (payload["tools"] != nil) == research && payload["service_tier"] == nil, "\(name): Claude retains its output budget, thinking compatibility, research and service tier")
    }
   }
+ }
+}
+fixturePreferences = AppPreferences()
+let capabilities: [(TextModelProvider, String, [String])] = [
+ (.openAI, "gpt-6-astra", ["automatic", "low", "medium", "high"]),
+ (.openAI, "gpt-6-sol", ["automatic", "off", "low", "medium", "high"]),
+ (.openAI, "gpt-6-luna", ["automatic", "off", "low", "medium", "high"]),
+ (.openAI, "gpt-5.6-sol", ["automatic", "off", "low", "medium", "high"]),
+ (.openAI, "gpt-5.6-terra", ["automatic", "off", "low", "medium", "high"]),
+ (.openAI, "gpt-5.6-luna", ["automatic", "off", "low", "medium", "high"]),
+ (.openAI, "gpt-5.5", ["automatic", "off", "low", "medium", "high"]),
+ (.anthropic, "claude-fable-5-1", ["automatic", "low", "medium", "high"]),
+ (.anthropic, "claude-fable-5", ["automatic", "low", "medium", "high"]),
+ (.anthropic, "claude-opus-5-5", ["automatic", "low", "medium", "high"]),
+ (.anthropic, "claude-sonnet-5", ["automatic", "low", "medium", "high"]),
+ (.deepSeek, "deepseek-flash", ["automatic", "off", "low", "high"]),
+ (.deepSeek, "deepseek-v4-pro", ["automatic", "off", "low", "high"]),
+ (.grok, "grok-4.5", ["automatic", "low", "medium", "high"]),
+ (.grok, "grok-4.6", ["automatic", "low", "medium", "high"]),
+ (.grok, "grok-4.7", ["automatic", "low", "medium", "high"])
+]
+for (provider, model, options) in capabilities {
+ check(cloudThinkingOptions(provider: provider, model: model, preferences: fixturePreferences).map(\.rawValue) == options,
+       "\(model): Menu exposes only documented distinct levels, without Extra High or Maximum")
+ for saved in [nil, "", "automatic", "less", "more", "off", "low", "medium", "high", "xhigh", "max", "future-value"] as [String?] {
+  let expected: String
+  switch saved {
+  case "more", "high": expected = "high"
+  case "xhigh": expected = "high"
+  case "medium": expected = options.contains("medium") ? "medium" : "high"
+  case "off": expected = options.contains("off") ? "off" : "low"
+  case "low": expected = "low"
+  case "less": expected = provider == .deepSeek ? "off" : "low"
+  default: expected = "automatic"
+  }
+  check(cloudThinkingSelection(saved, provider: provider, model: model, preferences: fixturePreferences)?.rawValue == expected,
+        "\(model): Saved choices migrate and remain compatible after a model switch")
  }
 }
 fixturePreferences = AppPreferences()
@@ -403,8 +466,8 @@ for prompt in [ExplanationPrompt(instructions: "Explain this.", input: "A single
  check(openAI["store"] as? Bool == false && openAI["tool_choice"] as? String == "required", "Responses retains storage and research settings")
 
  let anthropic = try body(startAnthropicTextRequest(apiKey: "fixture", model: fable.model, prompt: prompt, emptyMessage: "empty", research: true, completion: complete))
- // Leave thinking and tool choice to the model's defaults.
- check(anthropic["model"] as? String == "claude-fable-5-1" && anthropic["thinking"] == nil && anthropic["tool_choice"] == nil, "Fable keeps its thinking and tool defaults")
+ // Effort uses the app default; no unsupported thinking toggle or tool choice is added.
+ check(anthropic["model"] as? String == "claude-fable-5-1" && anthropic["thinking"] == nil && anthropic["tool_choice"] == nil, "Fable uses supported effort controls without a thinking toggle or forced tools")
  let anthropicMessages = anthropic["messages"] as! [[String: String]]
  check(anthropicMessages.map { $0["role"]! } == roles && anthropicMessages.map { $0["content"]! } == texts, "Anthropic receives user/assistant messages, ending with user; multi=\(multi)")
  check(anthropic["system"] as? String == promptApplyingCustomInstructions(prompt).instructions && anthropic["tools"] != nil, "Anthropic retains system instructions and research")

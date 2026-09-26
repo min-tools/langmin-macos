@@ -978,3 +978,11 @@
 /* Per-mode model selection */
 "mode_ai_model" = "Modello IA";
 "model_for_all_modes" = "Scegli un modello per tutte le modalità";
+
+/* Per-mode thinking */
+"thinking" = "Ragionamento";
+"thinking_automatic" = "Automatico";
+"thinking_off" = "Disattivato";
+"thinking_low" = "Basso";
+"thinking_medium" = "Medio";
+"thinking_high" = "Alto";

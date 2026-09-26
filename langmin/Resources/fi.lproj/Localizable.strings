@@ -978,3 +978,11 @@
 /* Per-mode model selection */
 "mode_ai_model" = "Tekoälymalli";
 "model_for_all_modes" = "Valitse malli kaikille tiloille";
+
+/* Per-mode thinking */
+"thinking" = "Päättely";
+"thinking_automatic" = "Automaattinen";
+"thinking_off" = "Pois";
+"thinking_low" = "Matala";
+"thinking_medium" = "Keskitaso";
+"thinking_high" = "Korkea";

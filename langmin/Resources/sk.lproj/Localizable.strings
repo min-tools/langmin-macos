@@ -978,3 +978,11 @@
 /* Per-mode model selection */
 "mode_ai_model" = "Model AI";
 "model_for_all_modes" = "Vybrať model pre všetky režimy";
+
+/* Per-mode thinking */
+"thinking" = "Premýšľanie";
+"thinking_automatic" = "Automaticky";
+"thinking_off" = "Vypnuté";
+"thinking_low" = "Nízka";
+"thinking_medium" = "Stredné";
+"thinking_high" = "Vysoká";

@@ -978,3 +978,11 @@
 /* Per-mode model selection */
 "mode_ai_model" = "Mô hình AI";
 "model_for_all_modes" = "Chọn mô hình cho tất cả chế độ";
+
+/* Per-mode thinking */
+"thinking" = "Suy nghĩ";
+"thinking_automatic" = "Tự động";
+"thinking_off" = "Tắt";
+"thinking_low" = "Thấp";
+"thinking_medium" = "Trung bình";
+"thinking_high" = "Cao";

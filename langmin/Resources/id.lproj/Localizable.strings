@@ -978,3 +978,11 @@
 /* Per-mode model selection */
 "mode_ai_model" = "Model AI";
 "model_for_all_modes" = "Pilih model untuk semua mode";
+
+/* Per-mode thinking */
+"thinking" = "Penalaran";
+"thinking_automatic" = "Otomatis";
+"thinking_off" = "Nonaktif";
+"thinking_low" = "Rendah";
+"thinking_medium" = "Sedang";
+"thinking_high" = "Tinggi";

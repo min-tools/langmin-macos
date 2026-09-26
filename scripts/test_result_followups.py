@@ -118,11 +118,13 @@ final class Request {
  }
 }
 var requests: [Request] = []
+var requestModes: [String?] = []
 var beforeStart: (() throws -> Void)?
 // startTextRequest(model, prompt, emptyMessage, research, completion): Record
 // the request on the main thread instead of contacting a model provider.
-func startTextRequest(model: String, prompt: ExplanationPrompt, emptyMessage: String, research: Bool, completion: @escaping (Result<String, Error>) -> Void) throws -> TextRequestHandle {
+func startTextRequest(model: String, prompt: ExplanationPrompt, emptyMessage: String, research: Bool, mode: String? = nil, completion: @escaping (Result<String, Error>) -> Void) throws -> TextRequestHandle {
  precondition(Thread.isMainThread)
+ requestModes.append(mode)
  try beforeStart?()
  let request = Request(model: model, prompt: prompt, research: research, completion: completion)
  requests.append(request)
@@ -271,6 +273,7 @@ func drain() async { try? await Task.sleep(nanoseconds: 20_000_000) }
   viewer.followUpDraft = "Can that store deliver to Serbia?"
   viewer.submitFollowUp()
   let request = requests.last!
+  check(requestModes.last! == mode, "Each follow-up forwards its result mode for the thinking preference")
   check(request.resumed && request.research && request.model == "cloud", "Follow-up uses the original model and available research in " + mode)
   let payload = try JSONSerialization.jsonObject(with: Data(request.prompt.input.utf8)) as! [String: Any]
   check(payload["original_mode"] as? String == mode && payload["original_request"] as? String == "Is this product expensive?", "Original mode and request reach context")

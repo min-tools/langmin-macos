@@ -33,6 +33,9 @@ import Cocoa
 import NaturalLanguage
 func localized(_ key: String, _ fallback: String) -> String { fallback }
 let appleIntelligenceModelID = "apple:intelligence", customModelID = "custom"
+let openAIResponsesEndpoint = URL(string: "https://openai.fixture.invalid/responses")!
+let anthropicMessagesEndpoint = URL(string: "https://claude.fixture.invalid/messages")!
+func resolvedOverrideURL(_ value: String, default fallback: URL) -> URL { value.isEmpty ? fallback : URL(string: value)! }
 let defaultExplanationModel = appleIntelligenceModelID, defaultOutputLanguage = "auto"
 let defaultRewriteStyle = "rephrase", defaultTTSVoice = "none"
 let defaultPreferredTextModelIDs = [appleIntelligenceModelID, "gpt-6-sol"]
@@ -42,6 +45,8 @@ let modes = ["proofread", "rewrite", "explain", "summarize", "translate", "dicti
 let modelIDs = [appleIntelligenceModelID, "gpt-6-luna", "anthropic:claude-fable-5-1", "gemini:gemini-fixture", "grok:grok-fixture", "deepseek:deepseek-fixture", customModelID]
 struct AppPreferences {
  var explanationModel = "gpt-6-luna", modeTextModels: [String: String] = [:]
+ var modeThinking: [String: String] = [:]
+ var openAIEndpointOverride = "", anthropicEndpointOverride = ""
  var preferredTextModels = modelIDs, extraModels: [String] = []
  var customModelName = "fixture-model", customDisplayName = "Fixture", customBaseURL = "https://fixture.invalid/v1"
  var languageLevel = "b", rewriteStyle = "rephrase", customInstructions = ""
@@ -62,7 +67,7 @@ source += MAIN[title_start:MAIN.index('\n\n', title_start)] + '\n'
 for marker in ['struct PreferenceOption {', 'struct ExplanationPrompt {', 'struct HelperFailure:',
                'struct LauncherCancellationError:', 'struct TranslationSkipped:',
                'enum TextModelProvider {', 'final class TextRequestHandle {',
-               'func textProvider(', 'func modelSupportsWebResearch(',
+               'func textProvider(', 'func modelSupportsWebResearch(', 'func cloudThinkingOptions(', 'func cloudThinkingSelection(',
                'func enabledExplanationModelOptions(', 'func defaultEnabledExplanationModel(',
                'func enabledExplanationModel(', 'func preferenceDisplayValue(', 'func preferenceID(',
                'func selectedPreferenceID(', 'func setPopupSelection(',
@@ -274,7 +279,8 @@ func verify(_ launcher: Launcher, mode: String, model: String, sourceText: Strin
  check(request.provider == providerNames[modelIDs.firstIndex(of: model)!], "\(mode): dispatch reaches the assigned provider")
  check(request.model == expectedModel, "\(mode): provider receives the assigned model \(model)")
  check(request.prompt.input == sourceText, "\(mode): source text reaches the actual prompt intact")
- check(request.prompt.prefersLowLatencyResponse == (mode != "explain"), "\(mode): submission carries the cloud latency policy")
+ let supportsThinking = ["gpt-6-luna", "anthropic:claude-fable-5-1"].contains(model)
+ check(request.prompt.thinking == (supportsThinking ? .automatic : nil), "\(mode): supported models retain Automatic until the adapter resolves the task")
  check(consentModels.last == model, "\(mode): consent uses the same provider as generation")
  check(launcher.finishedRun?.conversation?.modelID == model, "\(mode): saved conversation retains the selected model")
  check(launcher.lastRunTextModel == model && launcher.progressModels.allSatisfy { $0 == model }, "\(mode): result and progress labels identify the actual model")
@@ -344,9 +350,36 @@ for (index, mode) in modes.enumerated() {
   verify(service.launcherController, mode: mode, model: model, sourceText: input)
  }
  check(error == nil && requests.count == before + 1, "\(mode): Service completes exactly one request")
- check(requests.last!.prompt.prefersLowLatencyResponse == (mode != "explain"), "\(mode): Services share the window and HUD latency policy")
+ check(requests.last!.prompt.thinking == (["gpt-6-luna", "anthropic:claude-fable-5-1"].contains(model) ? .automatic : nil), "\(mode): Services share the window and HUD thinking default")
  check(requests.last!.model == (model == customModelID ? saved.customModelName : textProvider(for: model).model), "\(mode): Service dispatches to its assigned provider")
 }
+// All entry paths must honor a saved choice after reopening.
+for mode in modes {
+ saved.modeTextModels[mode] = "gpt-6-luna"
+ for choice in ["off", "low", "medium", "high", "xhigh", "less", "more", "automatic", "max", "invalid", ""] {
+  saved.modeThinking[mode] = choice
+  let expected = ExplanationPrompt.Thinking(rawValue: choice) ?? (["more", "xhigh"].contains(choice) ? .high : choice == "less" ? .low : .automatic)
+  response = .success(fixtureResponse(mode))
+  for presentation: LauncherRunPresentation in [.standard, .clipboardHUD] {
+   let launcher = Launcher()
+   launcher.handleAutomation(text: input, mode: mode, run: true, presentation: presentation)
+   waitFor { !launcher.isGenerating }
+   check(requests.last!.prompt.thinking == expected, "\(mode): window and shortcut requests capture the persisted thinking choice")
+  }
+  if ["proofread", "rewrite"].contains(mode) {
+   let service = Service()
+   pasteboard.clearContents(); pasteboard.setString(input, forType: .string)
+   var error: NSString?
+   service.runReturningTextService(pasteboard, mode: mode, error: &error)
+   check(error == nil && requests.last!.prompt.thinking == expected, "\(mode): returning Services capture the thinking choice")
+  }
+  var followUp = ExplanationPrompt(instructions: "Answer the follow-up.", input: "Why?")
+  followUp.conversationMessages = [.init(role: .user, content: "Why?")]
+  _ = try startTextRequest(model: "gpt-6-luna", prompt: followUp, emptyMessage: "empty", research: true, mode: mode) { _ in }
+  check(requests.last!.prompt.thinking == expected, "\(mode): explicit choices reach follow-up and research requests")
+ }
+}
+saved.modeThinking = [:]
 pasteboard.releaseGlobally()
 // Explicit URL model/target overrides are request-local and survive asynchronous startup.
 saved.modeTextModels["translate"] = "anthropic:claude-fable-5-1"

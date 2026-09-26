@@ -978,3 +978,11 @@
 /* Per-mode model selection */
 "mode_ai_model" = "AI-model";
 "model_for_all_modes" = "Kies een model voor alle modi";
+
+/* Per-mode thinking */
+"thinking" = "Nadenken";
+"thinking_automatic" = "Automatisch";
+"thinking_off" = "Uit";
+"thinking_low" = "Laag";
+"thinking_medium" = "Gemiddeld";
+"thinking_high" = "Hoog";

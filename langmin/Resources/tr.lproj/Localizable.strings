@@ -978,3 +978,11 @@
 /* Per-mode model selection */
 "mode_ai_model" = "Yapay zekâ modeli";
 "model_for_all_modes" = "Tüm modlar için bir model seçin";
+
+/* Per-mode thinking */
+"thinking" = "Düşünme";
+"thinking_automatic" = "Otomatik";
+"thinking_off" = "Kapalı";
+"thinking_low" = "Düşük";
+"thinking_medium" = "Orta";
+"thinking_high" = "Yüksek";

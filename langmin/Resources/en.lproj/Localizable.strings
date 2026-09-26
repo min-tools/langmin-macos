@@ -20,3 +20,11 @@
 /* Per-mode model selection */
 "mode_ai_model" = "AI model";
 "model_for_all_modes" = "Choose a model for all modes";
+
+/* Per-mode thinking */
+"thinking" = "Thinking";
+"thinking_automatic" = "Automatic";
+"thinking_off" = "Off";
+"thinking_low" = "Low";
+"thinking_medium" = "Medium";
+"thinking_high" = "High";

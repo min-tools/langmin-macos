@@ -978,3 +978,11 @@
 /* Per-mode model selection */
 "mode_ai_model" = "KI-modell";
 "model_for_all_modes" = "Velg en modell for alle moduser";
+
+/* Per-mode thinking */
+"thinking" = "Tenkning";
+"thinking_automatic" = "Automatisk";
+"thinking_off" = "Av";
+"thinking_low" = "Lav";
+"thinking_medium" = "Middels";
+"thinking_high" = "Høy";

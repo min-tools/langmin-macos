@@ -978,3 +978,11 @@
 /* Per-mode model selection */
 "mode_ai_model" = "Model AI";
 "model_for_all_modes" = "Alege un model pentru toate modurile";
+
+/* Per-mode thinking */
+"thinking" = "Raționament";
+"thinking_automatic" = "Automat";
+"thinking_off" = "Dezactivat";
+"thinking_low" = "Scăzut";
+"thinking_medium" = "Mediu";
+"thinking_high" = "Ridicat";

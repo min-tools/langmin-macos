@@ -978,3 +978,11 @@
 /* Per-mode model selection */
 "mode_ai_model" = "Μοντέλο AI";
 "model_for_all_modes" = "Επιλέξτε μοντέλο για όλες τις λειτουργίες";
+
+/* Per-mode thinking */
+"thinking" = "Σκέψη";
+"thinking_automatic" = "Αυτόματα";
+"thinking_off" = "Ανενεργό";
+"thinking_low" = "Χαμηλή";
+"thinking_medium" = "Μέτρια";
+"thinking_high" = "Υψηλή";

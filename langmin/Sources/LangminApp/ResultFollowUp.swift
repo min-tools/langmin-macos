@@ -898,7 +898,7 @@ extension ViewerSession {
             refreshFollowUpText()
             let prompt = ExplanationPrompt(instructions: applyLanguageLevel(to: prepared.instructions, level: config.languageLevel),
                                            input: prepared.input, conversationMessages: prepared.messages)
-            let task = try startTextRequest(model: model.id, prompt: prompt, emptyMessage: "The model returned an empty reply.", research: research) { [weak self] result in
+            let task = try startTextRequest(model: model.id, prompt: prompt, emptyMessage: "The model returned an empty reply.", research: research, mode: config.mode) { [weak self] result in
                 DispatchQueue.main.async {
                     // Ignore response callbacks from cancelled, superseded, or released sessions.
                     guard let self, !self.resourcesReleased, self.followUpRunID == runID else { return }

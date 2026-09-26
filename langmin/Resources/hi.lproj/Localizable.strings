@@ -978,3 +978,11 @@
 /* Per-mode model selection */
 "mode_ai_model" = "AI मॉडल";
 "model_for_all_modes" = "सभी मोड के लिए मॉडल चुनें";
+
+/* Per-mode thinking */
+"thinking" = "विचार";
+"thinking_automatic" = "स्वचालित";
+"thinking_off" = "बंद";
+"thinking_low" = "कम";
+"thinking_medium" = "मध्यम";
+"thinking_high" = "अधिक";

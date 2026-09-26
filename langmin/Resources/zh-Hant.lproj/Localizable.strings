@@ -978,3 +978,11 @@
 /* Per-mode model selection */
 "mode_ai_model" = "AI 模型";
 "model_for_all_modes" = "為所有模式選擇模型";
+
+/* Per-mode thinking */
+"thinking" = "思考";
+"thinking_automatic" = "自動";
+"thinking_off" = "關閉";
+"thinking_low" = "低";
+"thinking_medium" = "中";
+"thinking_high" = "高";

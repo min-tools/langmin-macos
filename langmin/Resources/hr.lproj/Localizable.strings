@@ -978,3 +978,11 @@
 /* Per-mode model selection */
 "mode_ai_model" = "AI model";
 "model_for_all_modes" = "Odaberite model za sve načine rada";
+
+/* Per-mode thinking */
+"thinking" = "Razmišljanje";
+"thinking_automatic" = "Automatski";
+"thinking_off" = "Isključeno";
+"thinking_low" = "Nisko";
+"thinking_medium" = "Srednje";
+"thinking_high" = "Visoko";

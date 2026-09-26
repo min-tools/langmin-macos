@@ -37,6 +37,8 @@ let languageLevelModes: Set<String> = ["rewrite", "explain", "summarize", "trans
 struct AppPreferences {
  var explanationModel = defaultExplanationModel
  var modeTextModels: [String: String] = [:]
+ var modeThinking: [String: String] = [:]
+ var openAIEndpointOverride = "", anthropicEndpointOverride = ""
  var preferredTextModels = defaultPreferredTextModelIDs
  var customModelName = "", customDisplayName = "", extraModels: [String] = []
  var launcherShowsModel = true
@@ -51,18 +53,25 @@ struct LauncherPreferences {
 }
 var saved = AppPreferences(), remembered = LauncherPreferences()
 func loadAppPreferences() -> AppPreferences { saved }
+let openAIResponsesEndpoint = URL(string: "https://example.test/responses")!
+let anthropicMessagesEndpoint = URL(string: "https://example.test/messages")!
+func resolvedOverrideURL(_ value: String, default fallback: URL) -> URL { value.isEmpty ? fallback : URL(string: value)! }
+struct TextConversationMessage { enum Role: String { case user, assistant }; let role: Role; let content: String }
+
 func loadLauncherPreferences() -> LauncherPreferences { remembered }
 func defaultTranslationTarget(from preferences: AppPreferences) -> String { "es" }
 // Property-list round trips catch model assignments that cannot survive persistence.
 func saveAppPreferences(_ value: AppPreferences) {
  saved = value
+ let thinking = try! PropertyListSerialization.data(fromPropertyList: value.modeThinking, format: .binary, options: 0)
+ saved.modeThinking = try! PropertyListSerialization.propertyList(from: thinking, options: [], format: nil) as! [String: String]
  let encoded = try! PropertyListSerialization.data(fromPropertyList: value.modeTextModels, format: .binary, options: 0)
  saved.modeTextModels = try! PropertyListSerialization.propertyList(from: encoded, options: [], format: nil) as! [String: String]
 }
 func saveLauncherPreferences(_ value: LauncherPreferences) { remembered = value }
 '''
 for marker in ['struct PreferenceOption {', 'enum TextModelProvider {',
-               'func modelProviderSectionName(', 'func enabledExplanationModelOptions(',
+               'func modelProviderSectionName(', 'func textProvider(', 'struct ExplanationPrompt {', 'func cloudThinkingOptions(', 'func cloudThinkingSelection(', 'func enabledExplanationModelOptions(',
                'func defaultEnabledExplanationModel(', 'func enabledExplanationModel(',
                'func preferenceID(', 'func preferenceDisplayValue(', 'func setPopupSelection(',
                'func selectedPreferenceID(', 'enum PaletteAction {', 'struct PaletteItem {',
@@ -77,10 +86,6 @@ let catalog = [PreferenceOption(id: appleIntelligenceModelID, title: "Apple Inte
  PreferenceOption(id: "anthropic:claude-fable-5-1", title: "Claude Fable 5.1", note: ""),
  PreferenceOption(id: customModelID, title: "Custom", note: "")]
 func displayedExplanationModelOptions(customName: String = "", extraModels: [String] = []) -> [PreferenceOption] { catalog }
-struct Provider { let provider: TextModelProvider }
-func textProvider(for id: String) -> Provider {
- Provider(provider: id == appleIntelligenceModelID ? .apple : id.hasPrefix("anthropic:") ? .anthropic : .openAI)
-}
 let launcherModeOptions = ["proofread", "rewrite", "explain", "summarize", "translate", "dictionary"].map {
  PreferenceOption(id: $0, title: $0.capitalized, note: "")
 }
@@ -147,7 +152,7 @@ final class Launcher: NSObject {
  func extraLanguagesPage() -> PalettePage { allModelsPage() }
  func dictionaryVoicePage() -> PalettePage { allModelsPage() }
 '''
-for marker in ['    func selectTextModel(', '    func modelSelectionPage(',
+for marker in ['    func selectTextModel(', '    func modelSelectionPage(', '    func thinkingSelectionPage(', '    func selectThinking(',
                '    private func modelPaletteItem(', '    func chipOptionsPage(',
                '    func modeHasOptions(', '    func selectedModelIDForRun(',
                '    func globalModelIDForRun(', '    func selectedLauncherMode()',
@@ -157,14 +162,13 @@ for marker in ['    func selectTextModel(', '    func modelSelectionPage(',
     source += block(marker)
 source += r'''
 }
-struct ExplanationPrompt { let input: String }
 var capturedServiceModels: [String] = [], consentModels: [String] = []
 func confirmRemoteTextSharingIfNeeded(input: String, model: String, deadline: DispatchTime) -> Bool {
  consentModels.append(model); return true
 }
-func textRevisionPrompt(input: String, style: String, languageLevel: String = "off") -> ExplanationPrompt { ExplanationPrompt(input: input) }
+func textRevisionPrompt(input: String, style: String, languageLevel: String = "off") -> ExplanationPrompt { ExplanationPrompt(instructions: "Proofread.", input: input) }
 func cleanedTextTransformOutput(_ text: String, prompt: ExplanationPrompt) throws -> String { text }
-func startTextRequest(model: String, prompt: ExplanationPrompt, emptyMessage: String, completion: @escaping (Result<String, Error>) -> Void) throws -> TextRequestHandle {
+func startTextRequest(model: String, prompt: ExplanationPrompt, emptyMessage: String, mode: String? = nil, completion: @escaping (Result<String, Error>) -> Void) throws -> TextRequestHandle {
  capturedServiceModels.append(model)
  return TextRequestHandle(resume: { completion(.success("Corrected fixture text")) }, cancel: {})
 }
@@ -220,6 +224,50 @@ for mode in launcherModeOptions.map(\.id) {
  launcher.handleAutomation(text: "Fixture input", mode: mode, run: true, presentation: .clipboardHUD)
  check(launcher.submissions.last!.1 == expected, "Clipboard shortcuts use the requested mode rather than the previously selected mode")
 }
+// Every supported model's mode menu exposes a persistent thinking submenu.
+for mode in launcherModeOptions.map(\.id) {
+ let row = items(launcher.chipOptionsPage(for: mode)).first { $0.id == "mode-thinking" }!
+ check(row.detail == "Automatic", "Fresh mode choices default to Automatic thinking")
+ guard case .push(let page) = row.action!() else { fatalError("Thinking must open a submenu") }
+ let expectedChoices = mode == "explain" ? ["automatic", "low", "medium", "high"] : ["automatic", "off", "low", "medium", "high"]
+ check(items(page).map(\.id) == expectedChoices, "Thinking shows only this model's supported levels")
+ _ = items(page).first { $0.id == "high" }!.action!()
+ check(saved.modeThinking[mode] == "high", "Thinking choices survive preference serialization")
+ check(items(launcher.chipOptionsPage(for: mode)).first { $0.id == "mode-thinking" }!.detail == "High", "The chip dropdown displays its saved choice")
+}
+launcher.pendingExplicitModelID = sol
+_ = items(launcher.thinkingSelectionPage(mode: "proofread")).first { $0.id == "low" }!.action!()
+check(launcher.pendingExplicitModelID == sol, "Changing thinking preserves a pending URL model override")
+launcher.pendingExplicitModelID = nil
+check(saved.modeThinking["proofread"] == "low" && saved.modeThinking["rewrite"] == "high", "Each chip has an independent thinking preference")
+_ = items(launcher.thinkingSelectionPage(mode: "proofread")).first { $0.id == "off" }!.action!()
+check(saved.modeThinking["proofread"] == "off", "Off is stored explicitly")
+// A model change can invalidate a previously open Off action.
+let staleOff = items(launcher.thinkingSelectionPage(mode: "proofread")).first { $0.id == "off" }!.action!
+launcher.selectTextModel(fable, for: "proofread")
+check(items(launcher.thinkingSelectionPage(mode: "proofread")).filter(\.checked).map(\.id) == ["low"], "Off falls back to Low on an always-thinking model")
+_ = staleOff()
+check(saved.modeThinking["proofread"] == "off", "An unsupported stale choice cannot overwrite saved thinking")
+launcher.selectTextModel(luna, for: "proofread")
+check(items(launcher.thinkingSelectionPage(mode: "proofread")).filter(\.checked).map(\.id) == ["off"], "Switching back restores the saved Off choice")
+_ = items(launcher.thinkingSelectionPage(mode: "proofread")).first { $0.id == "medium" }!.action!()
+check(saved.modeThinking["proofread"] == "medium", "Medium is stored explicitly")
+saved.modeThinking["proofread"] = "xhigh"
+check(items(launcher.thinkingSelectionPage(mode: "proofread")).filter(\.checked).map(\.id) == ["high"], "Removed Extra High choices now select High")
+saved.modeThinking["proofread"] = "future-value"
+check(items(launcher.thinkingSelectionPage(mode: "proofread")).filter(\.checked).map(\.id) == ["automatic"], "Unknown saved choices fall back to Automatic")
+let staleThinking = items(launcher.thinkingSelectionPage(mode: "proofread")).first { $0.id == "high" }!.action!
+saved.openAIEndpointOverride = "https://custom.test/responses"
+check(!items(launcher.chipOptionsPage(for: "proofread")).contains { $0.id == "mode-thinking" }, "Custom endpoint overrides do not offer unsupported thinking controls")
+_ = staleThinking()
+check(saved.modeThinking["proofread"] == "future-value", "A stale thinking menu cannot change an unsupported endpoint")
+saved.openAIEndpointOverride = ""
+launcher.isGenerating = true
+_ = staleThinking()
+check(saved.modeThinking["proofread"] == "future-value", "Busy launchers reject thinking changes")
+launcher.isGenerating = false
+launcher.selectThinking(.high, for: "unknown")
+check(saved.modeThinking["unknown"] == nil, "Unknown modes cannot save thinking preferences")
 // Use actual palette actions and keep the other mode's model unchanged.
 _ = items(launcher.modelSelectionPage(mode: "rewrite")).first { $0.id == luna }!.action!()
 check(saved.modeTextModels["rewrite"] == luna && saved.modeTextModels["explain"] == fable, "A menu action edits only its own mode")
@@ -270,6 +318,9 @@ pasteboard.releaseGlobally()
 // A global selection is an explicit all-mode reset.
 _ = items(reopened.modelSelectionPage()).first { $0.id == appleIntelligenceModelID }!.action!()
 check(saved.modeTextModels.isEmpty && saved.explanationModel == appleIntelligenceModelID, "The master menu clears every individual assignment")
+check(saved.modeThinking["rewrite"] == "high", "Global model changes retain independent thinking choices")
+check(!items(reopened.chipOptionsPage(for: "rewrite")).contains { $0.id == "mode-thinking" }, "Apple Intelligence does not offer cloud thinking controls")
+
 for mode in launcherModeOptions.map(\.id) {
  reopened.handleAutomation(text: "Fixture", mode: mode, run: true)
  check(reopened.submissions.last!.1 == appleIntelligenceModelID, "Every shortcut uses the new global model")

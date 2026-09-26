@@ -978,3 +978,11 @@
 /* Per-mode model selection */
 "mode_ai_model" = "AI 모델";
 "model_for_all_modes" = "모든 모드에 사용할 모델 선택";
+
+/* Per-mode thinking */
+"thinking" = "추론";
+"thinking_automatic" = "자동";
+"thinking_off" = "끔";
+"thinking_low" = "낮음";
+"thinking_medium" = "중간";
+"thinking_high" = "높음";

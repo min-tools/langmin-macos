@@ -978,3 +978,11 @@
 /* Per-mode model selection */
 "mode_ai_model" = "AI-modell";
 "model_for_all_modes" = "Modell választása minden módhoz";
+
+/* Per-mode thinking */
+"thinking" = "Gondolkodás";
+"thinking_automatic" = "Automatikus";
+"thinking_off" = "Kikapcsolva";
+"thinking_low" = "Alacsony";
+"thinking_medium" = "Közepes";
+"thinking_high" = "Magas";

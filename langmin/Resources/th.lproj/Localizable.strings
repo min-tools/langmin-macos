@@ -978,3 +978,11 @@
 /* Per-mode model selection */
 "mode_ai_model" = "โมเดล AI";
 "model_for_all_modes" = "เลือกโมเดลสำหรับทุกโหมด";
+
+/* Per-mode thinking */
+"thinking" = "การคิด";
+"thinking_automatic" = "อัตโนมัติ";
+"thinking_off" = "ปิด";
+"thinking_low" = "ต่ำ";
+"thinking_medium" = "ปานกลาง";
+"thinking_high" = "สูง";

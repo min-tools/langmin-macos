@@ -462,6 +462,69 @@ func openAICompatibleOutputText(from data: Data) -> String {
     return ""
 }
 
+// cloudThinkingOptions(provider, model, preferences): Return distinct supported
+// levels for built-in endpoints. Effort above High is deliberately excluded.
+func cloudThinkingOptions(provider: TextModelProvider, model: String, preferences: AppPreferences) -> [ExplanationPrompt.Thinking] {
+    switch provider {
+    // Compatible custom endpoints may implement a different request schema.
+    case .openAI:
+        guard resolvedOverrideURL(preferences.openAIEndpointOverride, default: openAIResponsesEndpoint) == openAIResponsesEndpoint else { return [] }
+        // Astra always reasons; other supported GPT models can disable thinking.
+        if model == "gpt-6-astra" { return [.automatic, .low, .medium, .high] }
+        if ["gpt-6-sol", "gpt-6-luna", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.5"].contains(model) {
+            return [.automatic, .off, .low, .medium, .high]
+        }
+        return []
+    // These Claude models always reason; Haiku and unknown models stay unchanged.
+    case .anthropic:
+        guard resolvedOverrideURL(preferences.anthropicEndpointOverride, default: anthropicMessagesEndpoint) == anthropicMessagesEndpoint else { return [] }
+        return ["claude-fable-5-1", "claude-fable-5", "claude-opus-5-5", "claude-sonnet-5"].contains(model)
+            ? [.automatic, .low, .medium, .high] : []
+    // DeepSeek maps Medium to High, so show only its distinct levels.
+    case .deepSeek:
+        return ["deepseek-v4-pro", "deepseek-flash"].contains(model) ? [.automatic, .off, .low, .high] : []
+    // These Grok models support Low, Medium and High, but cannot disable thinking.
+    case .grok:
+        return ["grok-4.5", "grok-4.6", "grok-4.7"].contains(model) ? [.automatic, .low, .medium, .high] : []
+    // Other adapters keep their existing model behavior.
+    default: return []
+    }
+}
+
+// cloudThinkingSelection(savedValue, provider, model, preferences): Resolve a
+// saved mode choice for this model, including older Less/More preferences.
+func cloudThinkingSelection(_ savedValue: String?, provider: TextModelProvider, model: String,
+                            preferences: AppPreferences) -> ExplanationPrompt.Thinking? {
+    let options = cloudThinkingOptions(provider: provider, model: model, preferences: preferences)
+    // Unsupported models and custom endpoints receive no effort parameter.
+    guard !options.isEmpty else { return nil }
+    // Preserve old choices without allowing the removed Extra High level.
+    let legacy: ExplanationPrompt.Thinking = ["more", "xhigh"].contains(savedValue ?? "") ? .high
+        : savedValue == "less" ? (provider == .deepSeek ? .off : .low) : .automatic
+    let requested = ExplanationPrompt.Thinking(rawValue: savedValue ?? "") ?? legacy
+    if options.contains(requested) { return requested }
+    // Retain the stored choice while using the nearest supported level.
+    return requested == .medium ? .high : .low
+}
+
+// cloudThinkingForRequest(prompt, provider, model, preferences): Resolve
+// Automatic separately from explicit effort. Only initial proofreading and
+// rewriting use Low; other tasks and follow-ups retain provider defaults.
+func cloudThinkingForRequest(_ prompt: ExplanationPrompt, provider: TextModelProvider, model: String,
+                             preferences: AppPreferences) -> ExplanationPrompt.Thinking? {
+    guard let selection = cloudThinkingSelection(prompt.thinking?.rawValue, provider: provider,
+                                                model: model, preferences: preferences) else { return nil }
+    // Explicit choices apply to every request, including research and follow-ups.
+    guard selection == .automatic else { return selection }
+    // Follow-up questions can differ from the original editing task.
+    guard prompt.conversationMessages.isEmpty else { return nil }
+    switch prompt.appleSourceTask {
+    // Keep straightforward edits responsive without limiting generative modes.
+    case .proofread, .rephrase, .humanize, .concise, .elaborate: return .low
+    default: return nil
+    }
+}
+
 // startOpenAICompatibleTextRequest(baseURL, apiKey, model, prompt,
 // emptyMessage, [providerLabel = "Custom endpoint"], completion): Start one
 // request against an OpenAI-compatible endpoint (LM Studio, Ollama, Groq, …).
@@ -479,7 +542,8 @@ func startOpenAICompatibleTextRequest(
         throw HelperFailure(message: "The \(providerLabel) URL is not valid.")
     }
 
-    let prompt = promptApplyingCustomInstructions(prompt)
+    let preferences = loadAppPreferences()
+    let prompt = promptApplyingCustomInstructions(prompt, preferences: preferences)
     var request = URLRequest(url: url)
     request.httpMethod = "POST"
     // Bound simple lookups more tightly than long-form generation.
@@ -501,19 +565,22 @@ func startOpenAICompatibleTextRequest(
     if providerLabel == "DeepSeek", prompt.appleFormat == .explanation {
         body["response_format"] = ["type": "json_object"]
     }
-    // Routine edits and lookups should not inherit high reasoning defaults.
-    if prompt.prefersLowLatencyResponse {
-        // These DeepSeek models support direct answers without a thinking phase.
-        if providerLabel == "DeepSeek", ["deepseek-v4-pro", "deepseek-flash"].contains(model) {
-            body["thinking"] = ["type": "disabled"]
-            // Preserve the former 64K output allowance for source transforms;
-            // non-thinking defaults to 8K, which can cut off long translations.
-            if prompt.appleSourceTask != nil {
+    // Apply the same capability resolution used by the mode menu.
+    let provider: TextModelProvider = providerLabel == "DeepSeek" ? .deepSeek : providerLabel == "Grok" ? .grok : .openAICompatible
+    if let thinking = cloudThinkingForRequest(prompt, provider: provider, model: model, preferences: preferences) {
+        if provider == .deepSeek {
+            // Off disables thinking; Low and High enable genuinely different levels.
+            body["thinking"] = ["type": thinking == .off ? "disabled" : "enabled"]
+            if thinking != .off {
+                body["reasoning_effort"] = thinking.apiEffort
+            } else if prompt.appleSourceTask != nil || prompt.appleFormat != .dictionary || !prompt.conversationMessages.isEmpty {
+                // Keep the existing 64K allowance for edits, Explain and follow-ups.
+                // Initial dictionary lookups keep their 8K non-thinking allowance.
                 body["max_tokens"] = 65_536
             }
-        // Supported Grok models can reduce reasoning, but cannot disable it.
-        } else if providerLabel == "Grok", ["grok-4.5", "grok-4.6", "grok-4.7"].contains(model) {
-            body["reasoning_effort"] = "low"
+        } else {
+            // Grok always reasons and receives only its supported effort levels.
+            body["reasoning_effort"] = thinking.apiEffort
         }
     }
     request.httpBody = try JSONSerialization.data(withJSONObject: body)
@@ -582,12 +649,9 @@ func startOpenAITextRequest(
         "store": false
     ]
 
-    // These built-in models reason by default. Lower effort for source edits
-    // and lookups, preserving research, custom endpoints and older model defaults.
-    if prompt.prefersLowLatencyResponse, !research, endpoint == openAIResponsesEndpoint,
-       ["gpt-6-astra", "gpt-6-sol", "gpt-6-luna", "gpt-5.6-sol",
-        "gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.5"].contains(model) {
-        body["reasoning"] = ["effort": "low"]
+    // Match the mode menu, including Off only on GPT models that support none.
+    if let effort = cloudThinkingForRequest(prompt, provider: .openAI, model: model, preferences: preferences)?.apiEffort {
+        body["reasoning"] = ["effort": effort]
     }
 
     // Add the web-search tool only when research was requested.
@@ -666,11 +730,10 @@ func startAnthropicTextRequest(
         "system": prompt.instructions,
         "messages": prompt.chatMessages
     ]
-    // Use the supported effort control for routine edits and lookups. Newer
-    // Claude models always think; disabling thinking would reject the request.
-    if prompt.prefersLowLatencyResponse, !research, endpoint == anthropicMessagesEndpoint,
-       ["claude-fable-5-1", "claude-fable-5", "claude-opus-5-5", "claude-sonnet-5"].contains(model) {
-        body["output_config"] = ["effort": "low"]
+    // Claude always thinks; use supported effort levels without raising the
+    // existing output-token limit when the user changes effort.
+    if let effort = cloudThinkingForRequest(prompt, provider: .anthropic, model: model, preferences: preferences)?.apiEffort {
+        body["output_config"] = ["effort": effort]
     }
 
     // Add Anthropic's configured search tool only for research requests.

@@ -24,6 +24,8 @@ Apple Intelligence supports fewer languages and shorter requests. Langmin checks
 
 Mode, style, and language choices are always remembered when the launcher reopens.
 
+**Thinking** in each mode’s menu defaults to Automatic: Low for initial Proofread and Rewrite requests, and the provider’s default for other modes and follow-ups. Choose Off, Low, Medium, or High to override this for that mode; only supported levels are shown.
+
 **Language level** controls vocabulary and grammar: A is basic, B intermediate, C advanced. It starts off and applies to every mode except Proofread. Style controls depth separately.
 
 Translate skips a target language when the whole input is already in that language, and says so instead of touching the clipboard.

@@ -257,12 +257,14 @@ check(AppPreferences().explanationModel == apple, "Fresh installs default to App
 let form = SettingsFixture()
 saved.explanationModel = deepSeek
 saved.modeTextModels = ["proofread": "gpt-6-luna"]
+saved.modeThinking = ["proofread": "medium", "explain": "off"]
 saved.preferredTextModels = [deepSeek]
 saved.explanationEffort = "detailed"
 saved.extraLanguages = ["ru", "sr"]
 saved.languageLevel = "b2"
 form.populated = saved
 check(form.collectPreferences().modeTextModels == saved.modeTextModels, "An ordinary Settings save preserves per-mode models")
+check(form.collectPreferences().modeThinking == saved.modeThinking, "Settings Save preserves per-mode thinking choices")
 check(form.collectPreferences().explanationModel == deepSeek, "An ordinary save preserves the chosen model")
 check(form.collectPreferences().preferredTextModels == [deepSeek], "An ordinary save preserves enabled models")
 check(form.collectPreferences().extraLanguages == ["ru", "sr"], "An ordinary save preserves launcher language choices")
@@ -276,6 +278,7 @@ check(form.populated?.explanationModel == apple, "Reset populates the default fo
 check(saved.explanationModel == deepSeek, "Reset stays a draft until Save")
 let reset = form.collectPreferences()
 check(reset.modeTextModels.isEmpty, "Reset clears per-mode models")
+check(reset.modeThinking.isEmpty, "Reset restores Automatic thinking for all modes")
 check(reset.explanationModel == apple, "Saving Reset replaces a saved DeepSeek default with Apple")
 check(reset.preferredTextModels == defaultPreferredTextModelIDs, "Reset restores Apple even when it was disabled")
 check(defaultEnabledExplanationModel(reset) == apple, "The enabled-model fallback cannot select a cloud model after reset")

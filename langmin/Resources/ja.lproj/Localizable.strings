@@ -978,3 +978,11 @@
 /* Per-mode model selection */
 "mode_ai_model" = "AIモデル";
 "model_for_all_modes" = "すべてのモードで使用するモデルを選択";
+
+/* Per-mode thinking */
+"thinking" = "思考";
+"thinking_automatic" = "自動";
+"thinking_off" = "オフ";
+"thinking_low" = "低";
+"thinking_medium" = "中";
+"thinking_high" = "高";

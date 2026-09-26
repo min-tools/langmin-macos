@@ -99,7 +99,7 @@ var completesImmediately = true
 // startTextRequest(model, prompt, emptyMessage, [research = false],
 // completion): Complete with the fixture's configured response instead of
 // contacting a model.
-func startTextRequest(model: String, prompt: ExplanationPrompt, emptyMessage: String, research: Bool = false,
+func startTextRequest(model: String, prompt: ExplanationPrompt, emptyMessage: String, research: Bool = false, mode: String? = nil,
                       completion: @escaping (Result<String, Error>) -> Void) throws -> TextRequestHandle {
  requestCompletion = completion
  return TextRequestHandle(resume: { /* Deliver a synchronous response only when that fixture mode is enabled. */ if completesImmediately { completion(providerResponse) } }, cancel: {})
