@@ -82,6 +82,8 @@ Deleted questions and replies are left out of later requests. Deleting earlier c
 
 ## Editing a result
 
+Results use 14-point text, and separate result windows open in landscape. Model details and result actions are always available; audio actions appear when relevant.
+
 **Edit Text** opens the result as a small editor. **Done** applies the change everywhere: copies, exports, later follow-ups, and the saved Library item. Editing an unsaved result does not save it. Diff compares the original input with the edited result; follow-up replies are not part of the diff.
 
 Saving manual edits removes attached narration and pronunciation audio, after a warning. Cancelling the warning keeps both your draft and the audio. Playback controls come back when you generate new narration.

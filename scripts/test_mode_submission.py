@@ -52,7 +52,7 @@ struct AppPreferences {
  var languageLevel = "b", rewriteStyle = "rephrase", customInstructions = ""
  var explainAnswerLanguage = "en", summarizeAnswerLanguage = "en"
  var translationTargets = ["es", "fr"], extraLanguages = ["de"]
- var webResearchEnabled = true, resultDiffEnabled = true
+ var webResearchEnabled = true
  var autoNarrateModes: [String] = []
 }
 struct LauncherPreferences { var mode = "explain" }

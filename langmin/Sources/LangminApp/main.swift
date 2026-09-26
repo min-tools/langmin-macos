@@ -75,18 +75,8 @@ let defaultPreferredReaderVoices = [
     "apple:com.apple.voice.compact.en-GB.Daniel"
 ]
 let defaultOutputLanguage = "auto"
-let defaultWindowShape = "landscape"
-let defaultExplanationFontSize: Double = 16
+let defaultExplanationFontSize: Double = 14
 let defaultWebResearchEnabled = true
-let defaultResultDiffEnabled = true
-let defaultResultToolbarShowsSaveText = true
-let defaultResultToolbarShowsSaveAudio = true
-let defaultResultToolbarShowsCopy = true
-let defaultResultToolbarShowsShare = true
-let defaultResultToolbarShowsNarration = true
-let defaultResultToolbarShowsHighlight = true
-let defaultResultToolbarShowsStats = true
-let defaultResultStatsShowsTTS = false
 let defaultNarrationHighlightMode = false
 let defaultNarrationPlaybackRate: Float = 1
 let defaultLauncherShowsSecondaryOptions = true
@@ -142,20 +132,9 @@ enum PreferenceKey {
     static let explainAnswerLanguage = "explainAnswerLanguage"
     static let summarizeAnswerLanguage = "summarizeAnswerLanguage"
     static let webResearchEnabled = "webResearchEnabled"
-    static let resultDiffEnabled = "resultDiffEnabled"
-    static let resultToolbarShowsSaveText = "resultToolbarShowsSaveText"
-    static let resultToolbarShowsSaveAudio = "resultToolbarShowsSaveAudio"
-    static let resultToolbarShowsCopy = "resultToolbarShowsCopy"
-    static let resultToolbarShowsShare = "resultToolbarShowsShare"
-    static let resultToolbarShowsNarration = "resultToolbarShowsNarration"
-    static let resultToolbarShowsHighlight = "resultToolbarShowsHighlight"
-    static let resultToolbarShowsStats = "resultToolbarShowsStats"
-    static let resultStatsShowsTTS = "resultStatsShowsTTS"
     static let narrationHighlightMode = "narrationHighlightMode"
     static let narrationPlaybackRate = "narrationPlaybackRate"
-    static let windowShape = "windowShape"
     static let libraryDetached = "libraryDetached"
-    static let explanationFontSize = "explanationFontSize"
     static let launcherShowsSecondaryOptions = "launcherShowsSecondaryOptions"
     static let launcherShowsTranslationTarget = "launcherShowsTranslationTarget"
     static let launcherShowsModel = "launcherShowsModel"
@@ -3312,21 +3291,6 @@ func appUILanguageOverride() -> String? {
     return languages.first
 }
 
-// Supported result-window layouts.
-let windowShapeOptions: [PreferenceOption] = [
-    PreferenceOption(id: "landscape", title: "Landscape", note: "16:10"),
-    PreferenceOption(id: "portrait", title: "Portrait", note: "10:16")
-]
-
-// Window text sizes exposed in Settings.
-let fontSizeOptions: [PreferenceOption] = [
-    PreferenceOption(id: "21", title: "21", note: ""),
-    PreferenceOption(id: "18", title: "18", note: ""),
-    PreferenceOption(id: "16", title: "16", note: ""),
-    PreferenceOption(id: "15", title: "15", note: ""),
-    PreferenceOption(id: "14", title: "14", note: "")
-]
-
 // Saved app preferences.
 struct AppPreferences {
     var explanationModel: String = defaultExplanationModel
@@ -3359,18 +3323,7 @@ struct AppPreferences {
     var explainAnswerLanguage: String = defaultOutputLanguage
     var summarizeAnswerLanguage: String = defaultOutputLanguage
     var webResearchEnabled: Bool = defaultWebResearchEnabled
-    var resultDiffEnabled: Bool = defaultResultDiffEnabled
-    var resultToolbarShowsSaveText: Bool = defaultResultToolbarShowsSaveText
-    var resultToolbarShowsSaveAudio: Bool = defaultResultToolbarShowsSaveAudio
-    var resultToolbarShowsCopy: Bool = defaultResultToolbarShowsCopy
-    var resultToolbarShowsShare: Bool = defaultResultToolbarShowsShare
-    var resultToolbarShowsNarration: Bool = defaultResultToolbarShowsNarration
-    var resultToolbarShowsHighlight: Bool = defaultResultToolbarShowsHighlight
-    var resultToolbarShowsStats: Bool = defaultResultToolbarShowsStats
-    var resultStatsShowsTTS: Bool = defaultResultStatsShowsTTS
     var narrationHighlightMode: Bool = defaultNarrationHighlightMode
-    var windowShape: String = defaultWindowShape
-    var explanationFontSize: Double = defaultExplanationFontSize
     var launcherShowsSecondaryOptions: Bool = defaultLauncherShowsSecondaryOptions
     var launcherShowsTranslationTarget: Bool = defaultLauncherShowsTranslationTarget
     var launcherShowsModel: Bool = defaultLauncherShowsModel
@@ -3507,31 +3460,9 @@ struct LauncherPreferences {
     var recentTranslationTargets: [String] = []
 }
 
-// normalizedFontSize(value): Clamp text size so saved settings cannot create
-// unusable windows.
+// normalizedFontSize(value): Keep development font overrides within a readable range.
 func normalizedFontSize(_ value: Double) -> Double {
     min(max(value, minimumExplanationFontSize), maximumExplanationFontSize)
-}
-
-// parsedFontSize(value, fallback): Parse a user-entered text size, falling back
-// to a known safe value.
-func parsedFontSize(_ value: String, fallback: Double) -> Double {
-    let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-    return normalizedFontSize(Double(trimmed) ?? fallback)
-}
-
-// formattedFontSize(value): Save whole-number sizes cleanly, while preserving
-// fractional values.
-func formattedFontSize(_ value: Double) -> String {
-    let size = normalizedFontSize(value)
-    let rounded = size.rounded()
-
-    // Display effectively integral font sizes without an unnecessary decimal suffix.
-    if abs(size - rounded) < 0.01 {
-        return String(Int(rounded))
-    }
-
-    return String(format: "%.1f", size)
 }
 
 // storedPreferenceString(key, [fallback = ""]): Read a non-empty string from
@@ -3540,22 +3471,6 @@ func storedPreferenceString(_ key: String, fallback: String = "") -> String {
     let value = preferencesStore.string(forKey: key)?
         .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
     return value.isEmpty ? fallback : value
-}
-
-// storedPreferenceDouble(key, fallback): Read a numeric preference while
-// accepting manual string writes.
-func storedPreferenceDouble(_ key: String, fallback: Double) -> Double {
-    // Read numeric preferences directly when stored as numbers.
-    if let number = preferencesStore.object(forKey: key) as? NSNumber {
-        return number.doubleValue
-    }
-
-    // Accept older preferences stored as numeric strings.
-    if let text = preferencesStore.string(forKey: key), let value = Double(text) {
-        return value
-    }
-
-    return fallback
 }
 
 // storedPreferenceBool(key, fallback): Read a boolean only when it was
@@ -3590,8 +3505,7 @@ func loadGlobalShortcuts() -> [String: GlobalShortcut] {
     return result
 }
 
-// loadAppPreferences(): Read Settings defaults for model, reader, language,
-// shape, and text size.
+// loadAppPreferences(): Read saved model, reader, language and app behavior choices.
 func loadAppPreferences() -> AppPreferences {
     let launcherShowsSecondaryOptions = storedPreferenceBool(
         PreferenceKey.launcherShowsSecondaryOptions,
@@ -3705,55 +3619,9 @@ func loadAppPreferences() -> AppPreferences {
             PreferenceKey.webResearchEnabled,
             fallback: defaultWebResearchEnabled
         ),
-        resultDiffEnabled: storedPreferenceBool(
-            PreferenceKey.resultDiffEnabled,
-            fallback: defaultResultDiffEnabled
-        ),
-        resultToolbarShowsSaveText: storedPreferenceBool(
-            PreferenceKey.resultToolbarShowsSaveText,
-            fallback: defaultResultToolbarShowsSaveText
-        ),
-        resultToolbarShowsSaveAudio: storedPreferenceBool(
-            PreferenceKey.resultToolbarShowsSaveAudio,
-            fallback: defaultResultToolbarShowsSaveAudio
-        ),
-        resultToolbarShowsCopy: storedPreferenceBool(
-            PreferenceKey.resultToolbarShowsCopy,
-            fallback: defaultResultToolbarShowsCopy
-        ),
-        resultToolbarShowsShare: storedPreferenceBool(
-            PreferenceKey.resultToolbarShowsShare,
-            fallback: defaultResultToolbarShowsShare
-        ),
-        resultToolbarShowsNarration: storedPreferenceBool(
-            PreferenceKey.resultToolbarShowsNarration,
-            fallback: defaultResultToolbarShowsNarration
-        ),
-        resultToolbarShowsHighlight: storedPreferenceBool(
-            PreferenceKey.resultToolbarShowsHighlight,
-            fallback: defaultResultToolbarShowsHighlight
-        ),
-        resultToolbarShowsStats: storedPreferenceBool(
-            PreferenceKey.resultToolbarShowsStats,
-            fallback: defaultResultToolbarShowsStats
-        ),
-        resultStatsShowsTTS: storedPreferenceBool(
-            PreferenceKey.resultStatsShowsTTS,
-            fallback: defaultResultStatsShowsTTS
-        ),
         narrationHighlightMode: storedPreferenceBool(
             PreferenceKey.narrationHighlightMode,
             fallback: defaultNarrationHighlightMode
-        ),
-        windowShape: storedPreferenceString(
-            PreferenceKey.windowShape,
-            fallback: defaultWindowShape
-        ),
-        explanationFontSize: normalizedFontSize(
-            storedPreferenceDouble(
-                PreferenceKey.explanationFontSize,
-                fallback: defaultExplanationFontSize
-            )
         ),
         launcherShowsSecondaryOptions: launcherShowsSecondaryOptions,
         launcherShowsTranslationTarget: launcherShowsTranslationTarget,
@@ -3959,20 +3827,9 @@ func writePreferences(_ preferences: AppPreferences, launcherPreferences: Launch
     preferencesStore.set(preferences.explainAnswerLanguage, forKey: PreferenceKey.explainAnswerLanguage)
     preferencesStore.set(preferences.summarizeAnswerLanguage, forKey: PreferenceKey.summarizeAnswerLanguage)
     preferencesStore.set(preferences.webResearchEnabled, forKey: PreferenceKey.webResearchEnabled)
-    // Save result toolbar visibility and narration highlighting.
-    preferencesStore.set(preferences.resultDiffEnabled, forKey: PreferenceKey.resultDiffEnabled)
-    preferencesStore.set(preferences.resultToolbarShowsSaveText, forKey: PreferenceKey.resultToolbarShowsSaveText)
-    preferencesStore.set(preferences.resultToolbarShowsSaveAudio, forKey: PreferenceKey.resultToolbarShowsSaveAudio)
-    preferencesStore.set(preferences.resultToolbarShowsCopy, forKey: PreferenceKey.resultToolbarShowsCopy)
-    preferencesStore.set(preferences.resultToolbarShowsShare, forKey: PreferenceKey.resultToolbarShowsShare)
-    preferencesStore.set(preferences.resultToolbarShowsNarration, forKey: PreferenceKey.resultToolbarShowsNarration)
-    preferencesStore.set(preferences.resultToolbarShowsHighlight, forKey: PreferenceKey.resultToolbarShowsHighlight)
-    preferencesStore.set(preferences.resultToolbarShowsStats, forKey: PreferenceKey.resultToolbarShowsStats)
-    preferencesStore.set(preferences.resultStatsShowsTTS, forKey: PreferenceKey.resultStatsShowsTTS)
+    // Preserve the narration highlight toggle used in result windows.
     preferencesStore.set(preferences.narrationHighlightMode, forKey: PreferenceKey.narrationHighlightMode)
-    // Normalize window text size and save launcher presentation choices.
-    preferencesStore.set(preferences.windowShape, forKey: PreferenceKey.windowShape)
-    preferencesStore.set(normalizedFontSize(preferences.explanationFontSize), forKey: PreferenceKey.explanationFontSize)
+    // Save launcher presentation choices.
     preferencesStore.set(preferences.launcherShowsSecondaryOptions, forKey: PreferenceKey.launcherShowsSecondaryOptions)
     preferencesStore.set(preferences.launcherShowsTranslationTarget, forKey: PreferenceKey.launcherShowsTranslationTarget)
     preferencesStore.set(preferences.launcherShowsModel, forKey: PreferenceKey.launcherShowsModel)
@@ -4477,41 +4334,20 @@ let langminControlBorderColor = NSColor(name: nil) { appearance in
         : NSColor.black.withAlphaComponent(0.24)
 }
 
-// normalizedWindowShape(value): Normalize older or hand-edited window shape
-// values to the two supported modes.
-func normalizedWindowShape(_ value: String) -> String {
-    // Accept supported aliases while keeping stored window shapes predictable.
-    switch value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
-    // Normalize vertical aspect-ratio names to the portrait setting.
-    case "portrait", "10:16", "vertical":
-        return "portrait"
-    // Unknown shapes use the standard window layout.
-    default:
-        return defaultWindowShape
-    }
-}
+// viewerContentSize(screen): Fit the standard landscape result window to the screen.
+func viewerContentSize(for screen: NSRect) -> NSSize {
+    var width = screen.width * 0.70
+    var height = width * 10 / 16
 
-// viewerContentSize(screen, shape): Calculate the result window size from the
-// saved landscape/portrait preference.
-func viewerContentSize(for screen: NSRect, shape: String) -> NSSize {
-    let normalizedShape = normalizedWindowShape(shape)
-    let isPortrait = normalizedShape == "portrait"
-    let aspectWidth: CGFloat = isPortrait ? 10 : 16
-    let aspectHeight: CGFloat = isPortrait ? 16 : 10
-    let longSide = (isPortrait ? screen.height : screen.width) * 0.70
-
-    var width = isPortrait ? longSide * aspectWidth / aspectHeight : longSide
-    var height = isPortrait ? longSide : longSide * aspectHeight / aspectWidth
-
-    // Clamp to the visible screen while preserving the selected aspect ratio.
+    // Clamp to the visible screen while preserving the landscape aspect ratio.
     let maximumWidth = max(screen.width - 40, 360)
     let maximumHeight = max(screen.height - 40, 420)
     let scale = min(1, maximumWidth / width, maximumHeight / height)
     width *= scale
     height *= scale
 
-    let minimumWidth = min(isPortrait ? 420 : 640, maximumWidth)
-    let minimumHeight = min(isPortrait ? 560 : 400, maximumHeight)
+    let minimumWidth = min(640, maximumWidth)
+    let minimumHeight = min(400, maximumHeight)
 
     return NSSize(
         width: max(width.rounded(.toNearestOrAwayFromZero), minimumWidth),
@@ -7383,8 +7219,8 @@ enum LibraryStore {
         writeEntry(entry, to: dir)
     }
 
-    // viewerConfig(entry): Open saved assets in place. Leave cleanupDir empty
-    // so closing cannot delete the Library entry.
+    // viewerConfig(entry): Open saved assets with the standard text size. Leave
+    // cleanupDir empty so closing cannot delete the Library entry.
     static func viewerConfig(for entry: LibraryEntry) -> ViewerConfig? {
         let dir = entryDirectory(id: entry.id)
         let textPath = dir.appendingPathComponent(entry.textFile).path
@@ -7394,7 +7230,7 @@ enum LibraryStore {
         }
         return ViewerConfig(
             textPath: textPath,
-            fontSize: CGFloat(entry.fontSize),
+            fontSize: CGFloat(defaultExplanationFontSize),
             audioPath: entry.audioFile.map { dir.appendingPathComponent($0).path } ?? "",
             title: entry.title,
             cleanupDir: "",
@@ -8396,14 +8232,12 @@ final class ViewerSession: NSObject, AVAudioPlayerDelegate, NSWindowDelegate, NS
         let screen = detectedScreen.width >= 640 && detectedScreen.height >= 420
             ? detectedScreen
             : fallbackScreen
-        let windowShape = normalizedWindowShape(loadAppPreferences().windowShape)
-        let isPortrait = windowShape == "portrait"
-        let contentSize = viewerContentSize(for: screen, shape: windowShape)
+        let contentSize = viewerContentSize(for: screen)
         let width = contentSize.width
         let height = contentSize.height
         let minimumContentSize = NSSize(
-            width: min(width, isPortrait ? 420 : 520),
-            height: min(height, isPortrait ? 520 : 320)
+            width: min(width, 520),
+            height: min(height, 320)
         )
 
         // Multiple windows cascade slightly so they do not appear as one stack.
@@ -11348,7 +11182,6 @@ final class ViewerSession: NSObject, AVAudioPlayerDelegate, NSWindowDelegate, NS
     // makeViewerToolbar(width, height):
     // Build the always-visible result toolbar.
     func makeViewerToolbar(width: CGFloat, height: CGFloat) -> NSView {
-        let preferences = loadAppPreferences()
         let bar = ResultToolbarView(frame: NSRect(x: 0, y: 0, width: width, height: height))
         bar.reservedWidth = diffAvailable ? 202 : 56
         bar.autoresizingMask = [.width, .maxYMargin]
@@ -11364,32 +11197,28 @@ final class ViewerSession: NSObject, AVAudioPlayerDelegate, NSWindowDelegate, NS
         (editButton as? TooltipButton)?.contentOffset.y = 1
         bar.addButton(editButton, to: .edit)
 
-        // Include Copy only when enabled in toolbar preferences.
-        if preferences.resultToolbarShowsCopy {
-            let copyButton = toolbarButton(
-                symbolName: "doc.on.doc",
-                fallbackTitle: "Copy",
-                tooltip: "Copy Text",
-                symbolPointSize: 12.5,
-                action: #selector(copyTextFromToolbar(_:))
-            )
-            self.copyButton = copyButton
-            bar.addButton(copyButton, to: .copy)
-            updateCopyButtonMode()
-        }
+        // Keep copying available for every result.
+        let copyButton = toolbarButton(
+            symbolName: "doc.on.doc",
+            fallbackTitle: "Copy",
+            tooltip: "Copy Text",
+            symbolPointSize: 12.5,
+            action: #selector(copyTextFromToolbar(_:))
+        )
+        self.copyButton = copyButton
+        bar.addButton(copyButton, to: .copy)
+        updateCopyButtonMode()
 
-        // Include text export only when requested by the toolbar settings.
-        if preferences.resultToolbarShowsSaveText {
-            bar.addButton(toolbarButton(
-                image: saveGlyphImage(audio: false),
-                fallbackTitle: "Save",
-                tooltip: "Save Text",
-                action: #selector(saveTextFromToolbar(_:))
-            ), to: .save)
-        }
+        // Keep text export available for every result.
+        bar.addButton(toolbarButton(
+            image: saveGlyphImage(audio: false),
+            fallbackTitle: "Save",
+            tooltip: "Save Text",
+            action: #selector(saveTextFromToolbar(_:))
+        ), to: .save)
 
-        // Audio export needs both an enabled control and available narration.
-        if preferences.resultToolbarShowsSaveAudio && audioAvailable {
+        // Offer audio export when narration is available.
+        if audioAvailable {
             let saveAudioButton = toolbarButton(
                 image: saveGlyphImage(audio: true),
                 fallbackTitle: "Audio",
@@ -11401,18 +11230,16 @@ final class ViewerSession: NSObject, AVAudioPlayerDelegate, NSWindowDelegate, NS
             bar.addButton(saveAudioButton, to: .save)
         }
 
-        // Respect the user's preference to show the Share action.
-        if preferences.resultToolbarShowsShare {
-            let shareButton = toolbarButton(
-                symbolName: "square.and.arrow.up",
-                fallbackTitle: "Share",
-                tooltip: "Share",
-                symbolPointSize: 14,
-                action: #selector(shareFromToolbar(_:))
-            )
-            self.shareButton = shareButton
-            bar.addButton(shareButton, to: .share)
-        }
+        // Keep sharing available for every result.
+        let shareButton = toolbarButton(
+            symbolName: "square.and.arrow.up",
+            fallbackTitle: "Share",
+            tooltip: "Share",
+            symbolPointSize: 14,
+            action: #selector(shareFromToolbar(_:))
+        )
+        self.shareButton = shareButton
+        bar.addButton(shareButton, to: .share)
 
         // Allow illustration changes independently of text generation, including for saved entries.
         if config.dictionaryHeadword != nil {
@@ -11428,10 +11255,8 @@ final class ViewerSession: NSObject, AVAudioPlayerDelegate, NSWindowDelegate, NS
             bar.addButton(button, to: .illustration)
         }
 
-        // Offer narration generation, replacement and removal. Hide the highlight toggle
-        // when narration controls are hidden.
-        if preferences.resultToolbarShowsNarration,
-           !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        // Offer narration and highlighting for results with readable text.
+        if !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             let narrationButton = toolbarButton(
                 symbolName: "speaker.wave.2",
                 fallbackTitle: "Read",
@@ -11443,18 +11268,16 @@ final class ViewerSession: NSObject, AVAudioPlayerDelegate, NSWindowDelegate, NS
             bar.addButton(narrationButton, to: .narration)
 
             // Generate narration by sentence when highlighting is enabled.
-            if preferences.resultToolbarShowsHighlight {
-                let highlightButton = toolbarButton(
-                    symbolName: "highlighter",
-                    fallbackTitle: "HL",
-                    tooltip: narrationHighlightTooltip(),
-                    symbolPointSize: 13,
-                    action: #selector(toggleNarrationHighlightMode(_:))
-                )
-                highlightToggleButton = highlightButton
-                bar.addButton(highlightButton, to: .narration)
-                updateHighlightToggleAppearance()
-            }
+            let highlightButton = toolbarButton(
+                symbolName: "highlighter",
+                fallbackTitle: "HL",
+                tooltip: narrationHighlightTooltip(),
+                symbolPointSize: 13,
+                action: #selector(toggleNarrationHighlightMode(_:))
+            )
+            highlightToggleButton = highlightButton
+            bar.addButton(highlightButton, to: .narration)
+            updateHighlightToggleAppearance()
         }
 
         let separator = NativeSeparator()
@@ -12922,10 +12745,8 @@ final class ViewerSession: NSObject, AVAudioPlayerDelegate, NSWindowDelegate, NS
     // revealAudioControls([autoplay = true]): Insert playback controls below
     // the text when narration becomes available.
     func revealAudioControls(autoplay: Bool = true) {
-        // Saving remains available even if the audio player cannot open the new file.
-        let preferences = loadAppPreferences()
-        // Add audio export once, when both the setting and new narration require it.
-        if preferences.resultToolbarShowsSaveAudio, saveAudioToolbarButton == nil, let bar = resultToolbar {
+        // Add audio export once, even if the player cannot open the new file.
+        if saveAudioToolbarButton == nil, let bar = resultToolbar {
             let saveAudioButton = toolbarButton(
                 image: saveGlyphImage(audio: true),
                 fallbackTitle: "Audio",
@@ -12982,15 +12803,8 @@ final class ViewerSession: NSObject, AVAudioPlayerDelegate, NSWindowDelegate, NS
         alert.runModal()
     }
 
-    // updateNarrationStats(): Show text-model and narration details according
-    // to the toolbar settings.
+    // updateNarrationStats(): Show the text model, language level and narration voice.
     func updateNarrationStats() {
-        let preferences = loadAppPreferences()
-        // Clear statistics when the user hides them in toolbar settings.
-        guard preferences.resultToolbarShowsStats else {
-            statsLabel?.stringValue = ""
-            return
-        }
         var parts: [String] = []
         // Show the text model that actually generated this result.
         if let model = config.textModel, !model.isEmpty {
@@ -13005,14 +12819,6 @@ final class ViewerSession: NSObject, AVAudioPlayerDelegate, NSWindowDelegate, NS
             // Show the voice used for this recording when known.
             if let voice = narrationVoiceUsed, !voice.isEmpty {
                 parts.append("Voice: \(narrationVoiceDisplayValue(voice))")
-            }
-            // Include the speech model only when the TTS detail setting is enabled.
-            if preferences.resultStatsShowsTTS, var model = narrationModelUsed, !model.isEmpty {
-                // Avoid repeating the TTS label already supplied by the statistics field.
-                if model.hasSuffix(" TTS") {
-                    model = String(model.dropLast(4))
-                }
-                parts.append("TTS: \(model)")
             }
         }
         statsLabel?.stringValue = parts.joined(separator: " · ")
@@ -14269,8 +14075,6 @@ enum PreferencesSection: String, CaseIterable {
     case transcription
     // Illustrations contains image-generation preferences.
     case illustrations
-    // Window contains result layout and toolbar options.
-    case window
     // Advanced contains custom instructions and additional controls.
     case advanced
 
@@ -14295,9 +14099,6 @@ enum PreferencesSection: String, CaseIterable {
         // Use the illustration-settings tab's localized label.
         case .illustrations:
             return localized("tab_illustrations", "Illustrations")
-        // Use the window-settings tab's localized label.
-        case .window:
-            return localized("tab_window", "Window")
         // Use the advanced-settings tab's localized label.
         case .advanced:
             return localized("tab_advanced", "Advanced")
@@ -14325,9 +14126,6 @@ enum PreferencesSection: String, CaseIterable {
         // A photo identifies illustration settings.
         case .illustrations:
             return "photo"
-        // A window symbol identifies result layout settings.
-        case .window:
-            return "macwindow"
         // Tools identify the additional advanced controls.
         case .advanced:
             return "wrench.and.screwdriver"
@@ -14489,21 +14287,10 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
     // Help text for controls with an info icon outside the grid.
     private var settingsInfoTooltips: [ObjectIdentifier: String] = [:]
     var appLanguageBox: NSPopUpButton!
-    var windowShapeBox: NSPopUpButton!
     var customModelWasConfigured = false
     var voiceBox: MultiSelectReaderVoiceControl!
-    var fontSizeBox: NSPopUpButton!
     var researchButton: NSButton!
     var resetAIConsentButton: NSButton!
-    var resultDiffButton: NSButton!
-    var resultToolbarSaveTextButton: NSButton!
-    var resultToolbarSaveAudioButton: NSButton!
-    var resultToolbarCopyButton: NSButton!
-    var resultToolbarShareButton: NSButton!
-    var resultToolbarNarrationButton: NSButton!
-    var resultToolbarHighlightButton: NSButton!
-    var resultToolbarStatsButton: NSButton!
-    var resultStatsTTSButton: NSButton!
     var menuBarButton: NSButton!
     var launchAtLoginButton: NSButton!
     var shortcutButtons: [String: ShortcutRecorderButton] = [:]
@@ -14658,7 +14445,6 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
         appLanguageBox = popupButton(items: appUILanguageOptions.map { $0.title })
         appLanguageBox.target = self
         appLanguageBox.action = #selector(appLanguageChanged(_:))
-        windowShapeBox = popupButton(items: windowShapeOptions.map { $0.displayValue })
         // Refresh narration choices when the preferred voice list changes.
         voiceBox = MultiSelectReaderVoiceControl()
         voiceBox.translatesAutoresizingMaskIntoConstraints = false
@@ -14667,7 +14453,6 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
             self?.rebuildDictionaryVoiceMenu()
         }
         settingsInfoTooltips[ObjectIdentifier(voiceBox)] = "Choose voices for narration and Dictionary. Select none to show all voices; click a heading to select its group. Apple voices run on your Mac. OpenAI and Grok voices require Pro and a provider API key."
-        fontSizeBox = popupButton(items: fontSizeOptions.map { $0.displayValue })
 
         researchButton = FocusableButton(
             checkboxWithTitle: localized("use_web_research", "Use web research when available"),
@@ -14685,91 +14470,6 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
         resetAIConsentButton.toolTip = "Ask again before sending text to every remote AI provider"
         resetAIConsentButton.refusesFirstResponder = false
         applySettingsButtonTextBaseline(resetAIConsentButton)
-
-        resultDiffButton = FocusableButton(
-            checkboxWithTitle: "Show before and after changes",
-            target: nil,
-            action: nil
-        )
-        resultDiffButton.font = NSFont.systemFont(ofSize: 13)
-        resultDiffButton.toolTip = "Show a Result/Diff switch for proofreading and rewrite results"
-        resultDiffButton.refusesFirstResponder = false
-
-        resultToolbarSaveTextButton = FocusableButton(
-            checkboxWithTitle: "Save text",
-            target: nil,
-            action: nil
-        )
-        resultToolbarSaveTextButton.font = NSFont.systemFont(ofSize: 13)
-        resultToolbarSaveTextButton.toolTip = "Show the Save Text button in result windows"
-        resultToolbarSaveTextButton.refusesFirstResponder = false
-
-        resultToolbarSaveAudioButton = FocusableButton(
-            checkboxWithTitle: "Save audio",
-            target: nil,
-            action: nil
-        )
-        resultToolbarSaveAudioButton.font = NSFont.systemFont(ofSize: 13)
-        resultToolbarSaveAudioButton.toolTip = "Show the Save Audio button when result audio is available"
-        resultToolbarSaveAudioButton.refusesFirstResponder = false
-
-        resultToolbarCopyButton = FocusableButton(
-            checkboxWithTitle: "Copy",
-            target: nil,
-            action: nil
-        )
-        resultToolbarCopyButton.font = NSFont.systemFont(ofSize: 13)
-        resultToolbarCopyButton.toolTip = "Show the Copy button in result windows"
-        resultToolbarCopyButton.refusesFirstResponder = false
-
-        resultToolbarShareButton = FocusableButton(
-            checkboxWithTitle: "Share",
-            target: nil,
-            action: nil
-        )
-        resultToolbarShareButton.font = NSFont.systemFont(ofSize: 13)
-        resultToolbarShareButton.toolTip = "Show the Share button in result windows"
-        resultToolbarShareButton.refusesFirstResponder = false
-
-        resultToolbarNarrationButton = FocusableButton(
-            checkboxWithTitle: "Narration",
-            target: self,
-            action: #selector(dependentCheckboxToggled(_:))
-        )
-        resultToolbarNarrationButton.font = NSFont.systemFont(ofSize: 13)
-        resultToolbarNarrationButton.toolTip =
-            "Show the button for creating and playing narration"
-        resultToolbarNarrationButton.refusesFirstResponder = false
-
-        resultToolbarHighlightButton = FocusableButton(
-            checkboxWithTitle: "Highlight narration",
-            target: nil,
-            action: nil
-        )
-        resultToolbarHighlightButton.font = NSFont.systemFont(ofSize: 13)
-        resultToolbarHighlightButton.toolTip =
-            "Show the option to highlight each sentence as it is read aloud"
-        resultToolbarHighlightButton.refusesFirstResponder = false
-
-        resultToolbarStatsButton = FocusableButton(
-            checkboxWithTitle: "Model details",
-            target: self,
-            action: #selector(dependentCheckboxToggled(_:))
-        )
-        resultToolbarStatsButton.font = NSFont.systemFont(ofSize: 13)
-        resultToolbarStatsButton.toolTip =
-            "Show the text model and narration voice in the result toolbar"
-        resultToolbarStatsButton.refusesFirstResponder = false
-
-        resultStatsTTSButton = FocusableButton(
-            checkboxWithTitle: "Include speech model",
-            target: nil,
-            action: nil
-        )
-        resultStatsTTSButton.font = NSFont.systemFont(ofSize: 13)
-        resultStatsTTSButton.toolTip =
-            "Show the speech model in the toolbar when narration is available"
-        resultStatsTTSButton.refusesFirstResponder = false
 
         menuBarButton = FocusableButton(checkboxWithTitle: localized("show_langmin_in_the_menu_bar", "Show Langmin in the menu bar"), target: nil, action: nil)
         menuBarButton.font = NSFont.systemFont(ofSize: 13)
@@ -14903,27 +14603,6 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
         transcriptionSettings = TranscriptionSettingsControls()
         addSettingsTab(.transcription, rows: transcriptionSettings.rows)
         addSettingsTab(.illustrations, rows: illustrationSettings.rows)
-        // Dependent checkboxes sit inline with their parent toggle; the parent
-        // hides them when unchecked (see dependentCheckboxToggled).
-        let statsOptionsRow = NSStackView(views: [resultToolbarStatsButton, resultStatsTTSButton])
-        statsOptionsRow.orientation = .horizontal
-        statsOptionsRow.spacing = 16
-        let narrationOptionsRow = NSStackView(views: [resultToolbarNarrationButton, resultToolbarHighlightButton])
-        narrationOptionsRow.orientation = .horizontal
-        narrationOptionsRow.spacing = 16
-        // Group result appearance and toolbar visibility controls on the Window
-        // page.
-        addSettingsTab(.window, rows: [
-            ("Window Shape", windowShapeBox),
-            ("Window Text Size", fontSizeBox),
-            ("Details", statsOptionsRow),
-            ("Toolbar", resultToolbarSaveTextButton),
-            ("", resultToolbarSaveAudioButton),
-            ("", resultToolbarCopyButton),
-            ("", resultToolbarShareButton),
-            ("", narrationOptionsRow),
-            ("", resultDiffButton)
-        ])
         // Keep endpoint overrides and custom instructions on the Advanced page.
         addSettingsTab(.advanced, rows: [
             ("OpenAI Endpoint", advancedOpenAIEndpointField),
@@ -14997,11 +14676,9 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
             advancedInstructionsSeparatorRow.widthAnchor.constraint(equalToConstant: 330),
             advancedInstructionsSeparatorRow.heightAnchor.constraint(equalToConstant: 1),
             advancedNoteLabel.widthAnchor.constraint(equalToConstant: 330),
-            windowShapeBox.widthAnchor.constraint(equalToConstant: 330),
             voiceBox.widthAnchor.constraint(equalToConstant: 330),
             narrateBeforeOpenBox.widthAnchor.constraint(equalToConstant: 330),
             dictionaryVoiceBox.widthAnchor.constraint(equalToConstant: 330),
-            fontSizeBox.widthAnchor.constraint(equalToConstant: 76)
         ])
 
         self.window = window
@@ -15489,17 +15166,6 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
             illustrationSettings.automaticButton,
             transcriptionSettings.providerBox,
             transcriptionSettings.languageBox,
-            windowShapeBox,
-            fontSizeBox,
-            resultToolbarStatsButton,
-            resultStatsTTSButton,
-            resultToolbarSaveTextButton,
-            resultToolbarSaveAudioButton,
-            resultToolbarCopyButton,
-            resultToolbarShareButton,
-            resultToolbarNarrationButton,
-            resultToolbarHighlightButton,
-            resultDiffButton,
             advancedOpenAIEndpointField,
             advancedAnthropicEndpointField,
             advancedGeminiEndpointField,
@@ -15564,30 +15230,6 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
         // Audio-import controls supply their provider-dependent keyboard order.
         case .transcription:
             sectionViews = transcriptionSettings.focusViews
-        // Window settings follow the visible layout and toolbar options.
-        case .window:
-            var windowViews: [NSView] = [
-                windowShapeBox,
-                fontSizeBox,
-                resultToolbarStatsButton
-            ]
-            // Hidden TTS statistics options must not receive keyboard focus.
-            if !resultStatsTTSButton.isHidden {
-                windowViews.append(resultStatsTTSButton)
-            }
-            windowViews.append(contentsOf: [
-                resultToolbarSaveTextButton,
-                resultToolbarSaveAudioButton,
-                resultToolbarCopyButton,
-                resultToolbarShareButton,
-                resultToolbarNarrationButton
-            ])
-            // Exclude the hidden narration-highlight option from keyboard navigation.
-            if !resultToolbarHighlightButton.isHidden {
-                windowViews.append(resultToolbarHighlightButton)
-            }
-            windowViews.append(resultDiffButton)
-            sectionViews = windowViews
         // Advanced controls follow the order of their settings rows.
         case .advanced:
             sectionViews = [
@@ -15645,12 +15287,6 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
         if selectedSection == .models {
             updateAPIKeyPlaceholders()
         }
-        setPopupSelection(
-            windowShapeBox,
-            id: preferences.windowShape,
-            options: windowShapeOptions,
-            fallbackID: defaultWindowShape
-        )
         customDisplayNameField.stringValue = preferences.customDisplayName
         customBaseURLField.stringValue = preferences.customBaseURL
         customModelField.stringValue = preferences.customModelName
@@ -15668,16 +15304,6 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
                                       automatic: preferences.dictionaryIllustrationAutomatic)
         transcriptionSettings.populate(provider: preferences.transcriptionProvider, language: preferences.transcriptionLanguage)
         researchButton.state = preferences.webResearchEnabled ? .on : .off
-        resultDiffButton.state = preferences.resultDiffEnabled ? .on : .off
-        resultToolbarSaveTextButton.state = preferences.resultToolbarShowsSaveText ? .on : .off
-        resultToolbarSaveAudioButton.state = preferences.resultToolbarShowsSaveAudio ? .on : .off
-        resultToolbarCopyButton.state = preferences.resultToolbarShowsCopy ? .on : .off
-        resultToolbarShareButton.state = preferences.resultToolbarShowsShare ? .on : .off
-        resultToolbarNarrationButton.state = preferences.resultToolbarShowsNarration ? .on : .off
-        resultToolbarHighlightButton.state = preferences.resultToolbarShowsHighlight ? .on : .off
-        resultToolbarStatsButton.state = preferences.resultToolbarShowsStats ? .on : .off
-        resultStatsTTSButton.state = preferences.resultStatsShowsTTS ? .on : .off
-        syncDependentCheckboxVisibility()
         // Restore the saved voice if it is in the shortlist; otherwise select None.
         narrateBeforeOpenBox.menu = makeReaderChoiceMenu(allowed: voiceBox.selectedIDs)
         selectReaderChoice(narrateBeforeOpenBox, id: preferences.launcherReader)
@@ -15698,12 +15324,6 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
         for (action, button) in shortcutButtons {
             button.shortcut = preferences.globalShortcuts[action]
         }
-        setPopupSelection(
-            fontSizeBox,
-            id: formattedFontSize(preferences.explanationFontSize),
-            options: fontSizeOptions,
-            fallbackID: String(Int(defaultExplanationFontSize))
-        )
     }
 
     // appLanguageChanged(sender): Apply a changed interface language and
@@ -15952,11 +15572,6 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
         // A reset also restores defaults for choices outside this form, including the text model.
         // Ordinary saves preserve those live launcher settings.
         let live = launcherChoicesResetRequested ? AppPreferences() : loadAppPreferences()
-        let windowShape = selectedPreferenceID(
-            from: windowShapeBox,
-            options: windowShapeOptions,
-            fallbackID: defaultWindowShape
-        )
         let preferredTextModels = live.preferredTextModels.isEmpty
             ? defaultPreferredTextModelIDs
             : live.preferredTextModels
@@ -15980,15 +15595,6 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
         let launcherReader = selectedReaderChoiceID(narrateBeforeOpenBox)
         let ttsVoice = launcherReader == "none" ? defaultTTSVoice : launcherReader
         let dictionaryVoice = selectedReaderChoiceID(dictionaryVoiceBox)
-        let explanationFontSize = parsedFontSize(
-            selectedPreferenceID(
-                from: fontSizeBox,
-                options: fontSizeOptions,
-                fallbackID: String(Int(defaultExplanationFontSize))
-            ),
-            fallback: defaultExplanationFontSize
-        )
-
         return AppPreferences(
             explanationModel: nonEmpty(explanationModel, fallback: defaultExplanationModel),
             modeTextModels: live.modeTextModels,
@@ -16016,19 +15622,8 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
             explainAnswerLanguage: nonEmpty(live.explainAnswerLanguage, fallback: defaultOutputLanguage),
             summarizeAnswerLanguage: nonEmpty(live.summarizeAnswerLanguage, fallback: defaultOutputLanguage),
             webResearchEnabled: researchButton.state == .on,
-            resultDiffEnabled: resultDiffButton.state == .on,
-            resultToolbarShowsSaveText: resultToolbarSaveTextButton.state == .on,
-            resultToolbarShowsSaveAudio: resultToolbarSaveAudioButton.state == .on,
-            resultToolbarShowsCopy: resultToolbarCopyButton.state == .on,
-            resultToolbarShowsShare: resultToolbarShareButton.state == .on,
-            resultToolbarShowsNarration: resultToolbarNarrationButton.state == .on,
-            resultToolbarShowsHighlight: resultToolbarHighlightButton.state == .on,
-            resultToolbarShowsStats: resultToolbarStatsButton.state == .on,
-            resultStatsShowsTTS: resultStatsTTSButton.state == .on,
             // Preserve the highlight setting changed in result windows.
             narrationHighlightMode: live.narrationHighlightMode,
-            windowShape: normalizedWindowShape(windowShape),
-            explanationFontSize: explanationFontSize,
             launcherShowsSecondaryOptions: live.launcherShowsSecondaryOptions,
             launcherShowsTranslationTarget: live.launcherShowsTranslationTarget,
             launcherShowsModel: live.launcherShowsModel,
@@ -16098,19 +15693,6 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
             return
         }
         resetRemoteAIConsents()
-    }
-
-    // syncDependentCheckboxVisibility(): Show dependent options only when Model
-    // details or Narration is enabled.
-    func syncDependentCheckboxVisibility() {
-        resultStatsTTSButton.isHidden = resultToolbarStatsButton.state != .on
-        resultToolbarHighlightButton.isHidden = resultToolbarNarrationButton.state != .on
-    }
-
-    // dependentCheckboxToggled(sender): Refresh dependent Settings controls
-    // after a checkbox changes.
-    @objc func dependentCheckboxToggled(_ sender: Any?) {
-        syncDependentCheckboxVisibility()
     }
 
     // cancel(sender): Close without saving.
@@ -23491,9 +23073,8 @@ final class LauncherController: NSObject, NSWindowDelegate, NSTextFieldDelegate,
         mode: String,
         tempDir: URL
     ) throws -> (original: String?, revised: String?) {
-        // Create comparison files only for enabled, supported text-diff modes.
+        // Create comparison files when proofreading or rewriting changes the input.
         guard
-            loadAppPreferences().resultDiffEnabled,
             (mode == "proofread" || mode == "rewrite"),
             input != transformed
         // Other results need no original/revised comparison assets.
@@ -25733,15 +25314,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         mode: String = "",
         languageLevel: String = "off"
     ) -> ViewerSession {
-        let preferences = loadAppPreferences()
         // Allow a font-size environment override only in development builds.
         #if DEBUG
         let environmentFontSize = ProcessInfo.processInfo.environment["LANGMIN_FONT_SIZE"].flatMap(Double.init)
-        // Release builds use the saved or built-in result font size.
+        // Release builds always use the standard result font size.
         #else
         let environmentFontSize: Double? = nil
         #endif
-        let fontSize = normalizedFontSize(environmentFontSize ?? preferences.explanationFontSize)
+        let fontSize = normalizedFontSize(environmentFontSize ?? defaultExplanationFontSize)
 
         let config = ViewerConfig(
             textPath: textPath,

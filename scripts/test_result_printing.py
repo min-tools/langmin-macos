@@ -44,20 +44,17 @@ struct Config {
  var title = "Explain — Learning with Langmin"
  var fontSize: CGFloat = 17
  var textPath = ""
+ var textModel: String?
+ var languageLevel = "off"
  var sourceImages: [SourceImageAsset]?
  var dictionaryHeadword: String?
  var illustrationModel: String?
  var conversation: ResultConversation?
 }
-// Control toolbar visibility and statistics independently of user preferences.
-struct Preferences {
- var resultToolbarShowsSaveText = true, resultToolbarShowsSaveAudio = true, resultToolbarShowsCopy = true
- var resultToolbarShowsShare = true, resultToolbarShowsNarration = true
- var resultToolbarShowsHighlight = true
-}
-var preferences = Preferences()
-// loadAppPreferences(): Provide the preferences configured by this fixture.
-func loadAppPreferences() -> Preferences { preferences }
+// Result presentation must not consult obsolete saved toolbar overrides.
+func loadAppPreferences() -> Never { fatalError("Result appearance no longer reads preferences") }
+func languageLevelLetter(_ value: String) -> String? { value == "b" ? "B" : nil }
+func narrationVoiceDisplayValue(_ voice: String) -> String { voice }
 // TOOLTIP BUTTON
 final class NativeBarBackgroundView: NSView {}
 // Keep follow-up activity updates inactive while testing printing and toolbar layout.
@@ -68,6 +65,7 @@ final class Delegate { /* updateMenuForActiveWindow(): Avoid changing app menus 
 final class ViewerSession: NSObject {
  var config = Config()
  var content = ""
+ var narrationVoiceUsed: String?, narrationModelUsed: String?
  var illustrationImage: NSImage?
  var window: NSWindow?
  var hostWindow: NSWindow? { window }
@@ -178,6 +176,7 @@ for marker in ['    func titleForLabel()', '    func setResultTitleMessage(', ' 
     toolbar += block(MAIN, marker) + '\n'
 toolbar += block(MAIN, '    var canSaveAudio:') + '\n'
 toolbar += block(MAIN, '    func updateNarrationSaveButton()') + '\n'
+toolbar += block(MAIN, '    func updateNarrationStats()') + '\n'
 toolbar += block(MAIN, '    func updateResultViewButtons()') + '\n'
 toolbar += block(MAIN, '    @objc func changeDisplayedText(') + '\n'
 toolbar += MAIN[MAIN.index('    func toolbarButton('):MAIN.index('    // Draw matching document icons,')]
@@ -190,6 +189,9 @@ renderer = MAIN[MAIN.index('    struct MarkdownFence {'):MAIN.index('    // Rest
 renderer += MAIN[MAIN.index('    func markdownAttributedText(from markdown:'):MAIN.index('    // Build the always-visible result toolbar.')]
 source = source.replace('// RENDERER', renderer)
 source += app_source('ResultTextFormatting.swift') + '\n'
+source += next(line for line in MAIN.splitlines() if line.startswith('let defaultExplanationFontSize:')) + '\n'
+source += block(MAIN, 'func viewerContentSize(') + '\n'
+source += block(MAIN, 'enum PreferencesSection:') + '\n'
 source += r'''
 var checks = 0
 // check(condition, message): Report failed fixture expectations with their case
@@ -468,27 +470,40 @@ for width: CGFloat in [420, 440, 520, 800] {
   }
  }
 }
-// Hidden actions leave no empty groups; generated audio restores the Save group.
-preferences.resultToolbarShowsSaveText = false
-preferences.resultToolbarShowsCopy = false
-preferences.resultToolbarShowsShare = false
-preferences.resultToolbarShowsHighlight = false
+// Fixed toolbar actions stay present while audio and text availability change.
 session.diffAvailable = false; session.audioAvailable = false
 session.config.dictionaryHeadword = nil
 let compact = session.makeViewerToolbar(width: 440, height: 44) as! ResultToolbarView
-// visibleItems(bar): Return only visible top-level toolbar groups for spacing
-// assertions.
 func visibleItems(_ bar: ResultToolbarView) -> [NSView] { bar.buttonStack.arrangedSubviews.filter { !$0.isHidden } }
-check(visibleItems(compact).count == 2, "Read and Edit leave no empty groups")
+check(visibleItems(compact).count == 5, "Copy, Save, Share, narration and Edit are always offered for text")
 let audioButton = session.toolbarButton(image: session.saveGlyphImage(audio: true), fallbackTitle: "Audio", tooltip: "Save Audio", action: #selector(ViewerSession.saveAudioFromToolbar(_:)))
 compact.addButton(audioButton, to: .save)
-check(visibleItems(compact).count == 3, "New audio adds its Save group")
+check(visibleItems(compact).count == 5, "New audio joins the existing Save group")
 compact.removeButton(audioButton)
-check(visibleItems(compact).count == 2, "Removing audio removes the empty Save group")
-preferences.resultToolbarShowsNarration = false
+check(visibleItems(compact).count == 5, "Removing audio preserves text export")
+let previousContent = session.content
+session.content = ""
 let empty = session.makeViewerToolbar(width: 440, height: 44) as! ResultToolbarView
-check(visibleItems(empty).count == 1, "Edit remains available when the optional toolbar actions are hidden")
-preferences = Preferences()
+check(visibleItems(empty).count == 4, "Empty results omit narration while retaining the other actions")
+session.content = previousContent
+// The screenshot's details include a text model and voice, never a speech model.
+session.config.textModel = "Fixture text model"
+session.config.languageLevel = "b"
+session.narrationVoiceUsed = "Fixture voice"
+session.narrationModelUsed = "Fixture speech model TTS"
+session.audioAvailable = true
+session.updateNarrationStats()
+check(session.statsLabel?.stringValue == "Model: Fixture text model · Level: B · Voice: Fixture voice", "Model details retain the voice without a speech model")
+session.audioAvailable = false
+session.updateNarrationStats()
+check(session.statsLabel?.stringValue == "Model: Fixture text model · Level: B", "Removing audio removes voice details")
+check(defaultExplanationFontSize == 14, "Results use the fixed 14-point default")
+check(!PreferencesSection.allCases.map(\.rawValue).contains("window"), "Settings no longer contains a Window page")
+for screen in [NSRect(x: 0, y: 0, width: 1280, height: 800), NSRect(x: 0, y: 0, width: 1920, height: 1080)] {
+ let size = viewerContentSize(for: screen)
+ check(size.width > size.height && size.width <= screen.width - 40 && size.height <= screen.height - 40,
+       "Separate result windows use landscape sizing within the screen")
+}
 session.isGeneratingNarration = false
 session.illustrationRunID = nil
 // Header actions use the same group, with complete hover fills at its ends and center.

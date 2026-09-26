@@ -464,6 +464,7 @@ let imageURL = fixtureRoot.appendingPathComponent("image.png")
 try png.write(to: imageURL)
 var config = ViewerConfig(textPath: textURL.path, fontSize: 16, audioPath: "", title: "Love", cleanupDir: "", dictionaryHeadword: "love", mode: "dictionary")
 var entry = try LibraryStore.save(config: config)
+check(entry.fontSize == 16 && LibraryStore.viewerConfig(for: entry)?.fontSize == 14, "Saved results use 14-point text without rewriting old metadata")
 var json = try JSONSerialization.jsonObject(with: JSONEncoder().encode(entry)) as! [String: Any]
 json.removeValue(forKey: "illustrationFile"); json.removeValue(forKey: "illustrationModel")
 let legacy = try JSONDecoder().decode(LibraryEntry.self, from: JSONSerialization.data(withJSONObject: json))
@@ -766,6 +767,7 @@ renderer = MAIN[MAIN.index('    struct MarkdownFence {'):MAIN.index('    // Rest
 renderer += MAIN[MAIN.index('    func markdownAttributedText(from markdown:'):MAIN.index('    // Build the always-visible result toolbar.')]
 SESSION = SESSION.replace('// RENDERER', renderer)
 source += app_source('ResultTextFormatting.swift') + '\n'
+source += next(line for line in MAIN.splitlines() if line.startswith('let defaultExplanationFontSize:')) + '\n'
 source += STORE + SESSION + APP + IMAGE + SETTINGS + TESTS
 with tempfile.TemporaryDirectory(prefix='langmin-illustration-tests-', dir='/private/tmp') as directory:
     folder = Path(directory)

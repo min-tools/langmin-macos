@@ -151,7 +151,6 @@ func appleIntelligenceIsAvailable() -> Bool { appleAvailable }
 func saveAPIKey(_ key: String, account: String, providerName: String) throws {
  fatalError("Unexpected credential access")
 }
-let windowShapeOptions: [PreferenceOption] = [], fontSizeOptions: [PreferenceOption] = []
 let autoNarrateModeOptions: [PreferenceOption] = []
 // currentReaderOptions(): Leave reader discovery outside the model-default
 // test.
@@ -162,12 +161,6 @@ func selectedPreferenceID(from: Control, options: [PreferenceOption], fallbackID
 // selectedReaderChoiceID(control): Keep voice selection disabled in this
 // fixture.
 func selectedReaderChoiceID(_ control: Control) -> String { "none" }
-// normalizedWindowShape(value): Leave unrelated window-shape normalization
-// outside the fixture.
-func normalizedWindowShape(_ value: String) -> String { value }
-// parsedFontSize(value, fallback): Parse the numeric font value needed by
-// preference saving.
-func parsedFontSize(_ value: String, fallback: Double) -> Double { Double(value) ?? fallback }
 // decodeExtraModels(value): Keep custom model decoding outside the
 // default-model cases.
 func decodeExtraModels(_ value: String) -> [String] { [] }
