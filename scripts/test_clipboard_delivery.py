@@ -30,8 +30,8 @@ import Foundation
 func localized(_ key: String, _ english: String) -> String { english }
 // Supply a screen identity without accessing real display state.
 final class NSScreen {}
-// Keep app preferences in memory with choice remembering disabled.
-struct Preferences { var rememberLauncherChoices = false }
+// Keep app preferences in memory.
+struct Preferences {}
 // Supply a predictable fallback launcher mode.
 struct LauncherPreferences { var mode = "explain" }
 // loadAppPreferences(): Return fixture preferences without reading user

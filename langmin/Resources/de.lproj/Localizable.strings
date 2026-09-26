@@ -52,7 +52,6 @@
 "cancelling_a11y" = "Wird abgebrochen";
 
 /* Clear after submit */
-"clear_after_submit" = "Nach dem Senden leeren";
 
 /* You copied something else while Langmin was working. Replace it with the transformed text? */
 "clipboard_changed_body" = "Du hast etwas anderes kopiert, während Langmin gearbeitet hat. Durch das Ergebnis ersetzen?";
@@ -566,7 +565,6 @@
 "redo" = "Wiederholen";
 
 /* Remember choices */
-"remember_choices" = "Auswahl merken";
 
 /* Rename */
 "rename" = "Umbenennen";
@@ -603,13 +601,11 @@
 "row_app_language" = "App-Sprache";
 
 /* Launcher Window */
-"row_launcher_window" = "Launcher-Fenster";
 
 /* Online Research */
 "row_online_research" = "Online-Recherche";
 
 /* Secret Protection */
-"row_secret_protection" = "Schutz von Geheimnissen";
 
 /* Run */
 "run" = "Ausführen";
@@ -747,7 +743,6 @@
 "use_web_research" = "Webrecherche verwenden, wenn verfügbar";
 
 /* Warn before sending secrets */
-"warn_before_secrets" = "Vor dem Senden von Geheimnissen warnen";
 
 /* Window */
 "window" = "Fenster";

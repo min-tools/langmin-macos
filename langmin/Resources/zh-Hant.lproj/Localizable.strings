@@ -52,7 +52,6 @@
 "cancelling_a11y" = "正在取消";
 
 /* Clear after submit */
-"clear_after_submit" = "送出後清除";
 
 /* You copied something else while Langmin was working. Replace it with the transformed text? */
 "clipboard_changed_body" = "Langmin 處理期間你拷貝了其他內容。要用轉換後的文字取代嗎？";
@@ -566,7 +565,6 @@
 "redo" = "重做";
 
 /* Remember choices */
-"remember_choices" = "記住選擇";
 
 /* Rename */
 "rename" = "重新命名";
@@ -603,13 +601,11 @@
 "row_app_language" = "App 語言";
 
 /* Launcher Window */
-"row_launcher_window" = "啟動器視窗";
 
 /* Online Research */
 "row_online_research" = "線上搜尋";
 
 /* Secret Protection */
-"row_secret_protection" = "機密資訊保護";
 
 /* Run */
 "run" = "執行";
@@ -747,7 +743,6 @@
 "use_web_research" = "可用時使用網路搜尋";
 
 /* Warn before sending secrets */
-"warn_before_secrets" = "傳送機密資訊前警告";
 
 /* Window */
 "window" = "視窗";

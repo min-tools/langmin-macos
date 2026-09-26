@@ -38,9 +38,8 @@ struct TextConversationMessage {
  let role: Role
  let content: String
 }
-// Control input clearing and research without accessing app settings.
+// Control research without accessing app settings.
 struct Preferences {
- var launcherClearsInputAfterSubmit = false
  var explainAnswerLanguage = "en", webResearchEnabled = false
  var extraLanguages: [String] = []
 }
@@ -61,8 +60,12 @@ final class LauncherRun {
  var transformCompletion: ((LauncherRun, Result<String, Error>) -> Void)?
  var acceptsCancellation = true
 }
-// Suppress real input editing while observing completion behavior.
-struct InputView { /* clearUndoably(): Keep text clearing inert in the isolated translation fixture. */ func clearUndoably() {} }
+// Observe input clearing without editing the real launcher or user data.
+final class InputView {
+ var text = "Fixture input"
+ // clearUndoably(): Record successful clearing; native Undo is tested separately.
+ func clearUndoably() { text = "" }
+}
 // Represent the failure style used by skipped-translation HUD notices.
 enum HUDStyle { case failure }
 // Capture HUD notices without displaying real panels.
@@ -254,6 +257,7 @@ for clipboard in [false, true] {
   start(controller, run, at: folder)
   waitUntil { !controller.isGenerating }
   check(clipboardText == "Original clipboard", "Skipped output cannot replace the clipboard")
+  check(controller.inputView.text == "Fixture input", "Skipped requests retain the input")
   check(controller.narrationCalls == 0 && controller.openCalls == 0 && controller.diffCalls == 0,
         "Skipping creates no narration, result window, or diff")
   check(controller.materializeCalls == 0, "Skipping stops before output asset processing")
@@ -282,6 +286,7 @@ do {
  start(controller, run, at: folder)
  waitUntil { !controller.isGenerating }
  check(clipboardText == translated, "The remaining translation is delivered intact")
+ check(controller.inputView.text.isEmpty, "Successful delivery always clears the submitted input")
  check(!FileManager.default.fileExists(atPath: folder.path), "Successful clipboard delivery cleans its temporary directory")
 }
 // Deliver the translated result with either manual or automatic narration.
@@ -321,9 +326,20 @@ for mode in ["explain", "dictionary"] {
   check(completions == 1 && delivered == (mode == "explain" ? "Ice\n\nIce is less dense than water." : "# Karate\n\nA martial art."),
         "\(mode) delivers one complete, readable result rather than provider JSON")
   check(controller.openCalls == 0 && controller.narrationCalls == 0, "\(mode) waits in the HUD before any window or automatic narration")
+  check(controller.inputView.text.isEmpty, "Successful HUD delivery clears the submitted input")
   check(controller.activeRun == nil && controller.activeTempDir == nil && !FileManager.default.fileExists(atPath: folder.path),
         "\(mode) releases generation state and temporary files after HUD delivery")
  }
+}
+
+// Failures and cancellations keep input available for editing or retrying.
+for error: Error in [HelperFailure(message: "Fixture provider failure"), LauncherCancellationError()] {
+ let controller = LauncherController(), run = LauncherRun(), folder = try directory()
+ providerResponse = .failure(error)
+ start(controller, run, at: folder)
+ waitUntil { !controller.isGenerating }
+ check(controller.inputView.text == "Fixture input", "Failed and cancelled requests retain their input")
+ check(controller.openCalls == 0 && controller.narrationCalls == 0, "Failures do not present a successful result")
 }
 
 // Late responses from a cancelled run cannot complete a newer request.
@@ -337,6 +353,7 @@ do {
  waitUntil { !FileManager.default.fileExists(atPath: folder.path) }
  check(controller.activeRun === replacement && controller.alerts.isEmpty, "Late skips cannot change the newer run")
  check(controller.openCalls == 0 && controller.narrationCalls == 0, "Late skips create no result or audio")
+ check(controller.inputView.text == "Fixture input", "Late callbacks cannot clear a newer request's input")
 }
 print("\(checks) text delivery checks passed; no model, clipboard, or speech services used")
 '''

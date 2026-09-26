@@ -52,7 +52,6 @@
 "cancelling_a11y" = "रद्द किया जा रहा है";
 
 /* Clear after submit */
-"clear_after_submit" = "भेजने के बाद साफ़ करें";
 
 /* You copied something else while Langmin was working. Replace it with the transformed text? */
 "clipboard_changed_body" = "Langmin के काम करते समय आपने कुछ और कॉपी किया। क्या इसे रूपांतरित टेक्स्ट से बदलें?";
@@ -566,7 +565,6 @@
 "redo" = "फिर करें";
 
 /* Remember choices */
-"remember_choices" = "चयन याद रखें";
 
 /* Rename */
 "rename" = "नाम बदलें";
@@ -603,13 +601,11 @@
 "row_app_language" = "ऐप की भाषा";
 
 /* Launcher Window */
-"row_launcher_window" = "लॉन्चर विंडो";
 
 /* Online Research */
 "row_online_research" = "ऑनलाइन खोज";
 
 /* Secret Protection */
-"row_secret_protection" = "गोपनीय जानकारी की सुरक्षा";
 
 /* Run */
 "run" = "चलाएँ";
@@ -747,7 +743,6 @@
 "use_web_research" = "उपलब्ध होने पर वेब खोज का उपयोग करें";
 
 /* Warn before sending secrets */
-"warn_before_secrets" = "गोपनीय जानकारी भेजने से पहले चेतावनी दें";
 
 /* Window */
 "window" = "विंडो";

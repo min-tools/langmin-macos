@@ -52,7 +52,6 @@
 "cancelling_a11y" = "Annuleren";
 
 /* Clear after submit */
-"clear_after_submit" = "Wissen na verzenden";
 
 /* You copied something else while Langmin was working. Replace it with the transformed text? */
 "clipboard_changed_body" = "Je hebt iets anders gekopieerd terwijl Langmin bezig was. Vervangen door de bewerkte tekst?";
@@ -566,7 +565,6 @@
 "redo" = "Opnieuw";
 
 /* Remember choices */
-"remember_choices" = "Keuzes onthouden";
 
 /* Rename */
 "rename" = "Wijzig naam";
@@ -603,13 +601,11 @@
 "row_app_language" = "Taal van de app";
 
 /* Launcher Window */
-"row_launcher_window" = "Launchervenster";
 
 /* Online Research */
 "row_online_research" = "Online onderzoek";
 
 /* Secret Protection */
-"row_secret_protection" = "Bescherming van geheimen";
 
 /* Run */
 "run" = "Voer uit";
@@ -747,7 +743,6 @@
 "use_web_research" = "Webonderzoek gebruiken indien beschikbaar";
 
 /* Warn before sending secrets */
-"warn_before_secrets" = "Waarschuwen voordat geheimen worden verzonden";
 
 /* Window */
 "window" = "Venster";

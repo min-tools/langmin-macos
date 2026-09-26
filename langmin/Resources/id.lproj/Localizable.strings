@@ -52,7 +52,6 @@
 "cancelling_a11y" = "Membatalkan";
 
 /* Clear after submit */
-"clear_after_submit" = "Kosongkan setelah dikirim";
 
 /* You copied something else while Langmin was working. Replace it with the transformed text? */
 "clipboard_changed_body" = "Anda menyalin hal lain saat Langmin sedang bekerja. Ganti dengan teks yang telah diubah?";
@@ -566,7 +565,6 @@
 "redo" = "Ulangi";
 
 /* Remember choices */
-"remember_choices" = "Ingat pilihan";
 
 /* Rename */
 "rename" = "Ganti Nama";
@@ -603,13 +601,11 @@
 "row_app_language" = "Bahasa aplikasi";
 
 /* Launcher Window */
-"row_launcher_window" = "Jendela peluncur";
 
 /* Online Research */
 "row_online_research" = "Pencarian daring";
 
 /* Secret Protection */
-"row_secret_protection" = "Perlindungan rahasia";
 
 /* Run */
 "run" = "Jalankan";
@@ -747,7 +743,6 @@
 "use_web_research" = "Gunakan pencarian web jika tersedia";
 
 /* Warn before sending secrets */
-"warn_before_secrets" = "Peringatkan sebelum mengirim rahasia";
 
 /* Window */
 "window" = "Jendela";

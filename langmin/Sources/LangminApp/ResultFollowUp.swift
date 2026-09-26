@@ -908,7 +908,9 @@ extension ViewerSession {
                     self.followUpPendingQuestion = nil
                     // Validate the received answer before adding it to conversation history.
                     do {
-                        let answer = try result.get().trimmingCharacters(in: .whitespacesAndNewlines)
+                        // Clean generated replies before saving or reusing them as context.
+                        let answer = watermarkCleanedGeneratedText(try result.get())
+                            .trimmingCharacters(in: .whitespacesAndNewlines)
                         // Report an empty answer instead of saving an apparently completed reply.
                         guard !answer.isEmpty else { throw HelperFailure(message: "The model returned an empty reply.") }
                         var updated = conversation

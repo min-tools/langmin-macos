@@ -52,7 +52,6 @@
 "cancelling_a11y" = "Ruší sa";
 
 /* Clear after submit */
-"clear_after_submit" = "Vymazať po odoslaní";
 
 /* You copied something else while Langmin was working. Replace it with the transformed text? */
 "clipboard_changed_body" = "Kým Langmin pracoval, skopírovali ste niečo iné. Nahradiť to prevedeným textom?";
@@ -566,7 +565,6 @@
 "redo" = "Obnoviť akciu";
 
 /* Remember choices */
-"remember_choices" = "Pamätať si voľby";
 
 /* Rename */
 "rename" = "Premenovať";
@@ -603,13 +601,11 @@
 "row_app_language" = "Jazyk aplikácie";
 
 /* Launcher Window */
-"row_launcher_window" = "Okno spúšťača";
 
 /* Online Research */
 "row_online_research" = "Vyhľadávanie online";
 
 /* Secret Protection */
-"row_secret_protection" = "Ochrana tajných údajov";
 
 /* Run */
 "run" = "Spustiť";
@@ -747,7 +743,6 @@
 "use_web_research" = "Používať vyhľadávanie na webe, keď je dostupné";
 
 /* Warn before sending secrets */
-"warn_before_secrets" = "Upozorniť pred odoslaním tajných údajov";
 
 /* Window */
 "window" = "Okno";

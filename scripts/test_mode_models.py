@@ -39,7 +39,7 @@ struct AppPreferences {
  var modeTextModels: [String: String] = [:]
  var preferredTextModels = defaultPreferredTextModelIDs
  var customModelName = "", customDisplayName = "", extraModels: [String] = []
- var rememberLauncherChoices = true, launcherShowsModel = true
+ var launcherShowsModel = true
  var languageLevel = "off", rewriteStyle = "standard", dictionaryVoice = "none"
  var explainAnswerLanguage = "auto", summarizeAnswerLanguage = "auto"
  var extraLanguages: [String] = []
@@ -52,6 +52,7 @@ struct LauncherPreferences {
 var saved = AppPreferences(), remembered = LauncherPreferences()
 func loadAppPreferences() -> AppPreferences { saved }
 func loadLauncherPreferences() -> LauncherPreferences { remembered }
+func defaultTranslationTarget(from preferences: AppPreferences) -> String { "es" }
 // Property-list round trips catch model assignments that cannot survive persistence.
 func saveAppPreferences(_ value: AppPreferences) {
  saved = value
@@ -84,7 +85,7 @@ let launcherModeOptions = ["proofread", "rewrite", "explain", "summarize", "tran
  PreferenceOption(id: $0, title: $0.capitalized, note: "")
 }
 let languageOptions = [PreferenceOption(id: "auto", title: "Automatic", note: "")]
-let languageLevelOptions = [PreferenceOption(id: "off", title: "Off", note: "")]
+let languageLevelOptions = ["off", "a", "b", "c"].map { PreferenceOption(id: $0, title: $0.uppercased(), note: "") }
 let translationTargetOptions = [PreferenceOption(id: "es", title: "Spanish", note: "")]
 func currentReaderOptions() -> [PreferenceOption] { [] }
 func normalizedLanguageLevel(_ value: String) -> String { value }
@@ -115,9 +116,9 @@ final class Launcher: NSObject {
  func refreshChipDecorations() {}
  func updateQuestionPlaceholder(for mode: String) {}
  func updateLauncherWindowTitle(for mode: String) {}
- func configureSecondaryPicker(mode: String, selectedID: String) {}
- func secondarySelection(for mode: String, preferences: AppPreferences, launcherPreferences: LauncherPreferences, useRememberedChoices: Bool) -> String { "normal" }
- func selectedSecondaryID(for mode: String) -> String { "normal" }
+ var restoredSecondary = "normal"
+ func configureSecondaryPicker(mode: String, selectedID: String) { restoredSecondary = selectedID }
+ func selectedSecondaryID(for mode: String) -> String { restoredSecondary }
  func defaultSecondaryID(for mode: String, preferences: AppPreferences) -> String { "normal" }
  func nonEmpty(_ value: String, fallback: String) -> String { value.isEmpty ? fallback : value }
  func updateFooterStatus(busy: Bool, text: String) {}
@@ -129,7 +130,7 @@ final class Launcher: NSObject {
  func submit(_ sender: Any?) {
   submissions.append((selectedLauncherMode(), selectedModelIDForRun(preferences: saved)))
   pendingExplicitModelID = nil
-  saveLauncherChoicesIfNeeded()
+  saveLauncherChoices()
  }
  func allModelsPage() -> PalettePage { PalettePage(rows: { _ in [] }) }
  func secondaryOptions(for mode: String) -> [PreferenceOption] { [] }
@@ -151,7 +152,7 @@ for marker in ['    func selectTextModel(', '    func modelSelectionPage(',
                '    func modeHasOptions(', '    func selectedModelIDForRun(',
                '    func globalModelIDForRun(', '    func selectedLauncherMode()',
                '    func applySelectedMode(', '    func collectLauncherPreferences()',
-               '    func saveLauncherChoicesIfNeeded()', '    func populateRunDefaults()',
+               '    func saveLauncherChoices()', '    func populateRunDefaults()', '    func secondarySelection(',
                '    func updateModelFooter()', '    func handleAutomation(']:
     source += block(marker)
 source += r'''
@@ -194,6 +195,15 @@ launcher.selectTextModel(fable, for: "explain")
 check(saved.modeTextModels == ["proofread": luna, "explain": fable], "Mode choices survive preference serialization independently")
 check(saved.explanationModel == sol && remembered.explanationModel == sol, "Per-mode choices cannot overwrite the global or remembered model")
 check(launcher.modelFooterButton.footerTitle == "GPT-6 Sol", "The footer continues to display the global model")
+// Remembered mode, style, language and level survive a new launcher instance.
+remembered.mode = "rewrite"; remembered.rewriteStyle = "humanize"; remembered.languageLevel = "b"
+let restored = Launcher()
+check(restored.selectedLauncherMode() == "rewrite" && restored.restoredSecondary == "humanize", "Reopening always restores the last mode and rewrite style")
+check(selectedPreferenceID(from: restored.levelBox, options: languageLevelOptions, fallbackID: "off") == "b", "Reopening restores the last reading level")
+remembered.mode = "translate"; remembered.translationTarget = "fr"
+let restoredTranslation = Launcher()
+check(restoredTranslation.restoredSecondary == "fr", "Reopening always restores the translation target")
+remembered = LauncherPreferences()
 // All six chips expose a scoped model page, including previously optionless Proofread.
 for mode in launcherModeOptions.map(\.id) {
  check(launcher.modeHasOptions(mode), "Every mode has an options menu")
@@ -214,11 +224,10 @@ for mode in launcherModeOptions.map(\.id) {
 _ = items(launcher.modelSelectionPage(mode: "rewrite")).first { $0.id == luna }!.action!()
 check(saved.modeTextModels["rewrite"] == luna && saved.modeTextModels["explain"] == fable, "A menu action edits only its own mode")
 check(items(launcher.modelSelectionPage()).contains { $0.id == "all-models" }, "Only the master menu exposes All models")
-// Saved assignments must outlive the launcher and work with remembering disabled.
-saved.rememberLauncherChoices = false
+// Saved assignments must outlive the launcher and preserve per-mode settings.
 let reopened = Launcher()
 reopened.handleAutomation(text: "Fixture", mode: "proofread", run: true)
-check(reopened.submissions.last!.1 == luna, "Reopening with Remember choices off retains per-mode assignments")
+check(reopened.submissions.last!.1 == luna, "Reopening retains per-mode assignments")
 reopened.handleAutomation(text: "Fixture", mode: "explain", run: true, model: luna)
 check(reopened.submissions.last!.1 == luna, "An enabled URL model overrides this single request")
 check(saved.modeTextModels["explain"] == fable && saved.explanationModel == sol, "URL models do not change persistent choices")
@@ -258,16 +267,15 @@ for mode in ["proofread", "rewrite"] {
  check(capturedServiceModels.last == luna && consentModels.last == luna, "Service consent and generation use the same assigned model")
 }
 pasteboard.releaseGlobally()
-// A global selection is an explicit all-mode reset, even with remembering disabled.
+// A global selection is an explicit all-mode reset.
 _ = items(reopened.modelSelectionPage()).first { $0.id == appleIntelligenceModelID }!.action!()
 check(saved.modeTextModels.isEmpty && saved.explanationModel == appleIntelligenceModelID, "The master menu clears every individual assignment")
 for mode in launcherModeOptions.map(\.id) {
  reopened.handleAutomation(text: "Fixture", mode: mode, run: true)
  check(reopened.submissions.last!.1 == appleIntelligenceModelID, "Every shortcut uses the new global model")
 }
-saved.rememberLauncherChoices = true
 let afterRemembering = Launcher()
-check(afterRemembering.globalModelIDForRun(preferences: saved) == appleIntelligenceModelID, "Enabling Remember choices cannot revive the previous global model")
+check(afterRemembering.globalModelIDForRun(preferences: saved) == appleIntelligenceModelID, "Reopening cannot revive the previous global model")
 let before = saved.modeTextModels
 reopened.isGenerating = true
 reopened.selectTextModel(fable, for: "explain")

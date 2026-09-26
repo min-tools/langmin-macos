@@ -47,15 +47,14 @@ struct AppPreferences {
  var languageLevel = "b", rewriteStyle = "rephrase", customInstructions = ""
  var explainAnswerLanguage = "en", summarizeAnswerLanguage = "en"
  var translationTargets = ["es", "fr"], extraLanguages = ["de"]
- var webResearchEnabled = true, resultDiffEnabled = true, textWatermarkCleaningEnabled = false
+ var webResearchEnabled = true, resultDiffEnabled = true
  var autoNarrateModes: [String] = []
- var rememberLauncherChoices = true
 }
 struct LauncherPreferences { var mode = "explain" }
 var saved = AppPreferences()
 func loadAppPreferences() -> AppPreferences { saved }
 func loadLauncherPreferences() -> LauncherPreferences { LauncherPreferences() }
-func watermarkCleanedGeneratedText(_ text: String) -> String { text }
+
 '''
 source += app_source('ResultConversation.swift')
 title_start = MAIN.index('let titleBoundaryTrimCharacters =')
@@ -72,7 +71,7 @@ for marker in ['struct PreferenceOption {', 'struct ExplanationPrompt {', 'struc
                'func extraLanguageNames(', 'func extraLanguagesInstruction(', 'func explanationLanguageRule(',
                'func explanationPrompt(', 'func textRevisionPrompt(', 'func translationSourceLanguageInstructions(',
                'func translationPrompt(', 'func summaryPrompt(', 'func dictionaryPrompt(',
-               'func cleanedLiteralTransformOutput(', 'func cleanedTextTransformOutput(', 'func startTextRequest(',
+               'func watermarkCleanedGeneratedText(', 'func cleanedLiteralTransformOutput(', 'func cleanedTextTransformOutput(', 'func startTextRequest(',
                'struct StructuredJSONObjectBody {', 'func fencedResponseBody(', 'func jsonObjectBody(', 'func jsonObjectBodies(', 'func cleanTopicTitle(']:
     source += block(MAIN, marker)
 for marker in ['func normalizedLanguageLevel(', 'func languageLevelInstruction(', 'func applyLanguageLevel(']:
@@ -200,7 +199,7 @@ final class Launcher: NSObject {
  func configureSecondaryPicker(mode: String, selectedID: String) { secondary = selectedID }
  func selectedSecondaryID(for mode: String) -> String { secondary }
  func refreshSendButtonState() {}
- func saveLauncherChoicesIfNeeded() {}
+ func saveLauncherChoices() {}
  func selectedReaderIDForRun(preferences: AppPreferences) -> String { "none" }
  func setGenerating(_ generating: Bool, status: String) { isGenerating = generating }
  func progressStatus(for mode: String, secondary: String, model: String) -> String {
@@ -362,6 +361,18 @@ check(saved.modeTextModels["translate"] == "anthropic:claude-fable-5-1", "URL ca
 url.handleAutomation(text: input, mode: "translate", run: true)
 waitFor { !url.isGenerating }
 check(requests.last!.model == "claude-fable-5-1" && requests.last!.prompt.requestedOutputLanguageCodes.count == 2, "Next shortcut restores the saved model and targets")
+// Every generation mode cleans output before window or HUD delivery.
+for mode in modes {
+ saved.modeTextModels[mode] = "gpt-6-luna"
+ for presentation: LauncherRunPresentation in [.standard, .clipboardHUD] {
+  response = .success(fixtureResponse(mode).replacingOccurrences(of: "Fixture answer", with: "Fixture an\u{200B}swer"))
+  let clean = Launcher()
+  clean.handleAutomation(text: input, mode: mode, run: true, presentation: presentation)
+  waitFor { !clean.isGenerating }
+  check(clean.output.contains("Fixture answer") && !clean.output.contains("\u{200B}") && clean.errors.isEmpty,
+        "\(mode): cleanup is always applied before delivering window and shortcut results")
+ }
+}
 // Consent denial, missing keys, empty responses and provider failures cannot silently retry elsewhere.
 for mode in modes {
  saved.modeTextModels[mode] = "anthropic:claude-fable-5-1"

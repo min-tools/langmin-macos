@@ -52,7 +52,6 @@
 "cancelling_a11y" = "İptal ediliyor";
 
 /* Clear after submit */
-"clear_after_submit" = "Gönderdikten sonra temizle";
 
 /* You copied something else while Langmin was working. Replace it with the transformed text? */
 "clipboard_changed_body" = "Langmin çalışırken başka bir şey kopyaladınız. Dönüştürülmüş metinle değiştirilsin mi?";
@@ -566,7 +565,6 @@
 "redo" = "Yinele";
 
 /* Remember choices */
-"remember_choices" = "Seçimleri hatırla";
 
 /* Rename */
 "rename" = "Adını Değiştir";
@@ -603,13 +601,11 @@
 "row_app_language" = "Uygulama dili";
 
 /* Launcher Window */
-"row_launcher_window" = "Başlatıcı penceresi";
 
 /* Online Research */
 "row_online_research" = "Çevrimiçi araştırma";
 
 /* Secret Protection */
-"row_secret_protection" = "Gizli bilgi koruması";
 
 /* Run */
 "run" = "Çalıştır";
@@ -747,7 +743,6 @@
 "use_web_research" = "Mümkün olduğunda web araştırmasını kullan";
 
 /* Warn before sending secrets */
-"warn_before_secrets" = "Gizli bilgiler gönderilmeden önce uyar";
 
 /* Window */
 "window" = "Pencere";

@@ -52,7 +52,6 @@
 "cancelling_a11y" = "Avbryter";
 
 /* Clear after submit */
-"clear_after_submit" = "Rensa efter skickat";
 
 /* You copied something else while Langmin was working. Replace it with the transformed text? */
 "clipboard_changed_body" = "Du kopierade något annat medan Langmin arbetade. Ersätta det med den omvandlade texten?";
@@ -566,7 +565,6 @@
 "redo" = "Gör om";
 
 /* Remember choices */
-"remember_choices" = "Kom ihåg val";
 
 /* Rename */
 "rename" = "Byt namn";
@@ -603,13 +601,11 @@
 "row_app_language" = "Appens språk";
 
 /* Launcher Window */
-"row_launcher_window" = "Startfönster";
 
 /* Online Research */
 "row_online_research" = "Onlinesökning";
 
 /* Secret Protection */
-"row_secret_protection" = "Skydd av hemligheter";
 
 /* Run */
 "run" = "Kör";
@@ -747,7 +743,6 @@
 "use_web_research" = "Använd webbsökning när den är tillgänglig";
 
 /* Warn before sending secrets */
-"warn_before_secrets" = "Varna innan hemligheter skickas";
 
 /* Window */
 "window" = "Fönster";

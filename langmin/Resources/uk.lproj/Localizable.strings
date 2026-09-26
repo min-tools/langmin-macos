@@ -52,7 +52,6 @@
 "cancelling_a11y" = "Скасування";
 
 /* Clear after submit */
-"clear_after_submit" = "Очищати після надсилання";
 
 /* You copied something else while Langmin was working. Replace it with the transformed text? */
 "clipboard_changed_body" = "Поки Langmin працював, ви скопіювали щось інше. Замінити це перетвореним текстом?";
@@ -566,7 +565,6 @@
 "redo" = "Повторити";
 
 /* Remember choices */
-"remember_choices" = "Запам'ятовувати вибір";
 
 /* Rename */
 "rename" = "Перейменувати";
@@ -603,13 +601,11 @@
 "row_app_language" = "Мова застосунку";
 
 /* Launcher Window */
-"row_launcher_window" = "Головне вікно";
 
 /* Online Research */
 "row_online_research" = "Онлайн-дослідження";
 
 /* Secret Protection */
-"row_secret_protection" = "Захист секретів";
 
 /* Run */
 "run" = "Виконати";
@@ -747,7 +743,6 @@
 "use_web_research" = "Використовувати вебпошук, коли доступний";
 
 /* Warn before sending secrets */
-"warn_before_secrets" = "Попереджати перед надсиланням секретів";
 
 /* Window */
 "window" = "Вікно";

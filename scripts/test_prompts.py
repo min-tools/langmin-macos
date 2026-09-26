@@ -43,8 +43,8 @@ source = r'''
 import Foundation
 import FoundationModels
 import NaturalLanguage
-// Keep custom instructions and text cleanup under fixture control.
-struct AppPreferences { var customInstructions = ""; var textWatermarkCleaningEnabled = false }
+// Keep custom instructions under fixture control.
+struct AppPreferences { var customInstructions = "" }
 // loadAppPreferences(): Provide the preferences configured by this fixture.
 func loadAppPreferences() -> AppPreferences { AppPreferences() }
 // Supply the option shape required by production language helpers.
@@ -52,9 +52,6 @@ struct PreferenceOption { let id: String; let title: String; let note: String }
 // localized(key, english): Resolve labels through the fixture’s controlled
 // localization.
 func localized(_ key: String, _ english: String) -> String { english }
-// watermarkCleanedGeneratedText(input): Leave text unchanged so this fixture
-// isolates behavior outside Unicode cleanup.
-func watermarkCleanedGeneratedText(_ input: String) -> String { input }
 let languageLevelIDs = ["off", "a", "b", "c"]
 '''
 source += MAIN[MAIN.index('let languageOptions:'):MAIN.index('// Override the UI language')]
@@ -68,7 +65,7 @@ for marker in ['struct HelperFailure:', 'struct ExplanationPrompt {', 'func prom
                'func explanationLanguageRule(', 'func explanationPrompt(', 'func textRevisionPrompt(',
                'func translationSourceLanguageInstructions(', 'func translationPrompt(', 'func summaryPrompt(',
                'func dictionaryPrompt(', 'func appleIntelligencePrompt(', 'func appleIntelligenceInput(',
-               'func cleanedAppleIntelligenceEnvelopeOutput(', 'func cleanedLiteralTransformOutput(',
+               'func cleanedAppleIntelligenceEnvelopeOutput(', 'func watermarkCleanedGeneratedText(', 'func cleanedLiteralTransformOutput(',
                'struct TranslationSkipped:', 'func cleanedTextTransformOutput(',
                'func appleProofreadingText(', 'func appleTranslationPrompt(', 'func appleTranslationOutput(', 'func validateAppleIntelligenceBudget(', 'func withAppleIntelligenceTimeout(']:
     source += block(MAIN, marker)

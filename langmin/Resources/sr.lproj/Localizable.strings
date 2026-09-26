@@ -52,7 +52,6 @@
 "cancelling_a11y" = "Отказивање";
 
 /* Clear after submit */
-"clear_after_submit" = "Обриши после слања";
 
 /* You copied something else while Langmin was working. Replace it with the transformed text? */
 "clipboard_changed_body" = "Копирали сте нешто друго док је Langmin радио. Заменити то претвореним текстом?";
@@ -566,7 +565,6 @@
 "redo" = "Понови";
 
 /* Remember choices */
-"remember_choices" = "Запамти изборе";
 
 /* Rename */
 "rename" = "Преименуј";
@@ -603,13 +601,11 @@
 "row_app_language" = "Језик апликације";
 
 /* Launcher Window */
-"row_launcher_window" = "Прозор покретача";
 
 /* Online Research */
 "row_online_research" = "Претрага на мрежи";
 
 /* Secret Protection */
-"row_secret_protection" = "Заштита тајни";
 
 /* Run */
 "run" = "Покрени";
@@ -747,7 +743,6 @@
 "use_web_research" = "Користи претрагу веба када је доступна";
 
 /* Warn before sending secrets */
-"warn_before_secrets" = "Упозори пре слања тајни";
 
 /* Window */
 "window" = "Прозор";

@@ -52,7 +52,6 @@
 "cancelling_a11y" = "Отмена";
 
 /* Clear after submit */
-"clear_after_submit" = "Очищать после отправки";
 
 /* You copied something else while Langmin was working. Replace it with the transformed text? */
 "clipboard_changed_body" = "Пока Langmin работал, вы скопировали что-то другое. Заменить это преобразованным текстом?";
@@ -566,7 +565,6 @@
 "redo" = "Повторить";
 
 /* Remember choices */
-"remember_choices" = "Запоминать выбор";
 
 /* Rename */
 "rename" = "Переименовать";
@@ -603,13 +601,11 @@
 "row_app_language" = "Язык приложения";
 
 /* Launcher Window */
-"row_launcher_window" = "Главное окно";
 
 /* Online Research */
 "row_online_research" = "Веб-поиск";
 
 /* Secret Protection */
-"row_secret_protection" = "Защита секретов";
 
 /* Run */
 "run" = "Выполнить";
@@ -747,7 +743,6 @@
 "use_web_research" = "Использовать веб-поиск, когда доступен";
 
 /* Warn before sending secrets */
-"warn_before_secrets" = "Предупреждать перед отправкой секретов";
 
 /* Window */
 "window" = "Окно";

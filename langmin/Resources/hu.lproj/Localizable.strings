@@ -52,7 +52,6 @@
 "cancelling_a11y" = "Megszakítás";
 
 /* Clear after submit */
-"clear_after_submit" = "Törlés küldés után";
 
 /* You copied something else while Langmin was working. Replace it with the transformed text? */
 "clipboard_changed_body" = "Amíg a Langmin dolgozott, valami mást másolt ki. Lecseréli az átalakított szövegre?";
@@ -566,7 +565,6 @@
 "redo" = "Ismétlés";
 
 /* Remember choices */
-"remember_choices" = "Választások megjegyzése";
 
 /* Rename */
 "rename" = "Átnevezés";
@@ -603,13 +601,11 @@
 "row_app_language" = "Az app nyelve";
 
 /* Launcher Window */
-"row_launcher_window" = "Indítóablak";
 
 /* Online Research */
 "row_online_research" = "Online keresés";
 
 /* Secret Protection */
-"row_secret_protection" = "Titkok védelme";
 
 /* Run */
 "run" = "Futtatás";
@@ -747,7 +743,6 @@
 "use_web_research" = "Webes keresés használata, ha elérhető";
 
 /* Warn before sending secrets */
-"warn_before_secrets" = "Figyelmeztetés titkok küldése előtt";
 
 /* Window */
 "window" = "Ablak";

@@ -8,7 +8,7 @@ The parts of Langmin that are not obvious from the window: how modes and models 
 
 Add API keys or a custom endpoint in **Settings → Models**. Keys are stored in the macOS Keychain.
 
-The bottom-left model selector sets the model for **all modes** and clears any individual assignments. To use a different model for one mode, select its chip, click it again, then open **AI model**. Each mode lists only models enabled under the main selector’s **All models** menu. These assignments are saved for the launcher, global shortcuts, menu-bar actions, and Services, even when **Remember launcher choices** is off. If an assigned model is disabled or removed, that mode uses the global model until the assignment is available again.
+The bottom-left model selector sets the model for **all modes** and clears any individual assignments. To use a different model for one mode, select its chip, click it again, then open **AI model**. Each mode lists only models enabled under the main selector’s **All models** menu. These assignments are saved for the launcher, global shortcuts, menu-bar actions, and Services. If an assigned model is disabled or removed, that mode uses the global model until the assignment is available again.
 
 Text providers: Apple Intelligence, OpenAI, Anthropic, Google Gemini, xAI Grok, DeepSeek, and custom endpoints. Narration: Apple voices, OpenAI, or Grok. Audio transcription: Apple or OpenAI.
 
@@ -21,6 +21,8 @@ To connect one:
 3. Fill in **Custom API Key** only if the server requires a key.
 
 Apple Intelligence supports fewer languages and shorter requests. Langmin checks the selected output languages and the available context before generating, keeps local answers compact, and tells you when a request needs another model. Local Dictionary entries focus on the main meaning and examples; choose a cloud model for fuller entries and IPA transcriptions.
+
+Mode, style, and language choices are always remembered when the launcher reopens.
 
 **Language level** controls vocabulary and grammar: A is basic, B intermediate, C advanced. It starts off and applies to every mode except Proofread. Style controls depth separately.
 
@@ -125,7 +127,7 @@ The caption names the image model separately from the text model, also in print 
 
 Apple text models, Apple voices, Apple transcription, document and image text extraction, and text cleanup run on your Mac. Remote requests go directly to the provider you chose, on your own account. Langmin asks before first sharing text with each provider and separately before uploading recordings to OpenAI.
 
-Text cleanup strips invisible characters that generated text often carries, while preserving code, emoji, and writing-system controls. Turn it off in **Settings → General → Text Cleanup**.
+Text cleanup always runs on generated text in every mode, removing unwanted invisible characters while preserving code, emoji, and writing-system controls.
 
 Preferences, Library entries, and generated files live in Langmin's app container; API keys live in the Keychain. The [privacy policy](../PRIVACY.md) covers sharing, retention, and deletion.
 

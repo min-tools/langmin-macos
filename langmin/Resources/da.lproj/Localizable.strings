@@ -52,7 +52,6 @@
 "cancelling_a11y" = "Annullerer";
 
 /* Clear after submit */
-"clear_after_submit" = "Ryd efter afsendelse";
 
 /* You copied something else while Langmin was working. Replace it with the transformed text? */
 "clipboard_changed_body" = "Du kopierede noget andet, mens Langmin arbejdede. Erstat det med den omdannede tekst?";
@@ -566,7 +565,6 @@
 "redo" = "Gentag";
 
 /* Remember choices */
-"remember_choices" = "Husk valg";
 
 /* Rename */
 "rename" = "Omdøb";
@@ -603,13 +601,11 @@
 "row_app_language" = "Appens sprog";
 
 /* Launcher Window */
-"row_launcher_window" = "Startvindue";
 
 /* Online Research */
 "row_online_research" = "Onlinesøgning";
 
 /* Secret Protection */
-"row_secret_protection" = "Beskyttelse af hemmeligheder";
 
 /* Run */
 "run" = "Kør";
@@ -747,7 +743,6 @@
 "use_web_research" = "Brug websøgning, når den er tilgængelig";
 
 /* Warn before sending secrets */
-"warn_before_secrets" = "Advar, før hemmeligheder sendes";
 
 /* Window */
 "window" = "Vindue";

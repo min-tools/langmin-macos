@@ -52,7 +52,6 @@
 "cancelling_a11y" = "Đang hủy";
 
 /* Clear after submit */
-"clear_after_submit" = "Xóa sau khi gửi";
 
 /* You copied something else while Langmin was working. Replace it with the transformed text? */
 "clipboard_changed_body" = "Bạn đã sao chép nội dung khác trong lúc Langmin đang xử lý. Thay bằng văn bản đã chuyển đổi?";
@@ -566,7 +565,6 @@
 "redo" = "Làm lại";
 
 /* Remember choices */
-"remember_choices" = "Ghi nhớ lựa chọn";
 
 /* Rename */
 "rename" = "Đổi tên";
@@ -603,13 +601,11 @@
 "row_app_language" = "Ngôn ngữ ứng dụng";
 
 /* Launcher Window */
-"row_launcher_window" = "Cửa sổ khởi chạy";
 
 /* Online Research */
 "row_online_research" = "Tìm kiếm trực tuyến";
 
 /* Secret Protection */
-"row_secret_protection" = "Bảo vệ thông tin bí mật";
 
 /* Run */
 "run" = "Chạy";
@@ -747,7 +743,6 @@
 "use_web_research" = "Dùng tìm kiếm web khi có thể";
 
 /* Warn before sending secrets */
-"warn_before_secrets" = "Cảnh báo trước khi gửi thông tin bí mật";
 
 /* Window */
 "window" = "Cửa sổ";

@@ -52,7 +52,6 @@
 "cancelling_a11y" = "Ακύρωση σε εξέλιξη";
 
 /* Clear after submit */
-"clear_after_submit" = "Καθαρισμός μετά την υποβολή";
 
 /* You copied something else while Langmin was working. Replace it with the transformed text? */
 "clipboard_changed_body" = "Αντιγράψατε κάτι άλλο όσο το Langmin εργαζόταν. Να αντικατασταθεί με το μετασχηματισμένο κείμενο;";
@@ -566,7 +565,6 @@
 "redo" = "Επανάληψη";
 
 /* Remember choices */
-"remember_choices" = "Απομνημόνευση επιλογών";
 
 /* Rename */
 "rename" = "Μετονομασία";
@@ -603,13 +601,11 @@
 "row_app_language" = "Γλώσσα εφαρμογής";
 
 /* Launcher Window */
-"row_launcher_window" = "Παράθυρο εκκίνησης";
 
 /* Online Research */
 "row_online_research" = "Διαδικτυακή αναζήτηση";
 
 /* Secret Protection */
-"row_secret_protection" = "Προστασία μυστικών";
 
 /* Run */
 "run" = "Εκτέλεση";
@@ -747,7 +743,6 @@
 "use_web_research" = "Χρήση αναζήτησης στον ιστό όταν είναι διαθέσιμη";
 
 /* Warn before sending secrets */
-"warn_before_secrets" = "Προειδοποίηση πριν από την αποστολή μυστικών";
 
 /* Window */
 "window" = "Παράθυρο";

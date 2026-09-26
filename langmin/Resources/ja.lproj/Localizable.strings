@@ -52,7 +52,6 @@
 "cancelling_a11y" = "キャンセル中";
 
 /* Clear after submit */
-"clear_after_submit" = "送信後に消去";
 
 /* You copied something else while Langmin was working. Replace it with the transformed text? */
 "clipboard_changed_body" = "Langmin の処理中に別のものをコピーしました。変換後のテキストで置き換えますか？";
@@ -566,7 +565,6 @@
 "redo" = "やり直す";
 
 /* Remember choices */
-"remember_choices" = "選択を記憶";
 
 /* Rename */
 "rename" = "名前を変更";
@@ -603,13 +601,11 @@
 "row_app_language" = "アプリの言語";
 
 /* Launcher Window */
-"row_launcher_window" = "ランチャーウインドウ";
 
 /* Online Research */
 "row_online_research" = "オンライン検索";
 
 /* Secret Protection */
-"row_secret_protection" = "機密情報の保護";
 
 /* Run */
 "run" = "実行";
@@ -747,7 +743,6 @@
 "use_web_research" = "利用可能なときはウェブ検索を使用";
 
 /* Warn before sending secrets */
-"warn_before_secrets" = "機密情報を送信する前に警告";
 
 /* Window */
 "window" = "ウインドウ";

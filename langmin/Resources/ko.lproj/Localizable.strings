@@ -52,7 +52,6 @@
 "cancelling_a11y" = "취소 중";
 
 /* Clear after submit */
-"clear_after_submit" = "제출 후 지우기";
 
 /* You copied something else while Langmin was working. Replace it with the transformed text? */
 "clipboard_changed_body" = "Langmin이 작업하는 동안 다른 내용을 복사했습니다. 변환된 텍스트로 대체할까요?";
@@ -566,7 +565,6 @@
 "redo" = "실행 복귀";
 
 /* Remember choices */
-"remember_choices" = "선택 사항 기억";
 
 /* Rename */
 "rename" = "이름 변경";
@@ -603,13 +601,11 @@
 "row_app_language" = "앱 언어";
 
 /* Launcher Window */
-"row_launcher_window" = "실행 창";
 
 /* Online Research */
 "row_online_research" = "온라인 검색";
 
 /* Secret Protection */
-"row_secret_protection" = "비밀 정보 보호";
 
 /* Run */
 "run" = "실행";
@@ -747,7 +743,6 @@
 "use_web_research" = "가능하면 웹 검색 사용";
 
 /* Warn before sending secrets */
-"warn_before_secrets" = "비밀 정보 전송 전 경고";
 
 /* Window */
 "window" = "윈도우";

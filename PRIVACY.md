@@ -1,6 +1,6 @@
 # Langmin Privacy Policy
 
-Effective and last updated: September 24, 2026
+Effective and last updated: September 26, 2026
 
 This policy explains what data Langmin handles, where it goes, and how you can control it.
 
@@ -10,7 +10,7 @@ Langmin stores preferences, saved Library items, generated files, and other app 
 
 A macOS Service receives selected text from the source app on a private pasteboard. Menu-bar and global shortcut actions read the general clipboard only when you invoke them.
 
-Optional text cleanup also runs on your Mac. It does not contact a watermark-detection service or send text to another party.
+Automatic text cleanup runs on your Mac for every mode. It does not contact a watermark-detection service or send text to another party.
 
 Apple processes Langmin Pro purchases and does not share payment details with Langmin's developer. The app reads your Apple purchase status to unlock Pro, including purchases shared through Family Sharing.
 
@@ -58,7 +58,7 @@ Image Playground uses Apple's system interface and on-device illustration styles
 
 ### Permission and provider policies
 
-Before first sending text to a remote destination, Langmin asks you to allow one request, remember permission, or cancel. Uploading recordings to OpenAI needs separate audio permission. Revoke saved text and audio permissions in **Settings → Models → Reset AI Permissions**. Secret Protection can also warn when text appears to contain credentials or other secrets; it does not scan recordings before upload.
+Before first sending text to a remote destination, Langmin asks you to allow one request, remember permission, or cancel. Uploading recordings to OpenAI needs separate audio permission. Revoke saved text and audio permissions in **Settings → Models → Reset AI Permissions**. Langmin also checks outgoing text for likely credentials or other secrets and warns when it finds them. This check is always enabled; it does not scan recordings before upload.
 
 Remote requests use your provider account and API key. The provider may associate, process, or retain your text, recordings, and results under its policy, account settings, and terms. Review that policy before sending personal or confidential information.
 

@@ -78,8 +78,6 @@ let defaultOutputLanguage = "auto"
 let defaultWindowShape = "landscape"
 let defaultExplanationFontSize: Double = 16
 let defaultWebResearchEnabled = true
-let defaultSecretProtectionEnabled = true
-let defaultTextWatermarkCleaningEnabled = true
 let defaultResultDiffEnabled = true
 let defaultResultToolbarShowsSaveText = true
 let defaultResultToolbarShowsSaveAudio = true
@@ -96,7 +94,6 @@ let defaultLauncherShowsTranslationTarget = true
 let defaultLauncherShowsModel = true
 // Hide the separate language-level picker by default; level choices remain in each mode's menu.
 let defaultLauncherShowsLevel = false
-let defaultLauncherClearsInputAfterSubmit = true
 let defaultMenuBarEnabled = true
 let defaultExtraLanguages = ""
 // Modes that support automatic narration.
@@ -144,8 +141,6 @@ enum PreferenceKey {
     static let explainAnswerLanguage = "explainAnswerLanguage"
     static let summarizeAnswerLanguage = "summarizeAnswerLanguage"
     static let webResearchEnabled = "webResearchEnabled"
-    static let secretProtectionEnabled = "secretProtectionEnabled"
-    static let textWatermarkCleaningEnabled = "textWatermarkCleaningEnabled"
     static let resultDiffEnabled = "resultDiffEnabled"
     static let resultToolbarShowsSaveText = "resultToolbarShowsSaveText"
     static let resultToolbarShowsSaveAudio = "resultToolbarShowsSaveAudio"
@@ -160,13 +155,11 @@ enum PreferenceKey {
     static let windowShape = "windowShape"
     static let libraryDetached = "libraryDetached"
     static let explanationFontSize = "explanationFontSize"
-    static let rememberLauncherChoices = "rememberLauncherChoices"
     static let launcherShowsSecondaryOptions = "launcherShowsSecondaryOptions"
     static let launcherShowsTranslationTarget = "launcherShowsTranslationTarget"
     static let launcherShowsModel = "launcherShowsModel"
     static let languageLevel = "languageLevel"
     static let launcherShowsLevel = "launcherShowsLevel"
-    static let launcherClearsInputAfterSubmit = "launcherClearsInputAfterSubmit"
     static let extraLanguages = "extraLanguages"
     static let extraLanguagesInDictionary = "extraLanguagesInDictionary"
     static let extraLanguagesInTranslate = "extraLanguagesInTranslate"
@@ -3363,8 +3356,6 @@ struct AppPreferences {
     var explainAnswerLanguage: String = defaultOutputLanguage
     var summarizeAnswerLanguage: String = defaultOutputLanguage
     var webResearchEnabled: Bool = defaultWebResearchEnabled
-    var secretProtectionEnabled: Bool = defaultSecretProtectionEnabled
-    var textWatermarkCleaningEnabled: Bool = defaultTextWatermarkCleaningEnabled
     var resultDiffEnabled: Bool = defaultResultDiffEnabled
     var resultToolbarShowsSaveText: Bool = defaultResultToolbarShowsSaveText
     var resultToolbarShowsSaveAudio: Bool = defaultResultToolbarShowsSaveAudio
@@ -3377,14 +3368,12 @@ struct AppPreferences {
     var narrationHighlightMode: Bool = defaultNarrationHighlightMode
     var windowShape: String = defaultWindowShape
     var explanationFontSize: Double = defaultExplanationFontSize
-    var rememberLauncherChoices: Bool = true
     var launcherShowsSecondaryOptions: Bool = defaultLauncherShowsSecondaryOptions
     var launcherShowsTranslationTarget: Bool = defaultLauncherShowsTranslationTarget
     var launcherShowsModel: Bool = defaultLauncherShowsModel
     // Default response level and visibility of the separate launcher level picker.
     var languageLevel: String = defaultLanguageLevel
     var launcherShowsLevel: Bool = defaultLauncherShowsLevel
-    var launcherClearsInputAfterSubmit: Bool = defaultLauncherClearsInputAfterSubmit
     var extraLanguages: [String] = []
     // Unused legacy switches retained when saving preferences. The extra-language list now controls
     // output.
@@ -3712,14 +3701,6 @@ func loadAppPreferences() -> AppPreferences {
             PreferenceKey.webResearchEnabled,
             fallback: defaultWebResearchEnabled
         ),
-        secretProtectionEnabled: storedPreferenceBool(
-            PreferenceKey.secretProtectionEnabled,
-            fallback: defaultSecretProtectionEnabled
-        ),
-        textWatermarkCleaningEnabled: storedPreferenceBool(
-            PreferenceKey.textWatermarkCleaningEnabled,
-            fallback: defaultTextWatermarkCleaningEnabled
-        ),
         resultDiffEnabled: storedPreferenceBool(
             PreferenceKey.resultDiffEnabled,
             fallback: defaultResultDiffEnabled
@@ -3770,10 +3751,6 @@ func loadAppPreferences() -> AppPreferences {
                 fallback: defaultExplanationFontSize
             )
         ),
-        rememberLauncherChoices: storedPreferenceBool(
-            PreferenceKey.rememberLauncherChoices,
-            fallback: true
-        ),
         launcherShowsSecondaryOptions: launcherShowsSecondaryOptions,
         launcherShowsTranslationTarget: launcherShowsTranslationTarget,
         launcherShowsModel: storedPreferenceBool(
@@ -3787,10 +3764,6 @@ func loadAppPreferences() -> AppPreferences {
         launcherShowsLevel: storedPreferenceBool(
             PreferenceKey.launcherShowsLevel,
             fallback: defaultLauncherShowsLevel
-        ),
-        launcherClearsInputAfterSubmit: storedPreferenceBool(
-            PreferenceKey.launcherClearsInputAfterSubmit,
-            fallback: defaultLauncherClearsInputAfterSubmit
         ),
         extraLanguages: decodeLanguageList(
             storedPreferenceString(PreferenceKey.extraLanguages, fallback: defaultExtraLanguages)
@@ -3981,8 +3954,6 @@ func writePreferences(_ preferences: AppPreferences, launcherPreferences: Launch
     preferencesStore.set(preferences.explainAnswerLanguage, forKey: PreferenceKey.explainAnswerLanguage)
     preferencesStore.set(preferences.summarizeAnswerLanguage, forKey: PreferenceKey.summarizeAnswerLanguage)
     preferencesStore.set(preferences.webResearchEnabled, forKey: PreferenceKey.webResearchEnabled)
-    preferencesStore.set(preferences.secretProtectionEnabled, forKey: PreferenceKey.secretProtectionEnabled)
-    preferencesStore.set(preferences.textWatermarkCleaningEnabled, forKey: PreferenceKey.textWatermarkCleaningEnabled)
     // Save result toolbar visibility and narration highlighting.
     preferencesStore.set(preferences.resultDiffEnabled, forKey: PreferenceKey.resultDiffEnabled)
     preferencesStore.set(preferences.resultToolbarShowsSaveText, forKey: PreferenceKey.resultToolbarShowsSaveText)
@@ -3997,13 +3968,11 @@ func writePreferences(_ preferences: AppPreferences, launcherPreferences: Launch
     // Normalize window text size and save launcher presentation choices.
     preferencesStore.set(preferences.windowShape, forKey: PreferenceKey.windowShape)
     preferencesStore.set(normalizedFontSize(preferences.explanationFontSize), forKey: PreferenceKey.explanationFontSize)
-    preferencesStore.set(preferences.rememberLauncherChoices, forKey: PreferenceKey.rememberLauncherChoices)
     preferencesStore.set(preferences.launcherShowsSecondaryOptions, forKey: PreferenceKey.launcherShowsSecondaryOptions)
     preferencesStore.set(preferences.launcherShowsTranslationTarget, forKey: PreferenceKey.launcherShowsTranslationTarget)
     preferencesStore.set(preferences.launcherShowsModel, forKey: PreferenceKey.launcherShowsModel)
     preferencesStore.set(normalizedLanguageLevel(preferences.languageLevel), forKey: PreferenceKey.languageLevel)
     preferencesStore.set(preferences.launcherShowsLevel, forKey: PreferenceKey.launcherShowsLevel)
-    preferencesStore.set(preferences.launcherClearsInputAfterSubmit, forKey: PreferenceKey.launcherClearsInputAfterSubmit)
     // Save additional-language choices and the modes that use them.
     preferencesStore.set(encodeLanguageList(preferences.extraLanguages), forKey: PreferenceKey.extraLanguages)
     preferencesStore.set(preferences.extraLanguagesInDictionary, forKey: PreferenceKey.extraLanguagesInDictionary)
@@ -4849,7 +4818,7 @@ func textRevisionPrompt(input: String, style: String, languageLevel: String = "o
     // Proofreading corrects errors without changing the source's reading level.
     let isProofreading = localSourceTask == .proofread
     let effectiveLevel = isProofreading ? "off" : languageLevel
-    let promptInput = style == "humanize" && loadAppPreferences().textWatermarkCleaningEnabled
+    let promptInput = style == "humanize"
         ? TextWatermarkCleaner.cleanMarkdown(input).text : input
     let localTask = style == "humanize"
         ? "Rewrite in plain, direct prose. Remove filler such as 'It is important to note that'. Keep the same facts and requests."
@@ -4880,10 +4849,6 @@ func textRevisionPrompt(input: String, style: String, languageLevel: String = "o
 // watermarkCleanedGeneratedText(text): Remove unwanted invisible characters
 // from prose, preserving Markdown code exactly.
 func watermarkCleanedGeneratedText(_ text: String) -> String {
-    // Text cleanup is opt-in; otherwise preserve the supplied text.
-    guard loadAppPreferences().textWatermarkCleaningEnabled else {
-        return text
-    }
     return TextWatermarkCleaner.cleanMarkdown(text).text
 }
 
@@ -5498,13 +5463,8 @@ func confirmRemoteSecretWarningIfNeeded(
     provider: String?,
     deadline: DispatchTime? = nil
 ) -> Bool {
-    let preferences = loadAppPreferences()
-    // Scan only when protection is enabled and the request has a remote provider.
-    guard
-        preferences.secretProtectionEnabled,
-        let provider
-    // Local requests and disabled protection need no secret-sharing warning.
-    else {
+    // Local requests stay on this Mac and need no secret-sharing warning.
+    guard let provider else {
         return true
     }
 
@@ -14495,8 +14455,6 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
     var voiceBox: MultiSelectReaderVoiceControl!
     var fontSizeBox: NSPopUpButton!
     var researchButton: NSButton!
-    var secretProtectionButton: NSButton!
-    var textWatermarkCleaningButton: NSButton!
     var resetAIConsentButton: NSButton!
     var resultDiffButton: NSButton!
     var resultToolbarSaveTextButton: NSButton!
@@ -14507,8 +14465,6 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
     var resultToolbarHighlightButton: NSButton!
     var resultToolbarStatsButton: NSButton!
     var resultStatsTTSButton: NSButton!
-    var rememberChoicesButton: NSButton!
-    var clearInputAfterSubmitButton: NSButton!
     var menuBarButton: NSButton!
     var launchAtLoginButton: NSButton!
     var shortcutButtons: [String: ShortcutRecorderButton] = [:]
@@ -14656,11 +14612,10 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
         advancedInstructionsSeparator.boxType = .separator
         advancedInstructionsSeparator.translatesAutoresizingMaskIntoConstraints = false
         advancedNoteLabel = noteLabel("Leave fields blank to use the built-in defaults.")
-        // Offer an interface-language choice with an explicit restart hint.
+        // Offer an interface-language choice.
         appLanguageBox = popupButton(items: appUILanguageOptions.map { $0.title })
         appLanguageBox.target = self
         appLanguageBox.action = #selector(appLanguageChanged(_:))
-        settingsInfoTooltips[ObjectIdentifier(appLanguageBox)] = "Choose the interface language, or follow macOS with System Default. Restart Langmin to apply a change."
         windowShapeBox = popupButton(items: windowShapeOptions.map { $0.displayValue })
         // Refresh narration choices when the preferred voice list changes.
         voiceBox = MultiSelectReaderVoiceControl()
@@ -14678,26 +14633,7 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
             action: nil
         )
         researchButton.font = NSFont.systemFont(ofSize: 13)
-        researchButton.toolTip = "Let OpenAI, Anthropic, and Gemini search for current information"
         researchButton.refusesFirstResponder = false
-
-        secretProtectionButton = FocusableButton(
-            checkboxWithTitle: localized("warn_before_secrets", "Warn before sending secrets"),
-            target: nil,
-            action: nil
-        )
-        secretProtectionButton.font = NSFont.systemFont(ofSize: 13)
-        secretProtectionButton.toolTip = "Warn before a remote AI provider receives text that looks like keys, tokens, passwords, or private keys"
-        secretProtectionButton.refusesFirstResponder = false
-
-        textWatermarkCleaningButton = FocusableButton(
-            checkboxWithTitle: "Clean generated text automatically",
-            target: nil,
-            action: nil
-        )
-        textWatermarkCleaningButton.font = NSFont.systemFont(ofSize: 13)
-        textWatermarkCleaningButton.toolTip = "Clean unwanted invisible characters on your Mac while preserving code, emoji, and writing-system controls"
-        textWatermarkCleaningButton.refusesFirstResponder = false
 
         resetAIConsentButton = FocusableButton(
             title: "Reset AI Permissions",
@@ -14793,24 +14729,6 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
             "Show the speech model in the toolbar when narration is available"
         resultStatsTTSButton.refusesFirstResponder = false
 
-        rememberChoicesButton = FocusableButton(
-            checkboxWithTitle: localized("remember_choices", "Remember choices"),
-            target: nil,
-            action: nil
-        )
-        rememberChoicesButton.font = NSFont.systemFont(ofSize: 13)
-        rememberChoicesButton.toolTip = "Reuse the launcher's last choices when it opens"
-        rememberChoicesButton.refusesFirstResponder = false
-
-        clearInputAfterSubmitButton = FocusableButton(
-            checkboxWithTitle: localized("clear_after_submit", "Clear after submit"),
-            target: nil,
-            action: nil
-        )
-        clearInputAfterSubmitButton.font = NSFont.systemFont(ofSize: 13)
-        clearInputAfterSubmitButton.toolTip = "Clear submitted text from the launcher window after a result opens"
-        clearInputAfterSubmitButton.refusesFirstResponder = false
-
         menuBarButton = FocusableButton(checkboxWithTitle: localized("show_langmin_in_the_menu_bar", "Show Langmin in the menu bar"), target: nil, action: nil)
         menuBarButton.font = NSFont.systemFont(ofSize: 13)
         menuBarButton.refusesFirstResponder = false
@@ -14871,11 +14789,6 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
         sectionHeading = NSTextField(labelWithString: selectedSection.title)
         SettingsLayout.install(sidebar: sidebar, page: tabView, heading: sectionHeading, in: contentView)
 
-        settingsInfoTooltips[ObjectIdentifier(researchButton)] = "Search for current information and cite sources with OpenAI, Anthropic, or Gemini. Other text providers do not support web research."
-        settingsInfoTooltips[ObjectIdentifier(secretProtectionButton)] = "Warn before sending text that may contain API keys, tokens, passwords, or private keys to a remote provider."
-        settingsInfoTooltips[ObjectIdentifier(textWatermarkCleaningButton)] = "Remove unwanted invisible characters from generated text on your Mac. Preserve code, emoji, and writing-system controls. This does not remove every kind of AI watermark."
-        settingsInfoTooltips[ObjectIdentifier(rememberChoicesButton)] = "Keep your last mode, style, and language choices when the launcher reopens."
-        settingsInfoTooltips[ObjectIdentifier(clearInputAfterSubmitButton)] = "Clear the input after a successful request. Cancelled or failed requests keep their text."
         proStatusLabel = NSTextField(labelWithString: "")
         proStatusLabel.font = NSFont.systemFont(ofSize: 13)
         proStatusLabel.lineBreakMode = .byTruncatingTail
@@ -14892,13 +14805,7 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
         generalRows.append((localized("row_app_language", "App Language"), appLanguageBox))
         // Keep provider controls available in both source and App Store builds.
         generalRows += [
-            (localized("row_online_research", "Online Research"), researchButton),
-            (localized("row_secret_protection", "Secret Protection"), secretProtectionButton),
-        ]
-        generalRows += [
-            ("Text Cleanup", textWatermarkCleaningButton),
-            (localized("row_launcher_window", "Launcher Window"), rememberChoicesButton),
-            ("", clearInputAfterSubmitButton)
+            (localized("row_online_research", "Online Research"), researchButton)
         ]
         addSettingsTab(.general, rows: generalRows)
         // Group menu-bar, login, and clipboard shortcut controls together.
@@ -15489,11 +15396,7 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
             launchAtLoginButton,
             appLanguageBox,
             researchButton,
-            secretProtectionButton,
-            textWatermarkCleaningButton,
             resetAIConsentButton,
-            rememberChoicesButton,
-            clearInputAfterSubmitButton,
             apiKeyField,
             removeOpenAIKeyButton,
             anthropicAPIKeyField,
@@ -15558,11 +15461,7 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
             sectionViews = [
                 iCloudButton,
                 appLanguageBox,
-                researchButton,
-                secretProtectionButton,
-                textWatermarkCleaningButton,
-                rememberChoicesButton,
-                clearInputAfterSubmitButton
+                researchButton
             ]
         // Shortcut recorders follow the menu-bar and login controls.
         case .shortcuts:
@@ -15702,8 +15601,6 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
                                       automatic: preferences.dictionaryIllustrationAutomatic)
         transcriptionSettings.populate(provider: preferences.transcriptionProvider, language: preferences.transcriptionLanguage)
         researchButton.state = preferences.webResearchEnabled ? .on : .off
-        secretProtectionButton.state = preferences.secretProtectionEnabled ? .on : .off
-        textWatermarkCleaningButton.state = preferences.textWatermarkCleaningEnabled ? .on : .off
         resultDiffButton.state = preferences.resultDiffEnabled ? .on : .off
         resultToolbarSaveTextButton.state = preferences.resultToolbarShowsSaveText ? .on : .off
         resultToolbarSaveAudioButton.state = preferences.resultToolbarShowsSaveAudio ? .on : .off
@@ -15714,8 +15611,6 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
         resultToolbarStatsButton.state = preferences.resultToolbarShowsStats ? .on : .off
         resultStatsTTSButton.state = preferences.resultStatsShowsTTS ? .on : .off
         syncDependentCheckboxVisibility()
-        rememberChoicesButton.state = preferences.rememberLauncherChoices ? .on : .off
-        clearInputAfterSubmitButton.state = preferences.launcherClearsInputAfterSubmit ? .on : .off
         // Restore the saved voice if it is in the shortlist; otherwise select None.
         narrateBeforeOpenBox.menu = makeReaderChoiceMenu(allowed: voiceBox.selectedIDs)
         selectReaderChoice(narrateBeforeOpenBox, id: preferences.launcherReader)
@@ -16052,8 +15947,6 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
             explainAnswerLanguage: nonEmpty(live.explainAnswerLanguage, fallback: defaultOutputLanguage),
             summarizeAnswerLanguage: nonEmpty(live.summarizeAnswerLanguage, fallback: defaultOutputLanguage),
             webResearchEnabled: researchButton.state == .on,
-            secretProtectionEnabled: secretProtectionButton.state == .on,
-            textWatermarkCleaningEnabled: textWatermarkCleaningButton.state == .on,
             resultDiffEnabled: resultDiffButton.state == .on,
             resultToolbarShowsSaveText: resultToolbarSaveTextButton.state == .on,
             resultToolbarShowsSaveAudio: resultToolbarSaveAudioButton.state == .on,
@@ -16067,13 +15960,11 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
             narrationHighlightMode: live.narrationHighlightMode,
             windowShape: normalizedWindowShape(windowShape),
             explanationFontSize: explanationFontSize,
-            rememberLauncherChoices: rememberChoicesButton.state == .on,
             launcherShowsSecondaryOptions: live.launcherShowsSecondaryOptions,
             launcherShowsTranslationTarget: live.launcherShowsTranslationTarget,
             launcherShowsModel: live.launcherShowsModel,
             languageLevel: live.languageLevel,
             launcherShowsLevel: live.launcherShowsLevel,
-            launcherClearsInputAfterSubmit: clearInputAfterSubmitButton.state == .on,
             extraLanguages: live.extraLanguages,
             extraLanguagesInDictionary: live.extraLanguagesInDictionary,
             extraLanguagesInTranslate: live.extraLanguagesInTranslate,
@@ -16259,8 +16150,7 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
                     selectedID: launcherController.secondarySelection(
                         for: mode,
                         preferences: preferences,
-                        launcherPreferences: loadLauncherPreferences(),
-                        useRememberedChoices: preferences.rememberLauncherChoices
+                        launcherPreferences: loadLauncherPreferences()
                     )
                 )
                 launcherController.updateLauncherControlVisibility(preferences: preferences)
@@ -21374,11 +21264,10 @@ final class LauncherController: NSObject, NSWindowDelegate, NSTextFieldDelegate,
             selectedID: secondarySelection(
                 for: selectedLauncherMode(),
                 preferences: preferences,
-                launcherPreferences: launcherPreferences,
-                useRememberedChoices: preferences.rememberLauncherChoices
+                launcherPreferences: launcherPreferences
             )
         )
-        saveLauncherChoicesIfNeeded()
+        saveLauncherChoices()
     }
 
     // MARK: Palette presentation
@@ -21794,7 +21683,7 @@ final class LauncherController: NSObject, NSWindowDelegate, NSTextFieldDelegate,
             options: secondaryOptions(for: "translate"),
             fallbackID: targets[0]
         )
-        saveLauncherChoicesIfNeeded()
+        saveLauncherChoices()
         refreshChipDecorations()
     }
 
@@ -21865,7 +21754,7 @@ final class LauncherController: NSObject, NSWindowDelegate, NSTextFieldDelegate,
                         var preferences = loadAppPreferences()
                         preferences.languageLevel = option.id
                         saveAppPreferences(preferences)
-                        self.saveLauncherChoicesIfNeeded()
+                        self.saveLauncherChoices()
                         return .close
                     }
                 )))
@@ -21941,7 +21830,7 @@ final class LauncherController: NSObject, NSWindowDelegate, NSTextFieldDelegate,
         if mode == "translate" {
             pushRecentTranslationTarget(id)
         }
-        saveLauncherChoicesIfNeeded()
+        saveLauncherChoices()
         refreshChipDecorations()
     }
 
@@ -22143,7 +22032,7 @@ final class LauncherController: NSObject, NSWindowDelegate, NSTextFieldDelegate,
             launcherPreferences.explanationModel = id
             saveLauncherPreferences(launcherPreferences)
         }
-        saveLauncherChoicesIfNeeded()
+        saveLauncherChoices()
         updateModelFooter()
         refreshChipDecorations()
     }
@@ -22530,14 +22419,12 @@ final class LauncherController: NSObject, NSWindowDelegate, NSTextFieldDelegate,
         return reader.isEmpty ? "none" : reader
     }
 
-    // secondarySelection(mode, preferences, launcherPreferences,
-    // useRememberedChoices): Restore the remembered contextual choice for the
-    // chosen launcher mode.
+    // secondarySelection(mode, preferences, launcherPreferences): Restore the
+    // remembered contextual choice for the chosen launcher mode.
     func secondarySelection(
         for mode: String,
         preferences: AppPreferences,
-        launcherPreferences: LauncherPreferences,
-        useRememberedChoices: Bool
+        launcherPreferences: LauncherPreferences
     ) -> String {
         // Restore remembered per-mode choices against the current option catalogs.
         switch mode {
@@ -22547,33 +22434,23 @@ final class LauncherController: NSObject, NSWindowDelegate, NSTextFieldDelegate,
         // Validate the remembered rewrite style against supported rewrite choices.
         case "rewrite":
             let fallback = defaultSecondaryID(for: mode, preferences: preferences)
-            return useRememberedChoices
-                ? nonEmpty(launcherPreferences.rewriteStyle, fallback: fallback)
-                : fallback
+            return nonEmpty(launcherPreferences.rewriteStyle, fallback: fallback)
         // Validate the remembered translation target against supported languages.
         case "translate":
             let fallback = defaultTranslationTarget(from: preferences)
-            return useRememberedChoices
-                ? nonEmpty(launcherPreferences.translationTarget, fallback: fallback)
-                : fallback
+            return nonEmpty(launcherPreferences.translationTarget, fallback: fallback)
         // Validate the remembered summary depth against supported styles.
         case "summarize":
             let fallback = defaultSecondaryID(for: mode, preferences: preferences)
-            return useRememberedChoices
-                ? nonEmpty(launcherPreferences.summaryStyle, fallback: fallback)
-                : fallback
+            return nonEmpty(launcherPreferences.summaryStyle, fallback: fallback)
         // Validate the remembered dictionary depth against supported styles.
         case "dictionary":
             let fallback = defaultSecondaryID(for: mode, preferences: preferences)
-            return useRememberedChoices
-                ? nonEmpty(launcherPreferences.dictionaryStyle, fallback: fallback)
-                : fallback
+            return nonEmpty(launcherPreferences.dictionaryStyle, fallback: fallback)
         // Validate the explanation effort before using its remembered choice.
         default:
             let fallback = defaultSecondaryID(for: mode, preferences: preferences)
-            return useRememberedChoices
-                ? nonEmpty(launcherPreferences.explanationEffort, fallback: fallback)
-                : fallback
+            return nonEmpty(launcherPreferences.explanationEffort, fallback: fallback)
         }
     }
 
@@ -22671,22 +22548,20 @@ final class LauncherController: NSObject, NSWindowDelegate, NSTextFieldDelegate,
     func populateRunDefaults() {
         let preferences = loadAppPreferences()
         let launcherPreferences = loadLauncherPreferences()
-        let useRememberedChoices = preferences.rememberLauncherChoices
         ttsModelForRun = defaultTTSModel
-        let mode = useRememberedChoices ? nonEmpty(launcherPreferences.mode, fallback: "explain") : "explain"
+        let mode = nonEmpty(launcherPreferences.mode, fallback: "explain")
         applySelectedMode(mode)
         configureSecondaryPicker(
             mode: selectedLauncherMode(),
             selectedID: secondarySelection(
                 for: selectedLauncherMode(),
                 preferences: preferences,
-                launcherPreferences: launcherPreferences,
-                useRememberedChoices: useRememberedChoices
+                launcherPreferences: launcherPreferences
             )
         )
         setPopupSelection(
             modelBox,
-            id: preferences.launcherShowsModel && useRememberedChoices
+            id: preferences.launcherShowsModel
                 ? nonEmpty(launcherPreferences.explanationModel, fallback: preferences.explanationModel)
                 : preferences.explanationModel,
             options: enabledExplanationModelOptions(preferences),
@@ -22694,7 +22569,7 @@ final class LauncherController: NSObject, NSWindowDelegate, NSTextFieldDelegate,
         )
         setPopupSelection(
             levelBox,
-            id: useRememberedChoices && !launcherPreferences.languageLevel.isEmpty
+            id: !launcherPreferences.languageLevel.isEmpty
                 ? launcherPreferences.languageLevel
                 : preferences.languageLevel,
             options: languageLevelOptions,
@@ -22802,7 +22677,7 @@ final class LauncherController: NSObject, NSWindowDelegate, NSTextFieldDelegate,
         if let popup = sender as? NSPopUpButton, popup === effortBox {
             pendingExplicitTranslationTargetID = nil
         }
-        saveLauncherChoicesIfNeeded()
+        saveLauncherChoices()
     }
 
     // collectLauncherPreferences(): Collect the app-only launcher state from
@@ -22847,14 +22722,9 @@ final class LauncherController: NSObject, NSWindowDelegate, NSTextFieldDelegate,
         return launcherPreferences
     }
 
-    // saveLauncherChoicesIfNeeded(): Save launcher state separately from the
+    // saveLauncherChoices(): Save launcher state separately from the
     // app-wide defaults.
-    func saveLauncherChoicesIfNeeded() {
-        // Persist launcher choices only when the user enabled remembering them.
-        guard loadAppPreferences().rememberLauncherChoices else {
-            return
-        }
-
+    func saveLauncherChoices() {
         saveLauncherPreferences(collectLauncherPreferences())
     }
 
@@ -22934,7 +22804,7 @@ final class LauncherController: NSObject, NSWindowDelegate, NSTextFieldDelegate,
             let wantsAudio = reader != "none" && preferences.autoNarrateModes.contains(mode)
             let voice = wantsAudio ? reader : defaultTTSVoice
             let ttsModel = ttsModel(forVoice: voice, requestedModel: self.ttsModelForRun)
-            self.saveLauncherChoicesIfNeeded()
+            self.saveLauncherChoices()
 
             // Prepare request-owned temporary output before starting the selected generation path.
             do {
@@ -23264,10 +23134,8 @@ final class LauncherController: NSObject, NSWindowDelegate, NSTextFieldDelegate,
         guard activeRun === run else { return }
         activeRun = nil
         setGenerating(false, status: "")
-        // Clear input after successful submission only when the setting requests it.
-        if loadAppPreferences().launcherClearsInputAfterSubmit {
-            inputView.clearUndoably()
-        }
+        // Clear only successfully submitted text; keep Undo available.
+        inputView.clearUndoably()
         appDelegate?.terminateIfIdle()
     }
 
@@ -23673,10 +23541,8 @@ final class LauncherController: NSObject, NSWindowDelegate, NSTextFieldDelegate,
             self.activeDataTasks = []
             self.activeTempDir = nil
             self.setGenerating(false, status: "")
-            // Apply clear-after-submit only after the result has completed successfully.
-            if loadAppPreferences().launcherClearsInputAfterSubmit {
-                self.inputView.clearUndoably()
-            }
+            // Clear only after success so failed or cancelled requests retain their input.
+            self.inputView.clearUndoably()
             // Presenting a finished result requires the app's session owner.
             guard let appDelegate = self.appDelegate else {
                 return
@@ -25053,8 +24919,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let mode: String
         // Compose uses the user's configured launcher mode for prefilling.
         if action == "compose" {
-            let preferences = loadAppPreferences()
-            mode = preferences.rememberLauncherChoices ? loadLauncherPreferences().mode : "explain"
+            mode = loadLauncherPreferences().mode
         } else {
             // Other clipboard actions select their named mode directly.
             mode = action
@@ -25544,7 +25409,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         suppressInitialLauncherReveal = true
         launcherController.handleAutomation(
             text: text,
-            mode: mode == "compose" ? (loadAppPreferences().rememberLauncherChoices ? loadLauncherPreferences().mode : "explain") : mode,
+            mode: mode == "compose" ? loadLauncherPreferences().mode : mode,
             run: mode != "translate" && mode != "compose"
         )
     }

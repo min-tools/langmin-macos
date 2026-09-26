@@ -80,6 +80,8 @@ func confirmRemoteTextSharingIfNeeded(input: String, model: String) -> Bool {
  return confirmation()
 }
 '''
+source += app_source('TextWatermarkCleaner.swift') + '\n'
+source += block('func watermarkCleanedGeneratedText(') + '\n'
 source += block('final class TextRequestHandle {') + '\n'
 source += block('let langminControlBorderColor =') + '\n'
 source += block('final class NativeSeparator:') + '\n'
@@ -276,8 +278,12 @@ func drain() async { try? await Task.sleep(nanoseconds: 20_000_000) }
   check(request.prompt.conversationMessages.map(\.role) == [.user, .assistant, .user] && request.prompt.conversationMessages.last?.content == viewer.followUpDraft, "Each mode sends native roles with the latest question last")
   check(request.prompt.instructions.contains("CEFR A (basic)"), "Follow-up applies the saved language level in " + mode)
   check(request.prompt.instructions.contains("Do not merely proofread") && request.prompt.instructions.contains("complete revised text"), "Questions and revision instructions work independently of original mode")
-  request.completion(.success("Check delivery availability for Serbia."))
+  // Clean generated prose while retaining literal invisible characters in code.
+  let code = "\n\n~~~text\nliteral\u{200B}code\n~~~"
+  request.completion(.success("Check\u{200B} delivery availability for Serbia." + code))
   await drain()
+  check(viewer.config.conversation?.turns.last?.answer == "Check delivery availability for Serbia." + code,
+        "Follow-up cleanup removes prose markers and preserves fenced code in " + mode)
   check(viewer.config.conversation?.turns.count == 1 && viewer.followUpDraft.isEmpty && viewer.followUpRunID == nil, "Completed reply commits exactly one exchange")
   viewer.followUpDraft = "Make that answer shorter."
   viewer.submitFollowUp()
@@ -286,6 +292,16 @@ func drain() async { try? await Task.sleep(nanoseconds: 20_000_000) }
   await drain()
   check(viewer.config.conversation?.turns.count == 2 && viewer.content.contains("Best Buy"), "Revision keeps original result and earlier exchanges")
  }
+
+ // A reply made only of discarded markers is an empty result, not a saved exchange.
+ let invisibleReply = ViewerSession()
+ invisibleReply.followUpDraft = "Please explain."
+ invisibleReply.submitFollowUp()
+ requests.last!.completion(.success("\u{200B}\u{2060}"))
+ await drain()
+ check(invisibleReply.config.conversation?.turns.isEmpty != false && !invisibleReply.followUpDraft.isEmpty,
+       "An invisible-only reply preserves the draft and does not save an empty exchange")
+ check(invisibleReply.followUpError == "The model returned an empty reply.", "Empty cleaned replies report a useful error")
 
  // Bound long history while preserving exchange order, the latest request, and JSON escaping.
  var long = ResultConversation(originalRequest: String(repeating: "原文", count: 20_000), modelID: "apple")

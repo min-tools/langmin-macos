@@ -52,7 +52,6 @@
 "cancelling_a11y" = "Peruutetaan";
 
 /* Clear after submit */
-"clear_after_submit" = "Tyhjennä lähettämisen jälkeen";
 
 /* You copied something else while Langmin was working. Replace it with the transformed text? */
 "clipboard_changed_body" = "Kopioit jotain muuta, kun Langmin työskenteli. Korvataanko se muunnetulla tekstillä?";
@@ -566,7 +565,6 @@
 "redo" = "Tee sittenkin";
 
 /* Remember choices */
-"remember_choices" = "Muista valinnat";
 
 /* Rename */
 "rename" = "Muuta nimeä";
@@ -603,13 +601,11 @@
 "row_app_language" = "Apin kieli";
 
 /* Launcher Window */
-"row_launcher_window" = "Käynnistysikkuna";
 
 /* Online Research */
 "row_online_research" = "Verkkohaku";
 
 /* Secret Protection */
-"row_secret_protection" = "Salaisuuksien suojaus";
 
 /* Run */
 "run" = "Suorita";
@@ -747,7 +743,6 @@
 "use_web_research" = "Käytä verkkohakua, kun se on saatavilla";
 
 /* Warn before sending secrets */
-"warn_before_secrets" = "Varoita ennen salaisuuksien lähettämistä";
 
 /* Window */
 "window" = "Ikkuna";

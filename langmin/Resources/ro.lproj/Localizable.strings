@@ -52,7 +52,6 @@
 "cancelling_a11y" = "Se anulează";
 
 /* Clear after submit */
-"clear_after_submit" = "Golește după trimitere";
 
 /* You copied something else while Langmin was working. Replace it with the transformed text? */
 "clipboard_changed_body" = "Ați copiat altceva în timp ce Langmin lucra. Înlocuiți cu rezultatul?";
@@ -566,7 +565,6 @@
 "redo" = "Refaceți";
 
 /* Remember choices */
-"remember_choices" = "Reține alegerile";
 
 /* Rename */
 "rename" = "Redenumiți";
@@ -603,13 +601,11 @@
 "row_app_language" = "Limba aplicației";
 
 /* Launcher Window */
-"row_launcher_window" = "Fereastra lansatorului";
 
 /* Online Research */
 "row_online_research" = "Căutare online";
 
 /* Secret Protection */
-"row_secret_protection" = "Protecția secretelor";
 
 /* Run */
 "run" = "Rulați";
@@ -747,7 +743,6 @@
 "use_web_research" = "Folosește căutarea pe web când este disponibilă";
 
 /* Warn before sending secrets */
-"warn_before_secrets" = "Avertizează înainte de a trimite secrete";
 
 /* Window */
 "window" = "Fereastră";
