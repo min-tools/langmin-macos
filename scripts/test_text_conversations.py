@@ -440,7 +440,7 @@ let history = ExplanationPrompt(instructions: prepared.instructions, input: prep
 let decorated = promptApplyingCustomInstructions(history)
 check(decorated.conversationMessages == history.conversationMessages && decorated.requestedOutputLanguageCodes == ["en"], "Advanced custom instructions preserve conversation and locale metadata")
 let local = appleIntelligencePrompt(history)
-check(local.input == history.input && local.instructions == history.instructions, "Apple retains its bounded JSON fallback and follow-up instructions")
+check(local.input == history.input && local.instructions == history.instructions, "Apple retains bounded conversation data and follow-up instructions")
 
 // Check both a single request and a chronological follow-up conversation.
 for prompt in [ExplanationPrompt(instructions: "Explain this.", input: "A single request."), history] {

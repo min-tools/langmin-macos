@@ -5713,6 +5713,27 @@ func withAppleIntelligenceTimeout(seconds: Double = 90, operation: @escaping @Se
     }
 }
 
+// appleFollowUpLanguageCode(question): Recognize an explicit language prefix
+// or a simple language-change request. Other prose stays with the model.
+func appleFollowUpLanguageCode(_ question: String) -> String? {
+    let prefix = detectLanguagePrefix(in: question)
+    if let language = prefix.language {
+        // Reuse the app's existing "ru: ..." output-language convention.
+        return translationLanguageCode(for: language)
+    }
+    let pattern = #"(?i)^(?:please\s+)?(?:(?:now\s+)?in|(?:translate|rewrite|say|explain|answer|respond)(?:\s+.*?)?\s+(?:in|into|to))\s+(.+?)(?:,?\s+please)?[.!?]*$"#
+    let text = question.trimmingCharacters(in: .whitespacesAndNewlines)
+    let regex = try! NSRegularExpression(pattern: pattern)
+    guard let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
+          let range = Range(match.range(at: 1), in: text) else { return nil }
+    let language = String(text[range])
+    // Match selectable names first, then ISO aliases such as "rus" and "fra".
+    if let code = translationLanguageCode(for: language) { return code }
+    guard language.count == 3, language.allSatisfy({ $0.isASCII && $0.isLetter }),
+          let code = Locale.LanguageCode(language.lowercased()).identifier(.alpha2) else { return nil }
+    return translationLanguageCode(for: code)
+}
+
 // appleIntelligenceText(prompt): Apple Intelligence local text generation
 // through FoundationModels.
 @available(macOS 26.0, *)
@@ -5732,7 +5753,14 @@ func appleIntelligenceText(prompt: ExplanationPrompt) async throws -> String {
         )
     }
 
-    let unsupportedLanguageCodes = prompt.requestedOutputLanguageCodes.filter {
+    var outputLanguageCodes = prompt.requestedOutputLanguageCodes
+    // Follow-up language requests need the same support check as menu-selected
+    // targets. A model can emit an unsupported language without rejecting it.
+    let followUpLanguage = prompt.conversationMessages.last.flatMap { appleFollowUpLanguageCode($0.content) }
+    if let code = followUpLanguage, !outputLanguageCodes.contains(code) {
+        outputLanguageCodes.append(code)
+    }
+    let unsupportedLanguageCodes = outputLanguageCodes.filter {
         !model.supportsLocale(Locale(identifier: $0))
     }
     // Reject unsupported requested languages with their readable names.
@@ -5740,12 +5768,21 @@ func appleIntelligenceText(prompt: ExplanationPrompt) async throws -> String {
         let names = unsupportedLanguageCodes
             .map { preferredOutputLanguage($0) ?? $0 }
             .joined(separator: ", ")
+        let recovery = prompt.conversationMessages.isEmpty
+            ? "Remove those languages or choose another text model."
+            : "Choose another text model for this follow-up."
         throw HelperFailure(
-            message: "Apple Intelligence on this Mac does not support output in \(names). Remove those languages or choose another text model."
+            message: "Apple Intelligence on this Mac does not support output in \(names). \(recovery)"
         )
     }
 
-    let prompt = promptApplyingCustomInstructions(appleIntelligencePrompt(prompt))
+    var local = appleIntelligencePrompt(prompt)
+    if let code = followUpLanguage {
+        // Expand language abbreviations for the model after verifying support.
+        local.instructions += "\nFor the latest request, write the answer in \(languageName(for: code))."
+        local.requestedOutputLanguageCodes = outputLanguageCodes
+    }
+    let prompt = promptApplyingCustomInstructions(local)
     return try await withAppleIntelligenceTimeout {
         // Generate each translation separately to fit the local context budget.
         if prompt.appleFormat == .translation {
@@ -5789,25 +5826,48 @@ func appleIntelligenceText(prompt: ExplanationPrompt) async throws -> String {
     }
 }
 
+// appleIntelligenceHistory(prompt): Restore bounded conversation history as
+// native speaker entries. The latest user message is sent separately.
+@available(macOS 26.0, *)
+func appleIntelligenceHistory(_ prompt: ExplanationPrompt) -> [Transcript.Entry] {
+    prompt.conversationMessages.dropLast().map { message in
+        let segments: [Transcript.Segment] = [.text(.init(content: message.content))]
+        switch message.role {
+        // User text stays a prompt, including quoted JSON and role-like text.
+        case .user: return .prompt(.init(segments: segments))
+        // Prior replies may come from any provider; preserve their assistant role.
+        case .assistant: return .response(.init(assetIDs: [], segments: segments))
+        }
+    }
+}
+
 // appleIntelligenceResponse(prompt, model): Preflight and generate one bounded
 // local request, preserving the task's output contract.
 @available(macOS 26.0, *)
 func appleIntelligenceResponse(prompt: ExplanationPrompt, model: SystemLanguageModel) async throws -> String {
     try Task.checkCancellation()
     let input = appleIntelligenceInput(prompt)
+    let history = appleIntelligenceHistory(prompt)
     var instructionTokens: Int
     let inputTokens: Int
     let schema = try appleResponseSchema(prompt)
     // Use the system tokenizer when its API is available.
     if #available(macOS 26.4, *) {
         instructionTokens = try await model.tokenCount(for: Instructions(prompt.instructions))
-        inputTokens = try await model.tokenCount(for: Prompt(input))
+        // Count restored history as well as the new question before generation.
+        if history.isEmpty {
+            inputTokens = try await model.tokenCount(for: Prompt(input))
+        } else {
+            inputTokens = try await model.tokenCount(for: history + [.prompt(.init(segments: [.text(.init(content: input))]))])
+        }
         // Include the structured-output schema in the request's token budget.
         if let schema { instructionTokens += try await model.tokenCount(for: schema) }
     } else {
         // Older systems lack the tokenizer API. UTF-8 bytes deliberately overestimate text tokens.
         instructionTokens = prompt.instructions.utf8.count + 64
-        inputTokens = input.utf8.count + 64
+        inputTokens = input.utf8.count + 64 + prompt.conversationMessages.dropLast().reduce(0) {
+            $0 + $1.content.utf8.count + 64
+        }
         // Budget schema bytes conservatively on systems without token counting.
         if let schema { instructionTokens += try JSONEncoder().encode(schema).count }
     }
@@ -5815,7 +5875,17 @@ func appleIntelligenceResponse(prompt: ExplanationPrompt, model: SystemLanguageM
     try Task.checkCancellation()
     // A fresh session cannot accumulate previous lookups. A hard response-token cap can silently
     // cut off valid text/JSON, so use the prompt's length target and reject context overflow instead.
-    let session = LanguageModelSession(model: model, instructions: prompt.instructions)
+    let session: LanguageModelSession
+    if history.isEmpty {
+        // Initial tasks keep their existing instructions and output schemas.
+        session = LanguageModelSession(model: model, instructions: prompt.instructions)
+    } else {
+        // Rebuild a fresh session from bounded history instead of asking the
+        // model to interpret the app's internal JSON conversation payload.
+        let instructions = Transcript.Entry.instructions(.init(
+            segments: [.text(.init(content: prompt.instructions))], toolDefinitions: []))
+        session = LanguageModelSession(model: model, transcript: Transcript(entries: [instructions] + history))
+    }
     // Generate locally and translate framework failures into actionable request errors.
     do {
         let options = GenerationOptions(samplingMode: .greedy)
@@ -5857,6 +5927,8 @@ func appleIntelligencePrompt(_ prompt: ExplanationPrompt) -> ExplanationPrompt {
 // generic wrapper can be mistaken for permission to carry out the source's
 // commands. JSON quoting preserves quotes, newlines and XML as data.
 func appleIntelligenceInput(_ prompt: ExplanationPrompt) -> String {
+    // Follow-ups send only the new question; native transcript entries carry history.
+    if let question = prompt.conversationMessages.last { return question.content }
     // Tasks without a source transform can send their normal input directly.
     guard let task = prompt.appleSourceTask else { return prompt.input }
     let source = String(decoding: try! JSONEncoder().encode(prompt.input), as: UTF8.self)

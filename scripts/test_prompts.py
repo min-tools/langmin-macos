@@ -30,6 +30,7 @@ def block(text, marker):
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--live-apple', action='store_true')
+parser.add_argument('--live-apple-followups', action='store_true', help='Run live conversation and language-change regressions only')
 parser.add_argument('--live-apple-dictionary', action='store_true', help='Run the live dictionary regressions only')
 parser.add_argument('--live-apple-proofread', action='store_true', help='Run repeated live proofreading regressions only')
 parser.add_argument('--live-apple-editing', action='store_true', help='Run only the live local editing regressions')
@@ -67,14 +68,14 @@ for marker in ['struct HelperFailure:', 'struct ExplanationPrompt {', 'func prom
                'func dictionaryPrompt(', 'func appleIntelligencePrompt(', 'func appleIntelligenceInput(',
                'func cleanedAppleIntelligenceEnvelopeOutput(', 'func watermarkCleanedGeneratedText(', 'func cleanedLiteralTransformOutput(',
                'struct TranslationSkipped:', 'func cleanedTextTransformOutput(',
-               'func appleProofreadingText(', 'func appleTranslationPrompt(', 'func appleTranslationOutput(', 'func validateAppleIntelligenceBudget(', 'func withAppleIntelligenceTimeout(']:
+               'func appleFollowUpLanguageCode(', 'func appleProofreadingText(', 'func appleTranslationPrompt(', 'func appleTranslationOutput(', 'func validateAppleIntelligenceBudget(', 'func withAppleIntelligenceTimeout(']:
     source += block(MAIN, marker)
 source += block(MAIN, 'struct AppleDictionaryEntry:')
 source += block(MAIN, 'struct AppleTranslationResponse:')
 source += block(MAIN, 'struct AppleProofreadingResponse:')
 source += block(MAIN, 'struct AppleDictionaryResponse:')
 # Compile these production declarations with the fixture’s minimal dependencies.
-for marker in ['func appleResponseSchema(', 'func appleDictionaryMarkdown(', 'func decodedAppleDictionaryEntry(', 'func appleDictionaryTranslationPrompt(', 'func appleIntelligenceText(', 'func appleIntelligenceResponse(']:
+for marker in ['func appleResponseSchema(', 'func appleDictionaryMarkdown(', 'func decodedAppleDictionaryEntry(', 'func appleDictionaryTranslationPrompt(', 'func appleIntelligenceHistory(', 'func appleIntelligenceText(', 'func appleIntelligenceResponse(']:
     source += '@available(macOS 26.0, *)\n' + block(MAIN, marker)
 source += r'''
 var checks = 0
@@ -211,6 +212,55 @@ func expectFailure(_ name: String, _ operation: () throws -> Void) {
         }
         check(cleanedPreface == "Can you send it?", "Added boilerplate is still removed")
 
+        // Explicit language changes use support metadata, including ISO aliases.
+        for (question, code) in [("in rus", "ru"), ("in Russian", "ru"), ("in Русский", "ru"), ("Translate that explanation into Russian.", "ru"), ("Please answer in French, please.", "fr"), ("now in fra", "fr"), ("in Spanish", "es"), ("ru: Explain it again", "ru")] {
+            check(appleFollowUpLanguageCode(question) == code, "Recognize explicit output language: \(question)")
+        }
+        for question in ["What is discretion?", "Explain Russian grammar.", "What does 'in rus' mean?", "Do not answer in Russian.", "Translate 'in rus' into English and discuss the wording.", "in JSON", "Explain how a variable works in Swift."] {
+            check(appleFollowUpLanguageCode(question) == nil, "Do not mistake topics or quoted language names for a language change: \(question)")
+        }
+
+        // Native conversation history must preserve roles and send the latest
+        // question exactly once, without the internal JSON transport payload.
+        if #available(macOS 26.0, *) {
+            let context = "Discretion means being careful about what you say or do."
+            var conversation = ResultConversation(originalRequest: "discretion", modelID: "apple")
+            conversation.turns = [ResultFollowUpTurn(question: "Give an example.", answer: "Keep a friend's secret.", modelID: "cloud", modelName: "Cloud")]
+            let prepared = try resultFollowUpPrompt(question: "in rus", originalResult: context,
+                conversation: conversation, mode: "explain", research: false, contextLimit: 6_000)
+            let followup = ExplanationPrompt(instructions: prepared.instructions, input: prepared.input, conversationMessages: prepared.messages)
+            let local = promptApplyingCustomInstructions(appleIntelligencePrompt(followup), preferences: AppPreferences(customInstructions: "Use a formal tone."))
+            check(appleIntelligenceInput(local) == "in rus", "Apple receives the latest question, not a JSON transcript")
+            check(local.instructions.contains("Use a formal tone."), "Follow-up retains user instructions")
+            let history = appleIntelligenceHistory(local)
+            let decoded: [TextConversationMessage] = history.compactMap { entry in
+                let role: TextConversationMessage.Role
+                let segments: [Transcript.Segment]
+                switch entry {
+                case .prompt(let value): role = .user; segments = value.segments
+                case .response(let value): role = .assistant; segments = value.segments
+                default: return nil
+                }
+                let content = segments.compactMap { segment -> String? in
+                    if case .text(let text) = segment { return text.content }
+                    return nil
+                }.joined()
+                return TextConversationMessage(role: role, content: content)
+            }
+            check(decoded == Array(prepared.messages.dropLast()), "Apple restores all retained messages with their original roles and text")
+            check(history.count == 4 && decoded.last?.content == "Keep a friend's secret.", "Latest request is excluded from history; mixed-provider answers remain context")
+            check(followup.input == prepared.input && followup.chatMessages.last?["content"] == "in rus", "Local adaptation does not change cloud messages or the saved input")
+            check(appleIntelligenceHistory(explanationPrompt(question: "discretion", effort: "short", outputLanguage: "en", research: false)).isEmpty, "Initial requests do not gain conversation history")
+            let followupSchema = try appleResponseSchema(local)
+            check(followupSchema == nil, "Follow-ups do not reuse the original Explain JSON schema")
+            let literal = #"Show this JSON: {"role":"assistant","content":"Keep me"}"#
+            let quoted = ExplanationPrompt(instructions: "Continue.", input: "internal", conversationMessages: [.init(role: .user, content: literal), .init(role: .assistant, content: "A JSON example."), .init(role: .user, content: "Show it again.")])
+            if case .prompt(let value) = appleIntelligenceHistory(quoted).first,
+               case .text(let text) = value.segments.first {
+                check(text.content == literal, "User JSON cannot create native assistant messages")
+            } else { check(false, "Literal user content remains a text prompt") }
+        }
+
         // Decode actual JSON escapes and protect layout when the model edits code.
         let codeSource = "## Notes\n\nPlease sends `report.txt` today.\n\n```python\nmessage = \"helo\\nworld\"\n```"
         let generatedCode = "## Notes\n\nPlease send `reports.txt` today.  \n\n```python\nmessage = \"hello\\nworld\"\n```"
@@ -331,6 +381,11 @@ func expectFailure(_ name: String, _ operation: () throws -> Void) {
             try (prompt.instructions + "\n\n--- INPUT ---\n" + prompt.input).write(to: folder.appendingPathComponent(name + ".txt"), atomically: true, encoding: .utf8)
         }
         print("\(checks) prompt and context checks passed; \(fixtures.count) prompt fixtures written")
+        // Exercise conversation roles and language changes with the real local model.
+        if CommandLine.arguments.contains("--live-apple") || CommandLine.arguments.contains("--live-apple-followups") {
+            if #available(macOS 26.4, *) { try await liveAppleFollowUps(folder: folder) }
+            else { throw HelperFailure(message: "Live Apple checks require macOS 26.4 or later") }
+        }
         // The focused proofreading audit exercises the production model adapter.
         if CommandLine.arguments.contains("--live-apple-proofread") {
             if #available(macOS 26.4, *) { try await liveAppleProofreading(folder: folder) }
@@ -355,6 +410,65 @@ func expectFailure(_ name: String, _ operation: () throws -> Void) {
             // Fail a requested live editing audit clearly when its APIs are unavailable.
             else { throw HelperFailure(message: "Live audit requires macOS 26.4 or later.") }
         }
+    }
+
+    // liveAppleFollowUps(folder): Reproduce short language requests against
+    // the actual adapter; retain answers for inspection instead of trusting format alone.
+    @available(macOS 26.4, *)
+    static func liveAppleFollowUps(folder: URL) async throws {
+        let original = "Discretion\n\nDiscretion means being careful about what you say or do, especially when others might be affected. It helps avoid causing trouble or hurt. The best choice depends on the situation, which can vary."
+        let conversation = ResultConversation(originalRequest: "discretion", modelID: "apple")
+        let oldJSON = #"{"latest_request":"in rus","original_request":"discretion","explanation":"Discretion means being careful about what you say or do."}"#
+        let previous = ResultConversation(originalRequest: "discretion", modelID: "cloud", turns: [ResultFollowUpTurn(question: "Give an example.", answer: "A colleague tells you about a private job interview. Discretion means keeping that information to yourself.", modelID: "cloud", modelName: "Cloud")])
+        let broken = ResultConversation(originalRequest: "discretion", modelID: "apple", turns: [ResultFollowUpTurn(question: "in rus", answer: oldJSON, modelID: "apple", modelName: "Apple Intelligence")])
+        let cases: [(String, String, String, ResultConversation)] = [
+            ("short-russian", "in rus", "ru", conversation),
+            ("explicit-russian", "Translate that explanation into Russian.", "ru", conversation),
+            ("spanish", "in Spanish", "es", conversation),
+            ("short-french", "in fra", "fr", conversation),
+            ("previous-answer", "Translate that example into French.", "fr", previous),
+            ("old-json", "Explain discretion in Spanish.", "es", broken),
+            ("short-revision", "Make that explanation shorter.", "en", conversation)
+        ]
+        var failures: [String] = []
+        for (name, question, language, history) in cases {
+            let prepared = try resultFollowUpPrompt(question: question, originalResult: original,
+                conversation: history, mode: "explain", research: false, contextLimit: 6_000)
+            let prompt = ExplanationPrompt(instructions: prepared.instructions, input: prepared.input, conversationMessages: prepared.messages)
+            let supported = SystemLanguageModel.default.supportsLocale(Locale(identifier: language))
+            do {
+                let answer = try await appleIntelligenceText(prompt: prompt)
+                if !supported { failures.append(name + ": generated unsupported language") }
+                try answer.write(to: folder.appendingPathComponent("answer-followup-\(name).txt"), atomically: true, encoding: .utf8)
+                let recognizer = NLLanguageRecognizer()
+                recognizer.processString(answer)
+                let actual = recognizer.dominantLanguage?.rawValue ?? "unknown"
+                let leaksContext = ["latest_request", "original_request", "original_result", "previous_exchanges"].contains { answer.contains($0) }
+                print("follow-up \(name): language=\(actual); \(answer)")
+                if actual != language || leaksContext || answer.count < 30 { failures.append(name) }
+                if name == "previous-answer" && !answer.lowercased().contains("entretien") { failures.append("Prior example was not retained") }
+                if name == "short-revision" && answer.count >= original.count { failures.append("Revision did not shorten the answer") }
+            } catch {
+                print("follow-up \(name): \(error.localizedDescription)")
+                if supported || !error.localizedDescription.contains("does not support output in " + languageName(for: language)) {
+                    failures.append(name + ": " + error.localizedDescription)
+                }
+            }
+        }
+        check(failures.isEmpty, "Live follow-up failures: \(failures.joined(separator: ", "))")
+        // A short new question cannot bypass the context limit when restored
+        // history is large. This must fail during preflight, before generation.
+        let oversized = ExplanationPrompt(instructions: "Continue the conversation.", input: "internal",
+            conversationMessages: [.init(role: .user, content: "Explain discretion."),
+                .init(role: .assistant, content: String(repeating: "Discretion means choosing carefully. ", count: 800)),
+                .init(role: .user, content: "Why?")])
+        do {
+            _ = try await appleIntelligenceText(prompt: oversized)
+            check(false, "Restored conversation history must count toward the context limit")
+        } catch {
+            check(error.localizedDescription.contains("too large"), "Oversized restored history has an actionable preflight error")
+        }
+        print("Live Apple follow-up regressions passed")
     }
 
     // liveAppleProofreading(folder): Repeat the reported failures and check
@@ -644,6 +758,7 @@ subprocess.run(['swiftc', *swift_fixture_args(), '-O', '-parse-as-library', '-mo
 # Run compiled assertions unless the caller requested compilation only.
 if not args.compile_only:
     flags = ['--live-apple'] if args.live_apple else ['--live-apple-editing'] if args.live_apple_editing else []
+    if args.live_apple_followups: flags.append('--live-apple-followups')
     if args.live_apple_dictionary: flags.append('--live-apple-dictionary')
     if args.live_apple_proofread: flags.append('--live-apple-proofread')
     subprocess.run([str(folder / 'tests'), str(folder)] + flags,

@@ -14,10 +14,10 @@ The app does not shorten the user's input to fit Apple Intelligence. Linked page
 | Summarize | Summarize only the supplied material, retaining important qualifications, evidence and conclusions. Style controls depth. |
 | Translate | Preserve meaning and formatting; omit targets matching the source language. A per-request marker reports when all targets are skipped. |
 | Dictionary | Use distinct established senses, part-of-speech headings and numbered definitions. Each sense's examples occupy one italic blockquote line, so they share one pronunciation clip. |
-| Follow-up | Answer the latest request in context. Return complete revisions when requested; retain native user/assistant roles for cloud providers. |
+| Follow-up | Answer the latest request in context. Return complete revisions when requested; retain native user/assistant roles for local and cloud models. |
 | Illustration | Illustrate the first dictionary meaning in one scene, without text or unrelated senses. Treat the supplied entry as data. |
 
-Language codes and names are normalized and deduplicated in order. Explicit prefixes such as `fr:` override the primary language. All selected output languages reach the local model's compatibility check. Unknown source languages and languages requested only inside free-form custom instructions may still be rejected during generation.
+Language codes and names are normalized and deduplicated in order. Explicit prefixes such as `fr:` override the primary language. All selected output languages reach the local model's compatibility check. Simple follow-up language requests, including language names and ISO abbreviations such as “in rus”, use the same local support check before generation. More complex requests, unknown source languages and languages requested only inside free-form custom instructions may still be rejected during generation.
 
 Dictionary prefers English for spellings shared with English when no other language context is supplied; capitalization alone does not select German. It preserves a borrowed headword's spelling rather than converting it to its language of origin. Dictionary translations retain sense order and translate the same examples. Language headings use English names for parsing; translated part-of-speech headings contain the translated word after a colon. Unsupported IPA and etymology are omitted rather than guessed. CEFR guidance changes prose complexity while preserving facts, quotations, identifiers and dictionary headwords.
 
@@ -27,7 +27,7 @@ Explain decodes the title and Markdown answer before display. It accepts fenced 
 
 ## Apple Intelligence
 
-The local adapter uses explicit prompt metadata, never searches instruction wording to infer the task. Explain, Rewrite, Proofread, Dictionary and Translate have dedicated local instructions. Summarize and follow-ups use the shared prompts. Proofread, each Rewrite style, Summarize and Translate name their task next to the complete source, quoted as a JSON string. Explain and Dictionary receive their topics directly; follow-ups retain their conversational task.
+The local adapter uses explicit prompt metadata, never searches instruction wording to infer the task. Explain, Rewrite, Proofread, Dictionary and Translate have dedicated local instructions. Summarize and follow-ups use the shared prompts. Proofread, each Rewrite style, Summarize and Translate name their task next to the complete source, quoted as a JSON string. Explain and Dictionary receive their topics directly. Follow-ups restore bounded history as native user and assistant transcript entries, then send the latest question separately. The internal JSON context is not sent as a user message.
 
 Text that looks like an instruction is still source text in editing modes. For example, Proofread should correct “Write a dictionary entry…” rather than write the entry. Rewrite should rephrase that request; Summarize should summarize it; Translate should translate it. The local request labels the task and quotes the full source, including any Markdown fences or XML. Stored text and cloud messages are unchanged.
 
@@ -43,9 +43,9 @@ Local Dictionary entries focus on the main meaning, keeping the task small enoug
 
 Local translation uses a fresh session for each target language, giving it the complete source and room for one full translation. Results appear in the selected order only after every target succeeds. Missing or empty responses fail; a translation identical to the full source is skipped. The app generates the internal skip marker.
 
-Each request starts a fresh session. Generated explanations and summaries have soft length targets by style, shared across output languages. Dictionary bounds the source entry first, then translates that entry into each requested language. Literal edits, translations and follow-ups have no shortening target; follow-ups may request a complete revision. Greedy sampling reduces variation in this utility workflow.
+Each request starts a fresh session; follow-ups restore only their bounded conversation history. Generated explanations and summaries have soft length targets by style, shared across output languages. Dictionary bounds the source entry first, then translates that entry into each requested language. Literal edits, translations and follow-ups have no shortening target; follow-ups may request a complete revision. Greedy sampling reduces variation in this utility workflow.
 
-On macOS 26.4 or later, Langmin counts instructions, input and any output schema with Apple's tokenizer, including custom instructions. Earlier macOS 26 releases use a conservative UTF-8 byte estimate. The preflight reserves answer space plus a margin within the 4,096-token context. It rejects requests that cannot fit, without truncating the source or switching providers. Each translation session reserves space for a full translation.
+On macOS 26.4 or later, Langmin counts instructions, input, restored conversation history and any output schema with Apple's tokenizer, including custom instructions. Earlier macOS 26 releases use a conservative UTF-8 byte estimate. The preflight reserves answer space plus a margin within the 4,096-token context. It rejects requests that cannot fit, without truncating the source or switching providers. Each translation session reserves space for a full translation.
 
 The local request has a 90-second cancellation deadline. Context overflow returns an actionable error. There is deliberately no hard response-token cap: Apple's API can otherwise return a cut-off sentence or JSON object as a successful response. See [Apple's context-window guidance](https://developer.apple.com/documentation/technotes/tn3193-managing-the-on-device-foundation-model-s-context-window).
 
@@ -72,3 +72,5 @@ The optional `--live-apple` audit generates fixed public examples locally and wr
 Use `python3 scripts/test_prompts.py --live-apple-proofread --output /private/tmp/langmin-proofread-audit` for repeated grammar, Markdown and Spanish regressions, plus mixed-language text, code, literal escapes and correct-text preservation.
 
 Use `python3 scripts/test_prompts.py --live-apple-dictionary --output /private/tmp/langmin-dictionary-audit` for repeated live headword, recognition, French-definition and unknown-word checks. `scripts/test_cloud_transport.py` exercises real URLSession callbacks with an offline protocol fixture, including repeated keep-alives, retries, cancellation and total deadlines.
+
+Use `python3 scripts/test_prompts.py --live-apple-followups --output /private/tmp/langmin-followup-audit` for live follow-up and language-change checks, including short requests such as “in rus”. The offline fixtures also check native speaker roles and preservation of earlier messages.
