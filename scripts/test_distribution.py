@@ -44,9 +44,8 @@ class DistributionTests(unittest.TestCase):
                 self.assertEqual(effective['PRODUCT_BUNDLE_IDENTIFIER'], 'tools.min.langmin')
                 version = effective['MARKETING_VERSION']
                 build = effective['CURRENT_PROJECT_VERSION']
-                self.assertRegex(version, r'^\d{4}\.\d{2}\.\d{2}$')
+                self.assertRegex(version, r'^\d{2}\.(?:[1-9]|1[0-2])(?:\.[1-9]\d*)?$')
                 self.assertRegex(build, r'^\d{10}$')
-                self.assertEqual(build[:8], version.replace('.', ''))
                 self.assertEqual(effective['LANGMIN_URL_SCHEME'], 'langmin')
                 self.assertEqual(effective['ARCHS'], 'arm64')
                 self.assertNotIn('LANGMIN_LOCAL_BUILD', effective.get('SWIFT_ACTIVE_COMPILATION_CONDITIONS', ''))
