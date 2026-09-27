@@ -335,6 +335,32 @@ final class Server: LibraryCloudTransport {
             while sync.isSyncing, Date() < limit { try await Task.sleep(nanoseconds: 5_000_000) }
             try check(!sync.isSyncing, "Sync settles within its fixture deadline")
         }
+        // A missing production schema must keep pending local content and
+        // retry successfully after the developer deploys it.
+        let schemaServer = try Server(root: root.appendingPathComponent("SchemaServer"))
+        let schemaSync = LibraryCloudSync(
+            library: root.appendingPathComponent("Schema/Library"), storage: root.appendingPathComponent("Schema/Sync"),
+            transport: { schemaServer }, proAccess: { true }, buildSupported: { true },
+            loadEnabled: { false }, saveEnabled: { _ in })
+        let schemaID = try make(schemaSync, text: "Waiting for cloud setup")
+        let schemaFiles = try files(schemaSync, schemaID)
+        schemaServer.beforeSave = {
+            throw CKError(.serverRejectedRequest, userInfo: [NSLocalizedDescriptionKey:
+                "Error saving record <CKRecordID: fixture>: Cannot create new type LibraryItem in production schema"])
+        }
+        schemaSync.setEnabled(true)
+        try await waitForSync(schemaSync)
+        try check(schemaSync.status == "iCloud sync is temporarily unavailable because Langmin's cloud setup is incomplete. Your local Library is kept.", "Missing schema has a readable setup error without record identifiers")
+        try check(schemaSync.enabled && schemaSync.lastSync == nil, "Missing schema retains opt-in without reporting success")
+        try check(try files(schemaSync, schemaID) == schemaFiles && schemaServer.rows.isEmpty, "Rejected upload preserves all local files")
+        // Respect the first retry deadline; recovery needs no reset or new opt-in.
+        try await Task.sleep(nanoseconds: 2_100_000_000)
+        schemaSync.syncNow()
+        try await waitForSync(schemaSync)
+        try check(schemaSync.lastSync != nil && schemaSync.status == "Library is up to date.", "Schema deployment permits the next retry to finish")
+        try check(schemaServer.rows[schemaID]?.digest != nil && schemaServer.history.count == 1, "Recovery uploads the pending item exactly once")
+        try check(try files(schemaSync, schemaID) == schemaFiles, "Recovery leaves the saved content intact")
+
         let gated = gatedMac("Gated")
         let gatedID = try make(gated, text: "Free local content")
         gated.start()

@@ -260,6 +260,11 @@ final class LibraryCloudSync {
     private func message(for error: Error) -> String {
         // Provide specific recovery text for known CloudKit errors.
         if let cloud = error as? CKError {
+            // Missing production schema requires a developer deployment, not a
+            // reset of the user's Library or iCloud account.
+            if cloud.localizedDescription.localizedCaseInsensitiveContains("production schema") {
+                return "iCloud sync is temporarily unavailable because Langmin's cloud setup is incomplete. Your local Library is kept."
+            }
             // Separate connectivity, quota, account, conflict, and build-configuration failures.
             switch cloud.code {
             // Keep local work available while waiting for connectivity to return.

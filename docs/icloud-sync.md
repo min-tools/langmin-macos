@@ -44,6 +44,18 @@ No query indexes are required: sync fetches record-zone changes in the private `
 
 Apple references: [CloudKit setup and sample](https://github.com/apple/sample-cloudkit-sync-engine), [iCloud services entitlement](https://developer.apple.com/documentation/bundleresources/entitlements/com.apple.developer.icloud-services), [CloudKit assets](https://developer.apple.com/documentation/cloudkit/ckasset).
 
+## Deploy the schema before TestFlight
+
+TestFlight and App Store builds use the **Production** environment of `iCloud.tools.min.langmin`. Production cannot create a missing record type when an app first saves it.
+
+In [CloudKit Console](https://icloud.developer.apple.com/), select this container and its **Development** environment. Under **Schema → Record Types**, check that `LibraryItem` contains every field and type in the table above. If it is missing, create it with those fields, or use a provisioned Development build to sync a saved result and a folder. A result supplies the asset field; a folder supplies `folderName`.
+
+Choose **Deploy Schema Changes**, review the changes, and deploy them to Production. Verify `LibraryItem` and all five fields in the Production schema before testing. This deploys schema definitions, not Development records. Sync uses the private database; it does not need public access permissions or query indexes.
+
+`Cannot create new type LibraryItem in production schema` means this deployment is missing. Deploy the schema, then leave the TestFlight app open and try **Sync Now** after its retry delay. Do not delete Library data, reset the CloudKit environment, or clear sync state. Pending changes are retained and can upload after deployment.
+
+Apple documents this process in [Deploying an iCloud container's schema](https://developer.apple.com/documentation/cloudkit/deploying-an-icloud-container-s-schema).
+
 ## Storage and recovery
 
 Library files remain under app-owned Application Support. The separate `iCloudSync` folder holds the account binding, server token, record acknowledgements, and downloaded changes awaiting application. Server tags reject stale writes. The merge compares content against the last acknowledged version, independent of device clocks.
