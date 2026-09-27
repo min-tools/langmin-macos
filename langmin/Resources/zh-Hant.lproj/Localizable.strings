@@ -983,3 +983,6 @@
 "thinking_low" = "低";
 "thinking_medium" = "中";
 "thinking_high" = "高";
+
+/* Your Pro trial is active. */
+"pro_app_trial_active" = "您的 Pro 試用期已生效。";

@@ -983,3 +983,6 @@
 "thinking_low" = "Alacsony";
 "thinking_medium" = "Közepes";
 "thinking_high" = "Magas";
+
+/* Your Pro trial is active. */
+"pro_app_trial_active" = "A Pro-próbaidőszakod aktív.";

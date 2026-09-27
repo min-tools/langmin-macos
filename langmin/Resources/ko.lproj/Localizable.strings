@@ -983,3 +983,6 @@
 "thinking_low" = "낮음";
 "thinking_medium" = "중간";
 "thinking_high" = "높음";
+
+/* Your Pro trial is active. */
+"pro_app_trial_active" = "Pro 무료 체험이 활성화되어 있습니다.";

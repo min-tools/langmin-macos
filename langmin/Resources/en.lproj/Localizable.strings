@@ -28,3 +28,6 @@
 "thinking_low" = "Low";
 "thinking_medium" = "Medium";
 "thinking_high" = "High";
+
+/* Your Pro trial is active. */
+"pro_app_trial_active" = "Your Pro trial is active.";

@@ -983,3 +983,6 @@
 "thinking_low" = "Низький";
 "thinking_medium" = "Середній";
 "thinking_high" = "Високий";
+
+/* Your Pro trial is active. */
+"pro_app_trial_active" = "Ваш пробний період Pro активний.";

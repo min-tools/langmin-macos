@@ -983,3 +983,6 @@
 "thinking_low" = "Matala";
 "thinking_medium" = "Keskitaso";
 "thinking_high" = "Korkea";
+
+/* Your Pro trial is active. */
+"pro_app_trial_active" = "Pro-kokeilusi on aktiivinen.";

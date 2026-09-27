@@ -983,3 +983,6 @@
 "thinking_low" = "Düşük";
 "thinking_medium" = "Orta";
 "thinking_high" = "Yüksek";
+
+/* Your Pro trial is active. */
+"pro_app_trial_active" = "Pro deneme süreniz etkin.";

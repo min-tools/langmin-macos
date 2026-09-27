@@ -955,7 +955,7 @@ final class ProPaywallController: NSObject, NSWindowDelegate {
         let store = ProStore.shared
         errorLabel.stringValue = message
         if store.isAppTrialActive {
-            statusLabel.stringValue = String(format: localized("pro_you_have", "You have %@ Pro."), appName)
+            statusLabel.stringValue = localized("pro_app_trial_active", "Your Pro trial is active.")
             statusDetailLabel.stringValue = store.statusText()
             setRows(error: true, status: true)
         } else {
@@ -988,7 +988,7 @@ final class ProPaywallController: NSObject, NSWindowDelegate {
         termsLabel.stringValue = terms
         // Keep the independent local-trial status visible beside purchase options.
         if store.isAppTrialActive {
-            statusLabel.stringValue = String(format: localized("pro_you_have", "You have %@ Pro."), appName)
+            statusLabel.stringValue = localized("pro_app_trial_active", "Your Pro trial is active.")
             statusDetailLabel.stringValue = store.statusText()
             setRows(products: true, status: true)
         } else {

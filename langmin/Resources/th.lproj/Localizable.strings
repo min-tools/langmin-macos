@@ -983,3 +983,6 @@
 "thinking_low" = "ต่ำ";
 "thinking_medium" = "ปานกลาง";
 "thinking_high" = "สูง";
+
+/* Your Pro trial is active. */
+"pro_app_trial_active" = "ช่วงทดลองใช้ Pro ของคุณยังใช้งานอยู่";

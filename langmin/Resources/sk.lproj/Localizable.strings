@@ -983,3 +983,6 @@
 "thinking_low" = "Nízka";
 "thinking_medium" = "Stredné";
 "thinking_high" = "Vysoká";
+
+/* Your Pro trial is active. */
+"pro_app_trial_active" = "Vaše skúšobné obdobie Pro je aktívne.";

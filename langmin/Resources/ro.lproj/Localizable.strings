@@ -983,3 +983,6 @@
 "thinking_low" = "Scăzut";
 "thinking_medium" = "Mediu";
 "thinking_high" = "Ridicat";
+
+/* Your Pro trial is active. */
+"pro_app_trial_active" = "Perioada ta de probă Pro este activă.";

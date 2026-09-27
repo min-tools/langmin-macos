@@ -63,7 +63,7 @@ class ProStore {
  // restore(): Prevent layout tests from restoring real transactions.
  func restore() async throws -> Bool { fatalError("Unexpected restore") }
  // statusText(): Return a stable entitlement label for panel snapshots.
- func statusText() -> String { "Pro · fixture" }
+ func statusText() -> String { isAppTrialActive ? "Pro trial · 30 days remaining" : "Pro · lifetime" }
 }
 '''
 # Compile these production declarations with the fixture’s minimal dependencies.
@@ -177,16 +177,19 @@ for appearance: NSAppearance.Name in [.aqua, .darkAqua] {
 reader.textView.scrollRangeToVisible(NSRange(location: policy.length - 1, length: 1))
 check(reader.textView.visibleRect.maxY >= reader.textView.bounds.maxY - 25, "The end of the policy is reachable")
 
-// Check footer sizing in purchased, loading, and error states.
-for state in ["pro", "loading", "error"] {
+// Check trial wording and footer sizing across the purchase panel states.
+for state in ["pro", "loading", "error", "trial", "free"] {
  let panel = ProPaywallController(feature: nil)
- ProStore.shared.isAppTrialActive = state == "error"
+ ProStore.shared.isAppTrialActive = state == "error" || state == "trial"
+ ProStore.shared.entitlement = state == "pro" ? ProEntitlement(kind: .lifetime) : .free
  // Select the panel state without entering a store operation.
  switch state {
  // Show the existing-purchase confirmation.
  case "pro": panel.showProStatus()
  // Show the product-loading state.
  case "loading": panel.showLoading()
+ // Exercise the price-loaded presentation with and without a trial.
+ case "trial", "free": panel.showProducts()
  // Show an unavailable-store message for the error case.
  default: panel.showError("The App Store is unavailable. Try again later.")
  }
@@ -200,6 +203,16 @@ for state in ["pro", "loading", "error"] {
   check(abs(frame.minY - 24) < 1, "The Pro footer has consistent bottom spacing in \(state)")
   check(frame.size == panel.closeButton.intrinsicContentSize, "The Pro close button uses its natural macOS size in \(state)")
   check(panel.closeButton.title == (state == "pro" ? "OK" : "Close"), "The Pro close action is named consistently in \(state)")
+  // Trial access must never use the purchased-Pro ownership heading.
+  if state == "trial" || state == "error" {
+   check(panel.statusLabel.stringValue == "Your Pro trial is active.", "Trial heading does not claim a purchase in \(state)")
+   check(panel.statusDetailLabel.stringValue == "Pro trial · 30 days remaining", "Trial duration stays visible in \(state)")
+   check(!panel.restoreButton.isHidden, "Trial users can still restore a purchase")
+  } else if state == "pro" {
+   check(panel.statusLabel.stringValue == "You have Langmin Pro.", "Verified purchases retain the ownership heading")
+  } else if state == "free" {
+   check(panel.statusLabel.isHidden && panel.statusDetailLabel.isHidden, "Expired trials do not claim active trial or paid access")
+  }
   if state == "error" {
    check(panel.errorLabel.textColor == .secondaryLabelColor, "Store availability is a neutral recoverable message")
    check(panel.retryButton.title == "Try Again", "The store recovery action uses the shared label")

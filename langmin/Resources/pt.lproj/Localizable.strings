@@ -983,3 +983,6 @@
 "thinking_low" = "Baixo";
 "thinking_medium" = "Médio";
 "thinking_high" = "Alto";
+
+/* Your Pro trial is active. */
+"pro_app_trial_active" = "O seu período de avaliação do Pro está ativo.";

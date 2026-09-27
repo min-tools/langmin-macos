@@ -983,3 +983,6 @@
 "thinking_low" = "Faible";
 "thinking_medium" = "Moyen";
 "thinking_high" = "Élevé";
+
+/* Your Pro trial is active. */
+"pro_app_trial_active" = "Votre essai Pro est actif.";

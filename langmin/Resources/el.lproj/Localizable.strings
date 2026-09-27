@@ -983,3 +983,6 @@
 "thinking_low" = "Χαμηλή";
 "thinking_medium" = "Μέτρια";
 "thinking_high" = "Υψηλή";
+
+/* Your Pro trial is active. */
+"pro_app_trial_active" = "Η δοκιμαστική περίοδος Pro είναι ενεργή.";

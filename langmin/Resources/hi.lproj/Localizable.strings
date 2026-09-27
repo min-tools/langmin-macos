@@ -983,3 +983,6 @@
 "thinking_low" = "कम";
 "thinking_medium" = "मध्यम";
 "thinking_high" = "अधिक";
+
+/* Your Pro trial is active. */
+"pro_app_trial_active" = "आपका Pro ट्रायल सक्रिय है।";

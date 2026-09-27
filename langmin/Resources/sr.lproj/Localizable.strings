@@ -983,3 +983,6 @@
 "thinking_low" = "Ниско";
 "thinking_medium" = "Средње";
 "thinking_high" = "Високо";
+
+/* Your Pro trial is active. */
+"pro_app_trial_active" = "Ваш пробни период за Pro је активан.";
