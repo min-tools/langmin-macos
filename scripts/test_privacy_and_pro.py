@@ -226,6 +226,24 @@ for state in ["pro", "loading", "error", "trial", "free"] {
   try snapshot(panel.window, "pro-\(state)-\(appearance.rawValue)")
  }
 }
+// Purchase and restore share this busy presentation, so its text must fit both actions.
+let busyPanel = ProPaywallController(feature: nil)
+busyPanel.showProducts()
+busyPanel.setBusy(true)
+let progressLabels = busyPanel.loadingRow.arrangedSubviews.compactMap { ($0 as? NSTextField)?.stringValue }
+check(progressLabels == ["Contacting the App Store…"], "Purchase progress never claims restoration")
+check(!busyPanel.loadingRow.isHidden, "Purchase and restore show progress")
+for button in [busyPanel.yearlyButton, busyPanel.lifetimeButton, busyPanel.retryButton,
+               busyPanel.restoreButton, busyPanel.closeButton] as [NSButton] {
+ check(!button.isEnabled, "Busy store operations disable competing buttons")
+}
+busyPanel.setBusy(false)
+busyPanel.showProducts()
+check(busyPanel.loadingRow.isHidden, "Returning to purchase options hides progress")
+for button in [busyPanel.yearlyButton, busyPanel.lifetimeButton, busyPanel.retryButton,
+               busyPanel.restoreButton, busyPanel.closeButton] as [NSButton] {
+ check(button.isEnabled, "Completed store operations re-enable buttons")
+}
 print("\(checks) privacy and Pro layout checks passed; no real preferences, provider calls or purchases")
 '''
 
