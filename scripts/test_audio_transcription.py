@@ -161,15 +161,26 @@ final class SettingsLayoutFixture: NSObject, NSTextFieldDelegate {
         return (settingsSectionView(rows: rows), rows.map { $0.1 })
     }
 
-    // shortcutsPage(): Check that fixed-height shortcut buttons fit above the
-    // footer.
-    func shortcutsPage() -> (view: NSView, controls: [NSView]) {
-        var rows: [(String, NSView)] = []
+    // generalPage(): Include menu-bar and login controls with app-wide options.
+    func generalPage() -> (view: NSView, controls: [NSView]) {
+        var rows: [(String, NSView)] = [("Langmin Pro", NSTextField(labelWithString: "Your Pro trial is active."))]
         for (title, text) in [("Menu Bar", "Show Langmin in the menu bar"), ("Login Item", "Open Langmin at login")] {
             let checkbox = NSButton(checkboxWithTitle: text, target: nil, action: nil)
             checkbox.font = .systemFont(ofSize: 13)
             rows.append((title, checkbox))
         }
+        rows.append(("Library", NSButton(title: "iCloud Sync…", target: nil, action: nil)))
+        let language = NSComboBox()
+        language.addItem(withObjectValue: "English")
+        rows.append(("App Language", language))
+        rows.append(("Online Research", NSButton(checkboxWithTitle: "Research online when needed", target: nil, action: nil)))
+        return (settingsSectionView(rows: rows), rows.map { $0.1 })
+    }
+
+    // shortcutsPage(): Check that fixed-height shortcut buttons fit above the
+    // footer.
+    func shortcutsPage() -> (view: NSView, controls: [NSView]) {
+        var rows: [(String, NSView)] = []
         for title in ["Library", "Open Clipboard", "Proofread Clipboard", "Rewrite Clipboard", "Explain Clipboard", "Summarize Clipboard", "Translate Clipboard", "Dictionary Clipboard"] {
             let recorder = NSButton(title: "None", target: nil, action: nil)
             recorder.bezelStyle = .rounded
@@ -315,8 +326,9 @@ Task { @MainActor in
                 let advanced = layout.advancedPage()
                 let models = layout.modelsPage()
                 let shortcuts = layout.shortcutsPage()
+                let general = layout.generalPage()
                 let densePages: [PreferencesSection: (view: NSView, controls: [NSView])] = [
-                    .advanced: advanced, .models: models, .shortcuts: shortcuts
+                    .general: general, .advanced: advanced, .models: models, .shortcuts: shortcuts
                 ]
                 let heading = NSTextField(labelWithString: layout.selectedSection.title)
                 layout.window = panel

@@ -14065,7 +14065,7 @@ final class ShortcutRecorderButton: NSButton {
 enum PreferencesSection: String, CaseIterable {
     // General contains the app's common behavior and Library settings.
     case general
-    // Shortcuts contains menu-bar, login, and keyboard actions.
+    // Shortcuts contains keyboard actions.
     case shortcuts
     // Models contains provider and text-model choices.
     case models
@@ -14544,6 +14544,8 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
         iCloudButton = FocusableButton(title: "iCloud Sync…", target: self, action: #selector(showLibrarySync(_:)))
         var generalRows: [(String, NSView)] = [
             (String(format: localized("pro_title", "%@ Pro"), appName), proStatusLabel),
+            ("Menu Bar", menuBarButton),
+            ("Login Item", launchAtLoginButton),
         ]
         generalRows.append((localized("library", "Library"), iCloudButton))
         generalRows.append((localized("row_app_language", "App Language"), appLanguageBox))
@@ -14552,10 +14554,8 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
             (localized("row_online_research", "Online Research"), researchButton)
         ]
         addSettingsTab(.general, rows: generalRows)
-        // Group menu-bar, login, and clipboard shortcut controls together.
+        // Keep keyboard bindings together on the Shortcuts page.
         addSettingsTab(.shortcuts, rows: [
-            ("Menu Bar", menuBarButton),
-            ("Login Item", launchAtLoginButton),
             ("Library", shortcutButtons["library"]!),
             ("Open Clipboard", shortcutButtons["compose"]!),
             ("Proofread Clipboard", shortcutButtons["proofread"]!),
@@ -15192,13 +15192,15 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
         // General follows the displayed order of common app controls.
         case .general:
             sectionViews = [
+                menuBarButton,
+                launchAtLoginButton,
                 iCloudButton,
                 appLanguageBox,
                 researchButton
             ]
-        // Shortcut recorders follow the menu-bar and login controls.
+        // Shortcut recorders follow their displayed action order.
         case .shortcuts:
-            sectionViews = [menuBarButton, launchAtLoginButton] + configurableShortcutActions
+            sectionViews = configurableShortcutActions
                 .compactMap { shortcutButtons[$0] }
         // Model settings include provider, model, and credential controls.
         case .models:
