@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://min.tools/langmin"><img src="https://avatars.githubusercontent.com/u/325673081?s=256" width="128" alt="Langmin icon"></a>
+  <a href="https://min.tools/langmin"><img src="langmin/Resources/LangminIcon-1024.png" width="128" alt="Langmin icon"></a>
 </p>
 
 <h1 align="center">Langmin</h1>
