@@ -478,20 +478,20 @@
 /* Pro */
 "pro_status_active" = "Pro";
 
-/* Pro · ends %@ */
-"pro_status_ends" = "Pro · završava %@";
+/* Expires %@ */
+"pro_status_ends" = "Završava %@";
 
-/* Pro · shared with your family */
-"pro_status_family" = "Pro · dijeljeno s obitelji";
+/* Shared with your family */
+"pro_status_family" = "Dijeljeno s obitelji";
 
 /* Free */
 "pro_status_free" = "Besplatno";
 
-/* Pro · lifetime */
-"pro_status_lifetime" = "Pro · doživotno";
+/* Lifetime */
+"pro_status_lifetime" = "Doživotno";
 
-/* Pro · renews %@ */
-"pro_status_renews" = "Pro · obnavlja se %@";
+/* Renews %@ */
+"pro_status_renews" = "Obnavlja se %@";
 
 /* Pro trial · ends %@ */
 "pro_status_trial_ends" = "Pro proba · završava %@";
@@ -502,8 +502,8 @@
 /* Pro trial · until %@ */
 "pro_status_trial_until" = "Pro proba · do %@";
 
-/* Pro · until %@ */
-"pro_status_until" = "Pro · do %@";
+/* Until %@ */
+"pro_status_until" = "Do %@";
 
 /* Pro purchases are unavailable right now. Please try again later. */
 "pro_store_unavailable" = "Kupnje Pro trenutačno nisu dostupne. Pokušajte poslije.";

@@ -478,20 +478,20 @@
 /* Pro */
 "pro_status_active" = "Pro";
 
-/* Pro · ends %@ */
-"pro_status_ends" = "Pro · končí %@";
+/* Expires %@ */
+"pro_status_ends" = "Končí %@";
 
-/* Pro · shared with your family */
-"pro_status_family" = "Pro · zdieľané s rodinou";
+/* Shared with your family */
+"pro_status_family" = "Zdieľané s rodinou";
 
 /* Free */
 "pro_status_free" = "Zadarmo";
 
-/* Pro · lifetime */
-"pro_status_lifetime" = "Pro · doživotne";
+/* Lifetime */
+"pro_status_lifetime" = "Doživotne";
 
-/* Pro · renews %@ */
-"pro_status_renews" = "Pro · obnoví sa %@";
+/* Renews %@ */
+"pro_status_renews" = "Obnoví sa %@";
 
 /* Pro trial · ends %@ */
 "pro_status_trial_ends" = "Skúšobné Pro · končí %@";
@@ -502,8 +502,8 @@
 /* Pro trial · until %@ */
 "pro_status_trial_until" = "Skúšobné Pro · do %@";
 
-/* Pro · until %@ */
-"pro_status_until" = "Pro · do %@";
+/* Until %@ */
+"pro_status_until" = "Do %@";
 
 /* Pro purchases are unavailable right now. Please try again later. */
 "pro_store_unavailable" = "Nákupy Pro teraz nie sú dostupné. Skúste to neskôr.";

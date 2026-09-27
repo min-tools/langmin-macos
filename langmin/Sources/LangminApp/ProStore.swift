@@ -497,10 +497,10 @@ final class ProStore {
             return localized("pro_status_active", "Pro")
         // Identify lifetime access without suggesting a renewal date.
         case .lifetime:
-            return localized("pro_status_lifetime", "Pro · lifetime")
+            return localized("pro_status_lifetime", "Lifetime")
         // Identify family-shared access without claiming the user owns its billing controls.
         case .familyShared:
-            return localized("pro_status_family", "Pro · shared with your family")
+            return localized("pro_status_family", "Shared with your family")
         // Show the first-payment date for a trial known to renew.
         case .trialRenews(let date):
             return String(format: localized("pro_status_trial_renews", "Pro trial · first payment %@"), formatter.string(from: date))
@@ -512,13 +512,13 @@ final class ProStore {
             return String(format: localized("pro_status_trial_until", "Pro trial · until %@"), formatter.string(from: date))
         // Show the renewal date when auto-renewal is verified.
         case .renews(let date):
-            return String(format: localized("pro_status_renews", "Pro · renews %@"), formatter.string(from: date))
+            return String(format: localized("pro_status_renews", "Renews %@"), formatter.string(from: date))
         // Show the end date when renewal is verified as disabled.
         case .ends(let date):
-            return String(format: localized("pro_status_ends", "Pro · ends %@"), formatter.string(from: date))
+            return String(format: localized("pro_status_ends", "Expires %@"), formatter.string(from: date))
         // Show the coverage date when renewal status remains unknown.
         case .activeUntil(let date):
-            return String(format: localized("pro_status_until", "Pro · until %@"), formatter.string(from: date))
+            return String(format: localized("pro_status_until", "Until %@"), formatter.string(from: date))
         }
     }
 }

@@ -63,7 +63,7 @@ class ProStore {
  // restore(): Prevent layout tests from restoring real transactions.
  func restore() async throws -> Bool { fatalError("Unexpected restore") }
  // statusText(): Return a stable entitlement label for panel snapshots.
- func statusText() -> String { isAppTrialActive ? "Pro trial · 30 days remaining" : "Pro · lifetime" }
+ func statusText() -> String { isAppTrialActive ? "Pro trial · 30 days remaining" : "Lifetime" }
 }
 '''
 # Compile these production declarations with the fixture’s minimal dependencies.
