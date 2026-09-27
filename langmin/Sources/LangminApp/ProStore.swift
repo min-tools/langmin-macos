@@ -1,5 +1,40 @@
 import Cocoa
 import StoreKit
+import OSLog
+
+// MARK: - Store diagnostics
+
+// Record catalog requests locally without receipts, account details, or error payloads.
+private enum ProStoreDiagnostics {
+    private static let logger = Logger(subsystem: "tools.min.langmin", category: "StoreKit")
+
+    // log(message): Keep explicitly selected diagnostic fields visible in Console.
+    static func log(_ message: String) {
+        logger.notice("\(message, privacy: .public)")
+    }
+
+    // errorCodes(error): Preserve nested StoreKit and network codes without logging userInfo.
+    static func errorCodes(_ error: Error) -> String {
+        var current: Error? = error
+        var codes: [String] = []
+        // Bound traversal because an NSError chain can contain cycles.
+        for _ in 0..<8 {
+            guard let value = current else { break }
+            let nsError = value as NSError
+            codes.append("\(nsError.domain):\(nsError.code)")
+            current = nsError.userInfo[NSUnderlyingErrorKey] as? Error
+            // StoreKit's Swift errors can wrap a cause outside NSError.userInfo.
+            if let storeError = value as? StoreKitError {
+                switch storeError {
+                case .networkError(let underlying): current = underlying
+                case .systemError(let underlying): current = underlying
+                default: break
+                }
+            }
+        }
+        return codes.joined(separator: " -> ")
+    }
+}
 
 // MARK: - Store
 
@@ -342,7 +377,32 @@ final class ProStore {
     func loadProducts() async throws {
         // Avoid store product requests in a private local build.
         guard developerOverride == nil else { return }
-        let products = try await Product.products(for: ProProductID.all)
+        let requestID = UUID().uuidString
+        let started = ProcessInfo.processInfo.systemUptime
+        let info = Bundle.main.infoDictionary ?? [:]
+        let version = info["CFBundleShortVersionString"] as? String ?? "unknown"
+        let build = info["CFBundleVersion"] as? String ?? "unknown"
+        let bundle = Bundle.main.bundleIdentifier ?? "unknown"
+        let requested = ProProductID.all.joined(separator: ",")
+        ProStoreDiagnostics.log("products.request id=\(requestID) bundle=\(bundle) version=\(version) build=\(build) requested=\(requested)")
+        // A diagnostic storefront lookup must not delay or prevent the product request.
+        Task {
+            let storefront = await Storefront.current
+            ProStoreDiagnostics.log("products.storefront id=\(requestID) country=\(storefront?.countryCode ?? "unknown") storefront=\(storefront?.id ?? "unknown")")
+        }
+        let products: [Product]
+        do {
+            products = try await Product.products(for: ProProductID.all)
+        } catch {
+            // Keep the original error for the paywall and record only its domain/code chain.
+            let elapsed = Int((ProcessInfo.processInfo.systemUptime - started) * 1000)
+            ProStoreDiagnostics.log("products.failed id=\(requestID) elapsed_ms=\(elapsed) errors=\(ProStoreDiagnostics.errorCodes(error))")
+            throw error
+        }
+        let returned = products.map(\.id).sorted().joined(separator: ",")
+        let missing = ProProductID.all.filter { id in !products.contains { $0.id == id } }.joined(separator: ",")
+        let elapsed = Int((ProcessInfo.processInfo.systemUptime - started) * 1000)
+        ProStoreDiagnostics.log("products.response id=\(requestID) elapsed_ms=\(elapsed) count=\(products.count) returned=\(returned) missing=\(missing)")
         let yearly = products.first { $0.id == ProProductID.yearly }
         let lifetime = products.first { $0.id == ProProductID.lifetime }
         // Report product unavailability when neither configured product is returned.

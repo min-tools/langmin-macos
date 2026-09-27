@@ -7,7 +7,9 @@ import tempfile
 
 from source_files import ROOT, app_path, app_source, swift_fixture_args
 source = app_source('ProStore.swift')
-source = source.split('// MARK: - Gate')[0].replace('import StoreKit', '').replace('private ', '')
+source = source.split('// MARK: - Gate')[0].replace('import StoreKit', '').replace('import OSLog', '').replace('private ', '')
+# Capture only the logging boundary; production message construction stays intact.
+source = source.replace(', privacy: .public', '')
 with tempfile.TemporaryDirectory(prefix='langmin-pro-store-', dir='/private/tmp') as directory:
     folder = Path(directory)
     extracted = folder / 'ProStore.swift'

@@ -1,5 +1,42 @@
 import Cocoa
 
+// Capture diagnostic messages without writing the test's fixtures to system logs.
+struct Logger {
+    private static let lock = NSLock()
+    private static var recorded: [String] = []
+    // Snapshot or reset captured messages while storefront tasks may be logging.
+    static var messages: [String] {
+        get {
+            lock.lock()
+            defer { lock.unlock() }
+            return recorded
+        }
+        set {
+            lock.lock()
+            defer { lock.unlock() }
+            recorded = newValue
+        }
+    }
+    init(subsystem: String, category: String) {}
+    // Serialize appends as OSLog does for concurrent production calls.
+    func notice(_ message: String) {
+        Self.lock.lock()
+        defer { Self.lock.unlock() }
+        Self.recorded.append(message)
+    }
+}
+// Simulate an available or missing storefront without accessing an Apple account.
+struct Storefront {
+    var countryCode: String
+    var id: String
+    static var fixture: Storefront? = Storefront(countryCode: "SRB", id: "fixture")
+    static var current: Storefront? { get async { fixture } }
+}
+// Preserve Swift-wrapped causes independently of NSError's underlying error key.
+enum StoreKitError: Error {
+    case networkError(URLError), systemError(Error), unknown
+}
+
 // langminPreferencesStore(): Only the StoreKit boundary is simulated; the
 // compiled ProStore methods are the app's source.
 func langminPreferencesStore() -> UserDefaults { fatalError("Unexpected preferences access") }
@@ -84,6 +121,9 @@ struct Product {
     enum PurchaseResult { case success(VerificationResult<Transaction>), pending, userCancelled }
     var id: String
     var subscription: SubscriptionInfo? { id == ProProductID.yearly ? SubscriptionInfo() : nil }
+    static var returnedIDs: [String]?
+    static var requestError: Error?
+    static var requestedIDs: [String] = []
     static var blockProducts = false
     static var productRequests = 0, purchaseRequests = 0
     static var pendingProducts: CheckedContinuation<Void, Never>?
@@ -91,9 +131,11 @@ struct Product {
     // test stale responses.
     static func products(for ids: [String]) async throws -> [Product] {
         productRequests += 1
+        requestedIDs = ids
         // Hold this lookup until the test explicitly resumes its continuation.
         if blockProducts { await withCheckedContinuation { pendingProducts = $0 } }
-        return ids.map { Product(id: $0) }
+        if let requestError { throw requestError }
+        return (returnedIDs ?? ids).map { Product(id: $0) }
     }
     // purchase(options): Count a purchase request and return cancellation
     // without charging anything.
@@ -259,6 +301,73 @@ enum AppStore {
         Product.SubscriptionInfo.statuses = [.init(transaction: .verified(shared))]
         await store.refreshEntitlement()
         try check(store.entitlement.isFamilyShared && store.entitlement.willAutoRenew == true, "Shared access matches its own verified status")
+        // An active local trial still loads both purchasable products without granting paid access.
+        Transaction.fixtures = []
+        await store.refreshEntitlement()
+        let catalogStore = ProStore()
+        UserDefaults.standard.removeObject(forKey: ProStore.appTrialStartedAtKey)
+        UserDefaults.standard.removeObject(forKey: ProStore.appTrialDisclosureAcceptedKey)
+        AppTransaction.fixture = .verified(AppTransaction(originalPurchaseDate: Date(), environment: .sandbox))
+        catalogStore.beginAppTrial()
+        await catalogStore.refreshEntitlement()
+        Logger.messages = []
+        try await catalogStore.loadProducts()
+        try check(Product.requestedIDs == ProProductID.all, "Request both exact catalog identifiers")
+        try check(catalogStore.yearly?.id == ProProductID.yearly && catalogStore.lifetime?.id == ProProductID.lifetime, "Both returned plans are purchasable during a trial")
+        try check(catalogStore.isAppTrialActive && !catalogStore.isPro, "Product lookup does not convert a trial into paid access")
+        try await until { Logger.messages.contains { $0.contains("products.storefront") && $0.contains("country=SRB") } }
+        try check(Logger.messages.contains { $0.contains("products.request") && $0.contains("version=") && $0.contains("build=") }, "Requests include release metadata")
+        try check(Logger.messages.contains { $0.contains("products.response") && $0.contains("count=2") && $0.contains("elapsed_ms=") }, "Successful catalog requests include count and timing")
+
+        // Missing one product must preserve the available purchase option and clear the stale one.
+        Product.returnedIDs = [ProProductID.yearly]
+        try await catalogStore.loadProducts()
+        try check(catalogStore.yearly != nil && catalogStore.lifetime == nil, "Yearly-only responses remain usable")
+        try check(Logger.messages.contains { $0.contains("missing=\(ProProductID.lifetime)") }, "Partial responses identify the missing lifetime product")
+        Product.returnedIDs = [ProProductID.lifetime]
+        try await catalogStore.loadProducts()
+        try check(catalogStore.yearly == nil && catalogStore.lifetime != nil, "Lifetime-only responses remain usable")
+
+        // Empty and unrelated responses must fail without manufacturing products or paid access.
+        for ids in [[], ["unrelated.product"]] {
+            Product.returnedIDs = ids
+            let emptyStore = ProStore()
+            do {
+                try await emptyStore.loadProducts()
+                try check(false, "A response without either configured product must fail")
+            } catch let error as ProStore.StoreError {
+                try check(error.message.contains("purchases are unavailable"), "Unavailable products retain the recoverable message")
+            }
+            try check(emptyStore.yearly == nil && emptyStore.lifetime == nil && !emptyStore.isPro, "Unavailable catalog never grants access")
+        }
+        try check(Logger.messages.contains { $0.contains("products.response") && $0.contains("count=0") && $0.contains("missing=\(ProProductID.all.joined(separator: ","))") }, "Empty responses are distinguishable from request errors")
+
+        // Preserve original failures, but exclude descriptions, URLs, and userInfo from logs.
+        Logger.messages = []
+        let underlying = NSError(domain: NSURLErrorDomain, code: -1009, userInfo: [NSLocalizedDescriptionKey: "private-account-secret"])
+        Product.requestError = NSError(domain: "ASDErrorDomain", code: 500, userInfo: [NSUnderlyingErrorKey: underlying, "receipt": "private-receipt-secret"])
+        do {
+            try await catalogStore.loadProducts()
+            try check(false, "Network failure must be propagated")
+        } catch {
+            try check((error as NSError).domain == "ASDErrorDomain" && (error as NSError).code == 500, "Diagnostics preserve the original error")
+        }
+        try check(Logger.messages.contains { $0.contains("products.failed") && $0.contains("ASDErrorDomain:500 -> NSURLErrorDomain:-1009") }, "Underlying network codes survive diagnostic logging")
+        try check(!Logger.messages.joined().contains("private-"), "Diagnostic logs exclude arbitrary error payloads")
+        try check(ProStoreDiagnostics.errorCodes(StoreKitError.networkError(URLError(.timedOut))).contains("NSURLErrorDomain:-1001"), "Swift StoreKit errors retain their wrapped network code")
+        try check(ProStoreDiagnostics.errorCodes(StoreKitError.systemError(underlying)).contains("NSURLErrorDomain:-1009"), "Swift system errors retain their wrapped cause")
+
+        // A missing storefront and a previously failed request must not prevent a fresh retry.
+        Product.requestError = nil
+        Product.returnedIDs = nil
+        Storefront.fixture = nil
+        Logger.messages = []
+        try await catalogStore.loadProducts()
+        try check(catalogStore.yearly != nil && catalogStore.lifetime != nil, "Retry recovers both plans after catalog failure")
+        try await until { Logger.messages.contains { $0.contains("products.storefront") && $0.contains("country=unknown") } }
+        try check(!catalogStore.isPro, "Successful retry still requires a verified purchase for paid access")
+        let emptyRestore = try await catalogStore.restore()
+        try check(!emptyRestore, "Restore correctly reports no purchase for an unpurchased trial")
         print("\(count) Pro store checks passed")
     }
 }

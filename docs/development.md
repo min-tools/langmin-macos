@@ -42,6 +42,19 @@ Fixtures use temporary files, in-memory preferences, and simulated providers. Th
 
 Purchase fixtures compile the actual access logic in both source and Store configurations. Both configurations must handle verified purchases, expiry, restore, and renewal without granting Pro by default.
 
+### Diagnose missing purchase products
+
+The app writes local unified logs under subsystem `tools.min.langmin`, category `StoreKit`. Capture a live retry with:
+
+```bash
+/usr/bin/log stream --level info --style compact --predicate 'subsystem == "tools.min.langmin" AND category == "StoreKit"'
+```
+
+Open Langmin Pro and click **Try Again**, then stop the capture with Control-C. Match entries by their request `id`. `products.request` records the app version, build, and requested identifiers; `products.response` records returned identifiers, missing identifiers, and elapsed milliseconds. `products.failed` records error domains and codes, including underlying StoreKit or network errors. `products.storefront` records the App Store country and storefront identifier separately so its lookup cannot block loading prices.
+
+An empty response can have no Apple error code. These logs describe what the app received; they cannot reveal an unreported server-side reason. The logs exclude receipts, account identifiers, error descriptions, and arbitrary error payloads. They stay on the Mac unless you explicitly share them.
+
+
 For an optional live Apple model check:
 
 ```bash
