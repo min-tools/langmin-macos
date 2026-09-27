@@ -221,6 +221,8 @@ source += block('func narrationMergeError(') + '\n'
 source += block('func mergeNarrationChunks(').replace('func mergeNarrationChunks(', 'func realMergeNarrationChunks(') + '\n'
 source += block('let langminControlBorderColor =') + '\n'
 source += block('final class NativeSeparator:') + '\n'
+# Include the app's reader font default used by Library playback restoration.
+source += next(line for line in MAIN.splitlines() if line.startswith('let defaultExplanationFontSize:')) + '\n'
 source += hud
 source += r'''
 // Supply the source-image metadata shape without image-validation dependencies.
