@@ -24111,6 +24111,15 @@ private final class MinToolsAboutPanelController: NSWindowController {
     }
 }
 
+// isLoginItemLaunch(event): Recognize macOS's login-item launch marker while
+// the original Apple event is still available during startup.
+func isLoginItemLaunch(_ event: NSAppleEventDescriptor?) -> Bool {
+    // Ordinary opens, URL events, and missing descriptors are not login launches.
+    guard event?.eventClass == AEEventClass(kCoreEventClass),
+          event?.eventID == AEEventID(kAEOpenApplication) else { return false }
+    return event?.paramDescriptor(forKeyword: keyAEPropData)?.enumCodeValue == keyAELaunchedAsLogInItem
+}
+
 final class AppDelegate: NSObject, NSApplicationDelegate {
     var sessions: [ViewerSession] = []
     weak var activeSession: ViewerSession?
@@ -24133,6 +24142,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     var hotKeyActions: [UInt32: String] = [:]
     var pendingPublicURLs: [URL] = []
     var suppressInitialLauncherReveal = false
+    var deferredLoginLaunchUI = false
+    var deferredShortcutRegistrationWarning: GlobalHotKeyRegistrationOutcome?
     var serviceTransformInFlight = false
 
     // init(): Register URL handling as soon as the delegate exists, so
@@ -24148,6 +24159,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // applicationDidFinishLaunching(notification): Finish app setup once AppKit
     // has launched the process.
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Capture the launch reason before asynchronous work loses the Apple event.
+        let launchedAtLogin = isLoginItemLaunch(NSAppleEventManager.shared().currentAppleEvent)
+        deferredLoginLaunchUI = launchedAtLogin
         migrateCommandOpenClipboardShortcut()
         migrateLibraryShortcutToGlobalDefault()
         removeAbandonedLangminTemporaryItems()
@@ -24173,10 +24187,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.servicesProvider = self
         NSUpdateDynamicServices()
         let registration = configureSystemIntegration()
-        // Report shortcut registration problems after app startup completes.
+        // Login startup must not steal focus for a shortcut warning either.
         if registration.infrastructureUnavailable || !registration.rejectedActions.isEmpty {
-            DispatchQueue.main.async { [weak self] in
-                self?.presentGlobalShortcutRegistrationWarning(registration)
+            if launchedAtLogin {
+                // Keep the warning until the user explicitly opens the launcher.
+                deferredShortcutRegistrationWarning = registration
+            } else {
+                // Ordinary app launches can report registration problems immediately.
+                DispatchQueue.main.async { [weak self] in
+                    self?.presentGlobalShortcutRegistrationWarning(registration)
+                }
             }
         }
         installKeyboardControls()
@@ -24192,6 +24212,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             guard let self else {
                 return
             }
+
+            // Login items keep integrations running without opening windows or setup.
+            guard !launchedAtLogin else { return }
 
             // Show the initial launcher only when no URL, Service, result, or active request has claimed startup.
             if
@@ -24251,6 +24274,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // configureSystemIntegration(): Register enabled system integrations and
     // omit shortcuts rejected by the operating system.
     func configureSystemIntegration() -> GlobalHotKeyRegistrationOutcome {
+        // A Settings change supersedes any warning saved during login startup.
+        deferredShortcutRegistrationWarning = nil
         let preferences = loadAppPreferences()
         let registration = registerGlobalHotKeys(preferences.globalShortcuts)
         var availableShortcuts = preferences.globalShortcuts
@@ -25461,6 +25486,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // showLauncher(sender): Open the direct app launcher for a fresh question.
     @objc func showLauncher(_ sender: Any?) {
         launcherController.show()
+        // Resume deferred startup UI once, after an explicit Dock or menu action.
+        if deferredLoginLaunchUI {
+            deferredLoginLaunchUI = false
+            // Report saved registration failures now that foreground UI is expected.
+            if let registration = deferredShortcutRegistrationWarning {
+                deferredShortcutRegistrationWarning = nil
+                presentGlobalShortcutRegistrationWarning(registration)
+            }
+            presentSetupWizardIfNeeded()
+        }
     }
 
     // showAbout(sender): Show the About panel with bundle metadata and author link.
