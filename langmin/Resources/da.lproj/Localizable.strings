@@ -511,8 +511,8 @@
 /* Payment goes to your Apple Account. A subscription renews automatically each year unless it is cancelled in your App Store settings at least a day before the period ends. */
 "pro_terms" = "Betalingen trækkes fra din Apple-konto. Abonnementet fornyes automatisk hvert år, medmindre det opsiges i App Store-indstillingerne mindst en dag før periodens udløb.";
 
-/* Terms of Use */
-"pro_terms_of_use" = "Vilkår for brug";
+/* Terms of Use (EULA) */
+"pro_terms_of_use" = "Vilkår for brug (EULA)";
 
 /* Cancel at least a day before the free trial ends to avoid being charged. */
 

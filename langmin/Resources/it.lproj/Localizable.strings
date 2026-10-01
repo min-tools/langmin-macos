@@ -511,8 +511,8 @@
 /* Payment goes to your Apple Account. A subscription renews automatically each year unless it is cancelled in your App Store settings at least a day before the period ends. */
 "pro_terms" = "Il pagamento viene addebitato sul tuo Account Apple. L'abbonamento si rinnova automaticamente ogni anno, a meno che non venga annullato nelle impostazioni dell'App Store almeno un giorno prima della fine del periodo.";
 
-/* Terms of Use */
-"pro_terms_of_use" = "Termini di utilizzo";
+/* Terms of Use (EULA) */
+"pro_terms_of_use" = "Termini di utilizzo (EULA)";
 
 /* Cancel at least a day before the free trial ends to avoid being charged. */
 

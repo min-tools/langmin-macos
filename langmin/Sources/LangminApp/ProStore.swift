@@ -731,15 +731,16 @@ final class ProPaywallController: NSObject, NSWindowDelegate {
 
         termsLabel = wrappingLabel("", size: 11, color: .tertiaryLabelColor)
         linksRow = NSStackView(views: [
-            linkButton(localized("pro_terms_of_use", "Terms of Use"), size: 11, action: #selector(openTerms(_:))),
+            linkButton(localized("pro_terms_of_use", "Terms of Use (EULA)"), size: 11, action: #selector(openTerms(_:))),
             linkButton(localized("pro_privacy_policy", "Privacy Policy"), size: 11, action: #selector(openPrivacy(_:)))
         ])
         linksRow.orientation = .horizontal
         linksRow.spacing = 16
 
+        restoreButton = linkButton(localized("pro_restore_purchases", "Restore Purchases"), size: 12, action: #selector(restorePurchases(_:)))
         let purchaseStack = NSStackView(views: [
             loadingRow, statusLabel, statusDetailLabel, manageButton, errorLabel, retryButton,
-            yearlyButton, yearlyCaption, lifetimeButton, familyCaption, termsLabel, linksRow
+            yearlyButton, yearlyCaption, lifetimeButton, familyCaption, termsLabel, restoreButton
         ])
         purchaseStack.orientation = .vertical
         purchaseStack.alignment = .leading
@@ -747,31 +748,29 @@ final class ProPaywallController: NSObject, NSWindowDelegate {
         purchaseStack.setCustomSpacing(2, after: statusLabel)
         purchaseStack.setCustomSpacing(14, after: yearlyCaption)
         purchaseStack.setCustomSpacing(14, after: familyCaption)
-        purchaseStack.setCustomSpacing(4, after: termsLabel)
+        purchaseStack.setCustomSpacing(14, after: termsLabel)
         // Apply consistent layout constraints to yearly and lifetime purchase buttons.
         for button in [yearlyButton!, lifetimeButton!] {
             button.translatesAutoresizingMaskIntoConstraints = false
             button.widthAnchor.constraint(equalTo: purchaseStack.widthAnchor).isActive = true
         }
 
-        restoreButton = linkButton(localized("pro_restore_purchases", "Restore Purchases"), size: 12, action: #selector(restorePurchases(_:)))
         closeButton = NSButton(title: localized("close", "Close"), target: self, action: #selector(dismiss(_:)))
         closeButton.bezelStyle = .rounded
         closeButton.keyEquivalent = "\u{1b}"
-        // Keep the native-sized close button pinned to the content edge even when Restore is hidden.
+        // Keep legal links beside the native-sized close button in every state.
         let footer = NSView()
-        // Align restore and close actions in the panel footer.
-        for button in [restoreButton!, closeButton!] {
-            button.translatesAutoresizingMaskIntoConstraints = false
-            footer.addSubview(button)
+        for view in [linksRow!, closeButton!] as [NSView] {
+            view.translatesAutoresizingMaskIntoConstraints = false
+            footer.addSubview(view)
         }
         NSLayoutConstraint.activate([
             closeButton.trailingAnchor.constraint(equalTo: footer.trailingAnchor),
             closeButton.topAnchor.constraint(equalTo: footer.topAnchor),
             closeButton.bottomAnchor.constraint(equalTo: footer.bottomAnchor),
-            restoreButton.leadingAnchor.constraint(equalTo: footer.leadingAnchor),
-            restoreButton.centerYAnchor.constraint(equalTo: closeButton.centerYAnchor),
-            restoreButton.trailingAnchor.constraint(lessThanOrEqualTo: closeButton.leadingAnchor, constant: -12)
+            linksRow.leadingAnchor.constraint(equalTo: footer.leadingAnchor),
+            linksRow.centerYAnchor.constraint(equalTo: closeButton.centerYAnchor),
+            linksRow.trailingAnchor.constraint(lessThanOrEqualTo: closeButton.leadingAnchor, constant: -12)
         ])
 
         content = NSStackView(views: [title, headline, features, freeNote, purchaseStack, footer])
@@ -937,8 +936,8 @@ final class ProPaywallController: NSObject, NSWindowDelegate {
         statusLabel.isHidden = !status
         statusDetailLabel.isHidden = !status
         manageButton.isHidden = !manage
-        // Show purchase details together so hidden products do not leave orphaned captions or links.
-        for view in [yearlyButton, yearlyCaption, lifetimeButton, familyCaption, termsLabel, linksRow] as [NSView] {
+        // Hide captions with their products; legal links stay available in every state.
+        for view in [yearlyButton, yearlyCaption, lifetimeButton, familyCaption, termsLabel] as [NSView] {
             view.isHidden = !products
         }
         fitWindow(animate: true)

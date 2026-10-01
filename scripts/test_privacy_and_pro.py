@@ -63,7 +63,10 @@ class ProStore {
  // restore(): Prevent layout tests from restoring real transactions.
  func restore() async throws -> Bool { fatalError("Unexpected restore") }
  // statusText(): Return a stable entitlement label for panel snapshots.
- func statusText() -> String { isAppTrialActive ? "Pro trial · 30 days remaining" : "Lifetime" }
+ func statusText() -> String {
+  if isAppTrialActive { return "Pro trial · 30 days remaining" }
+  return entitlement.kind == .subscription ? "Renews Oct 2, 2026" : "Lifetime"
+ }
 }
 '''
 # Compile these production declarations with the fixture’s minimal dependencies.
@@ -178,14 +181,15 @@ reader.textView.scrollRangeToVisible(NSRange(location: policy.length - 1, length
 check(reader.textView.visibleRect.maxY >= reader.textView.bounds.maxY - 25, "The end of the policy is reachable")
 
 // Check trial wording and footer sizing across the purchase panel states.
-for state in ["pro", "loading", "error", "trial", "free"] {
+for state in ["pro", "subscription", "loading", "error", "trial", "free"] {
  let panel = ProPaywallController(feature: nil)
+ let ownsPro = state == "pro" || state == "subscription"
  ProStore.shared.isAppTrialActive = state == "error" || state == "trial"
- ProStore.shared.entitlement = state == "pro" ? ProEntitlement(kind: .lifetime) : .free
+ ProStore.shared.entitlement = ownsPro ? ProEntitlement(kind: state == "subscription" ? .subscription : .lifetime) : .free
  // Select the panel state without entering a store operation.
  switch state {
  // Show the existing-purchase confirmation.
- case "pro": panel.showProStatus()
+ case "pro", "subscription": panel.showProStatus()
  // Show the product-loading state.
  case "loading": panel.showLoading()
  // Exercise the price-loaded presentation with and without a trial.
@@ -202,13 +206,23 @@ for state in ["pro", "loading", "error", "trial", "free"] {
   check(abs(body.bounds.maxX - frame.maxX - 28) < 1, "The Pro footer stays right-aligned in \(state)")
   check(abs(frame.minY - 24) < 1, "The Pro footer has consistent bottom spacing in \(state)")
   check(frame.size == panel.closeButton.intrinsicContentSize, "The Pro close button uses its natural macOS size in \(state)")
-  check(panel.closeButton.title == (state == "pro" ? "OK" : "Close"), "The Pro close action is named consistently in \(state)")
+  check(panel.closeButton.title == (ownsPro ? "OK" : "Close"), "The Pro close action is named consistently in \(state)")
+  // Legal links remain reachable before and after purchase, even if the store is unavailable.
+  let legalButtons = panel.linksRow.arrangedSubviews.compactMap { $0 as? NSButton }
+  check(!panel.linksRow.isHiddenOrHasHiddenAncestor, "Legal links remain visible in \(state)")
+  check(legalButtons.map(\.title) == ["Terms of Use (EULA)", "Privacy Policy"], "Both legal links are present in \(state)")
+  check(legalButtons.allSatisfy { $0.isEnabled && $0.target === panel }, "Legal links remain enabled in \(state)")
+  check(legalButtons.map { $0.action?.description } == ["openTerms:", "openPrivacy:"], "Legal links retain their actions in \(state)")
+  let linksFrame = panel.linksRow.convert(panel.linksRow.bounds, to: body)
+  check(abs(linksFrame.midY - frame.midY) < 1, "Legal links align with the close button in \(state)")
+  check(abs(linksFrame.minX - 28) < 1 && linksFrame.maxX < frame.minX, "Legal links fit on the leading side of the footer in \(state)")
+  check(panel.manageButton.isHidden == (state != "subscription"), "Subscription management remains available alongside legal links")
   // Trial access must never use the purchased-Pro ownership heading.
   if state == "trial" || state == "error" {
    check(panel.statusLabel.stringValue == "Your Pro trial is active.", "Trial heading does not claim a purchase in \(state)")
    check(panel.statusDetailLabel.stringValue == "Pro trial · 30 days remaining", "Trial duration stays visible in \(state)")
    check(!panel.restoreButton.isHidden, "Trial users can still restore a purchase")
-  } else if state == "pro" {
+  } else if ownsPro {
    check(panel.statusLabel.stringValue == "You have Langmin Pro.", "Verified purchases retain the ownership heading")
   } else if state == "free" {
    check(panel.statusLabel.isHidden && panel.statusDetailLabel.isHidden, "Expired trials do not claim active trial or paid access")
@@ -233,6 +247,8 @@ busyPanel.setBusy(true)
 let progressLabels = busyPanel.loadingRow.arrangedSubviews.compactMap { ($0 as? NSTextField)?.stringValue }
 check(progressLabels == ["Contacting the App Store…"], "Purchase progress never claims restoration")
 check(!busyPanel.loadingRow.isHidden, "Purchase and restore show progress")
+check(!busyPanel.linksRow.isHiddenOrHasHiddenAncestor, "Legal links remain visible during store operations")
+check(busyPanel.linksRow.arrangedSubviews.compactMap { $0 as? NSButton }.allSatisfy { $0.isEnabled }, "Legal links remain enabled during store operations")
 for button in [busyPanel.yearlyButton, busyPanel.lifetimeButton, busyPanel.retryButton,
                busyPanel.restoreButton, busyPanel.closeButton] as [NSButton] {
  check(!button.isEnabled, "Busy store operations disable competing buttons")

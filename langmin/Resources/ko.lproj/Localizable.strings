@@ -511,8 +511,8 @@
 /* Payment goes to your Apple Account. A subscription renews automatically each year unless it is cancelled in your App Store settings at least a day before the period ends. */
 "pro_terms" = "결제는 Apple 계정으로 청구됩니다. 구독은 기간 종료 최소 하루 전에 App Store 설정에서 취소하지 않으면 매년 자동으로 갱신됩니다.";
 
-/* Terms of Use */
-"pro_terms_of_use" = "이용 약관";
+/* Terms of Use (EULA) */
+"pro_terms_of_use" = "이용 약관 (EULA)";
 
 /* Cancel at least a day before the free trial ends to avoid being charged. */
 
