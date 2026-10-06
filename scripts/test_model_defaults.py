@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise Settings reset and Setup Assistant model selection with in-memory collaborators.
+"""Exercise Settings reset and setup model and login choices with in-memory collaborators.
 
 Production preference collection and wizard completion run without windows, real preferences,
 credentials, provider calls, or login-item registration.
@@ -100,13 +100,19 @@ final class Window { var closed = false; /* close(): Record that the fixture pan
 final class NSAlert {
  // Represent the confirmation choices used by the production reset handler.
  enum Response { case alertFirstButtonReturn, alertSecondButtonReturn }
+ enum Style { case warning }
  static var response = Response.alertSecondButtonReturn
+ static var messages: [(String, String)] = []
  var messageText = "", informativeText = ""
+ var alertStyle = Style.warning
  // addButton(withTitle): Keep this production dependency inactive in the
  // isolated fixture.
  func addButton(withTitle: String) {}
- // runModal(): Return the response selected by the test case.
- func runModal() -> Response { Self.response }
+ // runModal(): Record the alert and return the fixture's confirmation choice.
+ @discardableResult func runModal() -> Response {
+  Self.messages.append((messageText, informativeText))
+  return Self.response
+ }
 }
 // Expose the launcher model control to the production reset path.
 final class Launcher {
@@ -132,14 +138,31 @@ final class AppDelegate {
 enum NSApp { static let delegate: AnyObject? = AppDelegate() }
 // Stand in for login-item services so setup cannot alter host registration.
 enum SMAppService {
- // Keep the simulated login item enabled.
- enum Status { case enabled }
+ enum Status { case notRegistered, enabled, requiresApproval, notFound }
  static let mainApp = Service()
- // Expose the status expected by the setup completion path.
- struct Service {
-  var status: Status { .enabled }
-  // register(): Fail if a test tries to register a real login item.
-  func register() throws { fatalError("Unexpected login-item registration") }
+ // Simulate system failures without changing the workstation's login items.
+ struct Failure: LocalizedError {
+  var errorDescription: String? { "Fixture login-item failure" }
+ }
+ // Record login-item operations and maintain their simulated registration state.
+ final class Service {
+  var status = Status.enabled
+  var calls: [String] = []
+  var shouldFail = false
+  // register(): Enable the fixture login item or simulate a system error.
+  func register() throws {
+   calls.append("register")
+   // Reject duplicate registration as macOS does for a pending login item.
+   if shouldFail || status == .enabled || status == .requiresApproval { throw Failure() }
+   status = .enabled
+  }
+  // unregister(): Remove the fixture login item or simulate a system error.
+  func unregister() throws {
+   calls.append("unregister")
+   // Failed removal leaves the existing state unchanged.
+   if shouldFail { throw Failure() }
+   status = .notRegistered
+  }
  }
 }
 var appleAvailable = true
@@ -334,7 +357,63 @@ launcher.refreshModelOptions()
 check(launcher.model == deepSeek, "An ordinary picker refresh preserves its selection")
 launcher.refreshModelOptions(selecting: apple)
 check(launcher.model == apple, "An explicit setup refresh replaces the previous selection")
-print("\(checks) model default checks passed; no real preferences, UI, credentials or providers used")
+
+// Check setup completion against each supported login-item status and choice.
+let loginCases: [(SMAppService.Status, State, [String], SMAppService.Status)] = [
+ (.notRegistered, .off, [], .notRegistered),
+ (.notRegistered, .on, ["register"], .enabled),
+ (.enabled, .off, ["unregister"], .notRegistered),
+ (.enabled, .on, [], .enabled),
+ (.requiresApproval, .off, ["unregister"], .notRegistered),
+ (.requiresApproval, .on, [], .requiresApproval),
+ (.notFound, .off, [], .notFound),
+ (.notFound, .on, ["register"], .enabled)
+]
+for (status, choice, calls, result) in loginCases {
+ // Start each case with isolated preferences and a fresh setup session.
+ let service = SMAppService.mainApp
+ service.status = status; service.calls = []; service.shouldFail = false
+ preferencesStore.values = [:]; NSAlert.messages = []
+ let wizard = WizardFixture()
+ let checkbox = Control(); checkbox.state = choice
+ wizard.loginItemCheckbox = checkbox
+ wizard.finish()
+ // Verify the requested operation and successful completion without an alert.
+ check(service.calls == calls, "Setup applies login choice \(choice) from \(status)")
+ check(service.status == result, "Setup reaches the expected login-item status")
+ check(wizard.window!.closed, "Successful login setup closes its window")
+ check(preferencesStore.values[WizardFixture.completedKey] as? Bool == true, "Successful login setup is marked complete")
+ check(NSAlert.messages.isEmpty, "Successful login setup does not show an error")
+}
+// A missing workflow control must leave an existing login item untouched.
+SMAppService.mainApp.status = .enabled; SMAppService.mainApp.calls = []
+let unvisited = WizardFixture()
+unvisited.finish()
+check(SMAppService.mainApp.calls.isEmpty && SMAppService.mainApp.status == .enabled,
+      "Finishing without a login control preserves existing registration")
+
+// Failed registration or removal stays visible, preserves the choice, and permits retry.
+for (status, choice, call) in [(SMAppService.Status.notRegistered, State.on, "register"),
+                              (.enabled, .off, "unregister")] {
+ let service = SMAppService.mainApp
+ service.status = status; service.calls = []; service.shouldFail = true
+ preferencesStore.values = [:]; NSAlert.messages = []
+ let wizard = WizardFixture()
+ let checkbox = Control(); checkbox.state = choice
+ wizard.loginItemCheckbox = checkbox
+ wizard.finish()
+ check(service.calls == [call] && service.status == status, "A failed login operation preserves registration")
+ check(!wizard.window!.closed, "A failed login operation keeps setup open")
+ check(preferencesStore.values.isEmpty, "A failed login operation does not save or complete setup")
+ check(checkbox.state == choice, "A failed login operation preserves the user's choice")
+ check(NSAlert.messages.count == 1 && NSAlert.messages[0].0 == "Could not update the login item"
+       && NSAlert.messages[0].1 == "Fixture login-item failure", "A failed login operation reports its error")
+ service.shouldFail = false
+ wizard.finish()
+ check(service.calls == [call, call] && wizard.window!.closed, "Retrying a login operation can complete setup")
+ check(preferencesStore.values[WizardFixture.completedKey] as? Bool == true, "Successful retry marks setup complete")
+}
+print("\(checks) model and setup completion checks passed; no real preferences, UI, credentials, providers or login items used")
 '''
 
 with tempfile.TemporaryDirectory(prefix='langmin-model-default-tests-', dir='/private/tmp') as directory:

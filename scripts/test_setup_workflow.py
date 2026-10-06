@@ -54,6 +54,12 @@ def method(name):
 
 fixture = r'''
 import Cocoa
+// Simulate login-item status without reading or changing macOS registration.
+enum SMAppService {
+    enum Status { case notRegistered, enabled, requiresApproval, notFound }
+    static var mainApp = FixtureLoginItem()
+    struct FixtureLoginItem { var status: Status = .notRegistered }
+}
 var strings: [String: String] = [:]
 // localized(key, fallback): Resolve labels from the translation currently
 // loaded by the fixture.
@@ -105,9 +111,8 @@ final class Workflow: NSObject, NSWindowDelegate {
     func languageStep() -> NSView { workflowStep() }
     // audioStep(): Use workflow content for the unused audio-step dependency.
     func audioStep() -> NSView { workflowStep() }
-    // readyStep(): Use workflow content for the unused completion-step
-    // dependency.
-    func readyStep() -> NSView { workflowStep() }
+    // readyStep(): Keep the completion page independent of workflow controls.
+    func readyStep() -> NSView { NSView() }
 '''
 fixture += ''.join(method(name) for name in ['buildWindow(', 'showStep(', 'stepStack(', 'workflowStep(', 'fitWindow('])
 fixture += r'''
@@ -137,6 +142,7 @@ for locale in locales {
     controller.showStep()
     container.layoutSubtreeIfNeeded()
     let view = controller.stepViews[4]!
+    check(controller.loginItemCheckbox.state == .off, "\(locale.lastPathComponent): login launch requires opt-in")
     // labels(view): Collect all descendant text labels to check the visible
     // workflow wording.
     func labels(in view: NSView) -> [String] {
@@ -153,6 +159,25 @@ for locale in locales {
     let frame = view.convert(view.bounds, to: container)
     check(frame.maxX <= container.bounds.maxX - 31.5, "\(locale.lastPathComponent): text stays inside the side margins")
     window.close()
+}
+// Reopening setup reflects macOS registration without enabling a new login item.
+for status in [SMAppService.Status.notRegistered, .enabled, .requiresApproval, .notFound] {
+    SMAppService.mainApp.status = status
+    let controller = Workflow()
+    controller.buildWindow()
+    controller.showStep()
+    let expected: NSControl.StateValue = status == .enabled || status == .requiresApproval ? .on : .off
+    check(controller.loginItemCheckbox.state == expected, "setup reflects login-item status \(status)")
+    // Moving between steps keeps the user's explicit checkbox choice.
+    for choice in [NSControl.StateValue.on, .off] {
+        controller.loginItemCheckbox.state = choice
+        controller.stepIndex = 5
+        controller.showStep()
+        controller.stepIndex = 4
+        controller.showStep()
+        check(controller.loginItemCheckbox.state == choice, "setup navigation preserves login choice \(choice)")
+    }
+    controller.window?.close()
 }
 print("\(checks) setup layout checks passed across \(locales.count) languages")
 '''

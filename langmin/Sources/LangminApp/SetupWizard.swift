@@ -483,7 +483,9 @@ final class SetupWizardController: NSObject, NSWindowDelegate {
             target: nil,
             action: nil
         )
-        loginItemCheckbox.state = .on
+        // Preserve an existing opt-in, including registration awaiting system approval.
+        let loginStatus = SMAppService.mainApp.status
+        loginItemCheckbox.state = loginStatus == .enabled || loginStatus == .requiresApproval ? .on : .off
 
         // Show the saved bindings, including cleared shortcuts, when Setup is reopened.
         let configuredShortcuts = loadGlobalShortcuts()
@@ -623,6 +625,31 @@ final class SetupWizardController: NSObject, NSWindowDelegate {
     // finish(): Save the completed setup choices, report failures, and close
     // when setup succeeds.
     private func finish() {
+        // Apply a visited workflow choice before saving preferences or closing setup.
+        if let checkbox = loginItemCheckbox {
+            let service = SMAppService.mainApp
+            let status = service.status
+            do {
+                // Preserve registered login items, including those awaiting approval.
+                if checkbox.state == .on,
+                   status != .enabled && status != .requiresApproval {
+                    try service.register()
+                } else if checkbox.state == .off,
+                          status == .enabled || status == .requiresApproval {
+                    // Remove an enabled or pending login item when the user opts out.
+                    try service.unregister()
+                }
+            } catch {
+                // Keep setup open so the user can retry or change the login choice.
+                let alert = NSAlert()
+                alert.messageText = localized("could_not_update_the_login_item", "Could not update the login item")
+                alert.informativeText = error.localizedDescription
+                alert.alertStyle = .warning
+                alert.runModal()
+                return
+            }
+        }
+
         // Save checked providers and entered keys. If none are checked, keep the existing model
         // settings.
         var models: [String] = []
@@ -680,11 +707,6 @@ final class SetupWizardController: NSObject, NSWindowDelegate {
         // Persist the selected pronunciation voice when its menu is available.
         if let popup = pronunciationVoicePopup {
             preferencesStore.set(selectedReaderChoiceID(popup), forKey: PreferenceKey.dictionaryVoice)
-        }
-
-        // Register login launch only when selected and not already enabled.
-        if loginItemCheckbox?.state == .on, SMAppService.mainApp.status != .enabled {
-            try? SMAppService.mainApp.register()
         }
 
         preferencesStore.set(true, forKey: Self.completedKey)
