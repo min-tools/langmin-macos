@@ -185,7 +185,7 @@ def main():
     parser.add_argument('--profile', type=Path, required=True)
     parser.add_argument('--certificate', type=Path, required=True)
     parser.add_argument('--keychain', type=Path)
-    parser.add_argument('--output', type=Path, default=ROOT / 'build/app-store/Langmin.pkg')
+    parser.add_argument('--output', type=Path, default=ROOT / 'dist/app-store/Langmin.pkg')
     package_app(parser.parse_args())
 
 
