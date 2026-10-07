@@ -56,6 +56,8 @@ Copy the text, then use a Langmin menu-bar action or its shortcut. Langmin reads
 | Proofread or Rewrite | The result replaces your clipboard and **Copied** appears briefly |
 | Explain, Summarize, Translate or Dictionary | The result appears in a floating panel; your clipboard is unchanged |
 
+Clipboard shortcuts run separately from the main window. You can keep editing your draft or run another request there while a shortcut is working. **Compose with Clipboard** still opens the text in the main window for editing.
+
 If you copy something else while a proofread or rewrite is running, Langmin asks before replacing it.
 
 The default shortcuts are **⌃⇧1** to **⌃⇧6** in mode order and **⌃⇧L** for the Library; change them in **Settings → Shortcuts**. Inside Langmin's own window the same shortcuts select a mode, and **⌘Return** runs it.

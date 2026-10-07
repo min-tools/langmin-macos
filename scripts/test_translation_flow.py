@@ -131,7 +131,7 @@ final class LauncherController {
  var activeDataTasks: [Int] = []
  var activeTempDir: URL?
  var isGenerating = true
- var inputView = InputView()
+ var inputView: InputView! = InputView()
  var pendingDictionaryHeadword: String?
  var appDelegate: Delegate? = Delegate()
  var prompt = ExplanationPrompt(instructions: "Translate", input: "Изворни текст", translationSkipMarker: "fixture-skip-marker")

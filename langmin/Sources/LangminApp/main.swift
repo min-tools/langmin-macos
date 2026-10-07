@@ -22536,19 +22536,73 @@ final class LauncherController: NSObject, NSWindowDelegate, NSTextFieldDelegate,
         let model = selectedModelIDForRun(preferences: preferences)
         let languageLevel = selectedLanguageLevel(for: mode, preferences: preferences)
 
-        pendingDictionaryHeadword = nil
-        pendingRunMode = mode
-        pendingRunLanguageLevel = languageLevel
         let run = LauncherRun(
             transformCompletion: pendingTransformCompletion,
             presentation: pendingRunPresentation,
             explicitTranslationTargetID: pendingExplicitTranslationTargetID
         )
-        run.conversation = ResultConversation(originalRequest: question, modelID: model)
         pendingExplicitModelID = nil
         pendingTransformCompletion = nil
         pendingRunPresentation = .standard
         pendingExplicitTranslationTargetID = nil
+        startTextRun(question: question, mode: mode, secondary: secondary, model: model,
+                     languageLevel: languageLevel, preferences: preferences, run: run,
+                     rememberChoices: true)
+    }
+
+    // handleClipboardRequest(text, mode, presentation, completion): Resolve
+    // saved shortcut choices without creating a window or touching an editor.
+    func handleClipboardRequest(
+        text: String, mode: String, presentation: LauncherRunPresentation,
+        completion: @escaping (LauncherRun, Result<String, Error>) -> Void
+    ) {
+        let run = LauncherRun(transformCompletion: completion, presentation: presentation)
+        // Keep one clipboard request active, independently of the main window.
+        guard !isGenerating, appDelegate?.serviceTransformInFlight != true else {
+            completion(run, .failure(HelperFailure(message: "Wait for the current request to finish, then try again.")))
+            return
+        }
+        let preferences = loadAppPreferences()
+        let launcherPreferences = loadLauncherPreferences()
+        let globalModel = preferences.launcherShowsModel
+            ? nonEmpty(launcherPreferences.explanationModel, fallback: preferences.explanationModel)
+            : preferences.explanationModel
+        let model = enabledExplanationModel(
+            for: mode, preferences: preferences,
+            globalModel: preferenceID(from: globalModel, options: enabledExplanationModelOptions(preferences))
+        )
+        // Resolve stale saved choices through the same catalogs as the editor.
+        let options = secondaryOptions(for: mode)
+        let secondary = options.isEmpty ? "" : preferenceID(from: preferenceDisplayValue(
+            for: defaultSecondaryID(for: mode, preferences: preferences),
+            options: options, fallbackID: options.first?.id
+        ), options: options)
+        let savedLevel = preferenceDisplayValue(
+            for: nonEmpty(launcherPreferences.languageLevel, fallback: preferences.languageLevel),
+            options: languageLevelOptions, fallbackID: preferences.languageLevel
+        )
+        let level = languageLevelModes.contains(mode)
+            ? normalizedLanguageLevel(preferenceID(from: savedLevel, options: languageLevelOptions))
+            : "off"
+        startTextRun(
+            question: text.trimmingCharacters(in: .whitespacesAndNewlines), mode: mode,
+            secondary: secondary, model: model,
+            languageLevel: level, preferences: preferences, run: run, rememberChoices: false
+        )
+    }
+
+    // startTextRun(question, mode, secondary, model, languageLevel, preferences,
+    // run, rememberChoices): Start the shared request pipeline with choices
+    // captured by either the editor or the independent clipboard controller.
+    func startTextRun(
+        question: String, mode: String, secondary: String, model: String,
+        languageLevel: String, preferences: AppPreferences, run: LauncherRun,
+        rememberChoices: Bool
+    ) {
+        pendingDictionaryHeadword = nil
+        pendingRunMode = mode
+        pendingRunLanguageLevel = languageLevel
+        run.conversation = ResultConversation(originalRequest: question, modelID: model)
         activeRun = run
         lastEscapePress = 0
         let modelName = preferenceDisplayValue(for: model, options: enabledExplanationModelOptions(preferences))
@@ -22584,7 +22638,8 @@ final class LauncherController: NSObject, NSWindowDelegate, NSTextFieldDelegate,
             let wantsAudio = reader != "none" && preferences.autoNarrateModes.contains(mode)
             let voice = wantsAudio ? reader : defaultTTSVoice
             let ttsModel = ttsModel(forVoice: voice, requestedModel: self.ttsModelForRun)
-            self.saveLauncherChoices()
+            // Background requests must not replace the editor's saved choices.
+            if rememberChoices { self.saveLauncherChoices() }
 
             // Prepare request-owned temporary output before starting the selected generation path.
             do {
@@ -22914,8 +22969,8 @@ final class LauncherController: NSObject, NSWindowDelegate, NSTextFieldDelegate,
         guard activeRun === run else { return }
         activeRun = nil
         setGenerating(false, status: "")
-        // Clear only successfully submitted text; keep Undo available.
-        inputView.clearUndoably()
+        // Background clipboard runs have no editor to clear.
+        inputView?.clearUndoably()
         appDelegate?.terminateIfIdle()
     }
 
@@ -23806,6 +23861,8 @@ final class LauncherController: NSObject, NSWindowDelegate, NSTextFieldDelegate,
             closePalette()
         }
         updateFooterStatus(busy: generating || !status.isEmpty, text: status)
+        // Clipboard requests run without constructing the editor controls.
+        guard let inputView else { return }
         inputView.isEditable = !generating
         inputView.isSelectable = true
         modeChips.forEach { $0.isEnabled = !generating }
@@ -24200,6 +24257,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     var keyMonitor: Any?
     let preferencesController = PreferencesController()
     let launcherController = LauncherController()
+    // Keep shortcut tasks and cancellation separate from the main editor.
+    lazy var clipboardController: LauncherController = {
+        let controller = LauncherController()
+        controller.appDelegate = self
+        return controller
+    }()
     let clipboardHUDController = ClipboardProgressHUDController()
     let setupWizard = SetupWizardController()
     var appMenuItem: NSMenuItem!
@@ -24295,7 +24358,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 !self.suppressInitialLauncherReveal,
                 self.sessions.isEmpty,
                 !(self.launcherController.window?.isVisible ?? false),
-                !self.launcherController.isGenerating
+                !self.launcherController.isGenerating,
+                !self.clipboardController.isGenerating
             {
                 self.launcherController.show()
             }
@@ -24412,8 +24476,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // HUD to one LauncherRun so old callbacks and dismissal timers cannot
     // affect a newer request.
     func showClipboardHUDIfNeeded(for run: LauncherRun, modelName: String, status: String) {
-        // Only the current launcher run may create clipboard progress UI.
-        guard launcherController.activeRun === run else { return }
+        // Only the independent clipboard run may create progress UI.
+        guard clipboardController.activeRun === run else { return }
         // Ordinary launcher requests do not use clipboard HUD presentation.
         guard case let .clipboardHUD(title, detail, preferredScreen) = run.presentation else { return }
 
@@ -24425,7 +24489,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ) { [weak self, weak run] in
             // Cancel from the HUD only while its captured controller and run still exist.
             guard let self, let run else { return }
-            self.launcherController.cancelGeneration(expectedRun: run)
+            self.clipboardController.cancelGeneration(expectedRun: run)
         }
         cancelClipboardActionItem?.isHidden = false
         cancelClipboardActionItem?.isEnabled = true
@@ -24535,7 +24599,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let canCancelCurrentHUD: Bool
         // Enable HUD cancellation only for a matching active run that still accepts it.
         if
-            let run = launcherController.activeRun,
+            let run = clipboardController.activeRun,
             case .clipboardHUD = run.presentation,
             run.acceptsCancellation,
             clipboardHUDController.isCurrent(token: run.hudToken)
@@ -24721,35 +24785,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         let sourceClipboardChangeCount = pasteboard.changeCount
 
-        let opensLauncher = action == "compose"
-        let mode: String
-        // Compose uses the user's configured launcher mode for prefilling.
+        // Compose explicitly opens the editor; other shortcuts leave it alone.
         if action == "compose" {
-            mode = loadLauncherPreferences().mode
-        } else {
-            // Other clipboard actions select their named mode directly.
-            mode = action
+            launcherController.handleAutomation(text: text, mode: loadLauncherPreferences().mode, run: false)
+            return
         }
-
-        // Clipboard commands complete through the HUD; Compose opens the main input window.
-        let consumesTransform = !opensLauncher
+        let mode = action
         let wordCount = text.split(whereSeparator: { $0.isWhitespace }).count
         let wordCountText = wordCount == 1
             ? localized("hud_one_word", "1 word")
             : String(format: localized("hud_word_count", "%d words"), wordCount)
-        let presentation: LauncherRunPresentation = opensLauncher
-            ? .standard
-            : .clipboardHUD(
-                title: clipboardHUDVerb(for: mode),
-                detail: wordCountText,
-                preferredScreen: preferredScreen
-            )
-        launcherController.handleAutomation(
-            text: text,
-            mode: mode,
-            run: !opensLauncher,
-            presentation: presentation,
-            transformCompletion: consumesTransform ? { [weak self] run, result in
+        let presentation = LauncherRunPresentation.clipboardHUD(
+            title: clipboardHUDVerb(for: mode), detail: wordCountText, preferredScreen: preferredScreen
+        )
+        clipboardController.handleClipboardRequest(
+            text: text, mode: mode, presentation: presentation,
+            completion: { [weak self] run, result in
                 // Ignore a late completion after the app delegate has been released.
                 guard let self else { return }
                 // Route a completed clipboard action according to success or failure.
@@ -24761,11 +24812,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     // Reading modes leave the clipboard intact and wait for Open or Dismiss.
                     // Capture metadata now so a later launcher request cannot change this result.
                     if ["explain", "summarize", "translate", "dictionary"].contains(mode) {
-                        let model = self.launcherController.lastRunTextModel
-                        let languageLevel = self.launcherController.pendingRunLanguageLevel
+                        let model = self.clipboardController.lastRunTextModel
+                        let languageLevel = self.clipboardController.pendingRunLanguageLevel
                         self.completeClipboardHUD(
                             for: run,
-                            message: self.launcherController.featureTitle(for: mode),
+                            message: self.clipboardController.featureTitle(for: mode),
                             detail: model,
                             style: .success,
                             dismissAfter: 0,
@@ -24874,7 +24925,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         )
                     }
                 }
-            } : nil
+            }
         )
     }
 
@@ -24972,12 +25023,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func cancelCurrentClipboardAction(_ sender: Any?) {
         // The cancel menu action applies only to an active, cancellable clipboard run.
         guard
-            let run = launcherController.activeRun,
+            let run = clipboardController.activeRun,
             case .clipboardHUD = run.presentation,
             run.acceptsCancellation
         // Ignore a cancel action after that eligible run has ended.
         else { return }
-        launcherController.cancelGeneration(expectedRun: run)
+        clipboardController.cancelGeneration(expectedRun: run)
     }
 
     // composeClipboard(sender): Open clipboard text in the launcher through the
@@ -25047,6 +25098,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard
             !serviceTransformInFlight,
             !launcherController.isGenerating,
+            !clipboardController.isGenerating,
             !clipboardHUDController.isActive,
             NSApp.modalWindow == nil,
             sessions.isEmpty,

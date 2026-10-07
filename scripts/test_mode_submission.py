@@ -52,16 +52,22 @@ struct AppPreferences {
  var languageLevel = "b", rewriteStyle = "rephrase", customInstructions = ""
  var explainAnswerLanguage = "en", summarizeAnswerLanguage = "en"
  var translationTargets = ["es", "fr"], extraLanguages = ["de"]
- var webResearchEnabled = true
+ var webResearchEnabled = true, launcherShowsModel = true
  var autoNarrateModes: [String] = []
 }
-struct LauncherPreferences { var mode = "explain" }
+struct LauncherPreferences { var mode = "explain", explanationModel = "", languageLevel = "" }
+var savedLauncher = LauncherPreferences()
 var saved = AppPreferences()
 func loadAppPreferences() -> AppPreferences { saved }
-func loadLauncherPreferences() -> LauncherPreferences { LauncherPreferences() }
+func loadLauncherPreferences() -> LauncherPreferences { savedLauncher }
 
 '''
 source += app_source('ResultConversation.swift')
+# Reuse the real option catalogs when validating headless shortcut defaults.
+for name in ['rewriteStyleOptions', 'summaryStyleOptions', 'effortOptions']:
+    start = MAIN.index('let ' + name + ':')
+    source += MAIN[start:MAIN.index('\n]', start) + 2] + '\n'
+
 title_start = MAIN.index('let titleBoundaryTrimCharacters =')
 source += MAIN[title_start:MAIN.index('\n\n', title_start)] + '\n'
 for marker in ['struct PreferenceOption {', 'struct ExplanationPrompt {', 'struct HelperFailure:',
@@ -172,7 +178,8 @@ final class Delegate {
 // These result sinks capture real generated files without opening user windows.
 final class Launcher: NSObject {
  var modelBox: NSPopUpButton! = NSPopUpButton(), levelBox: NSPopUpButton! = NSPopUpButton()
- var inputView = InputView(), window: NSWindow?, inlineResultSession: EditSession?
+ var inputView: InputView! = InputView()
+ var window: NSWindow?, inlineResultSession: EditSession?
  var selectedMode = "explain", secondary = "standard", isGenerating = false
  var pendingExplicitModelID: String?, pendingExplicitTranslationTargetID: String?
  var pendingTransformCompletion: ((LauncherRun, Result<String, Error>) -> Void)?
@@ -183,6 +190,7 @@ final class Launcher: NSObject {
  var lastRunTextModel = "", ttsModelForRun = "fixture"
  var output = "", finishedRun: LauncherRun?, errors: [Error] = [], progressModels: [String] = []
  var diffFiles: (String?, String?) = (nil, nil)
+ var savedChoices = 0, preparations = 0
  override init() {
   super.init()
   modelBox.addItems(withTitles: catalog.map(\.title)); levelBox.addItems(withTitles: languageLevelIDs)
@@ -196,7 +204,7 @@ final class Launcher: NSObject {
  func applySelectedMode(_ mode: String) {
   selectedMode = mode; pendingExplicitModelID = nil; pendingExplicitTranslationTargetID = nil
  }
- func prepareForLaunch() {}
+ func prepareForLaunch() { preparations += 1 }
  func show() { populateRunDefaults() }
  func defaultSecondaryID(for mode: String, preferences: AppPreferences) -> String {
   mode == "translate" ? preferences.translationTargets[0] : mode == "rewrite" ? preferences.rewriteStyle : "standard"
@@ -204,7 +212,7 @@ final class Launcher: NSObject {
  func configureSecondaryPicker(mode: String, selectedID: String) { secondary = selectedID }
  func selectedSecondaryID(for mode: String) -> String { secondary }
  func refreshSendButtonState() {}
- func saveLauncherChoices() {}
+ func saveLauncherChoices() { savedChoices += 1 }
  func selectedReaderIDForRun(preferences: AppPreferences) -> String { "none" }
  func setGenerating(_ generating: Bool, status: String) { isGenerating = generating }
  func progressStatus(for mode: String, secondary: String, model: String) -> String {
@@ -240,7 +248,8 @@ final class Launcher: NSObject {
 '''
 for marker in ['    func selectedLauncherMode()', '    func selectedModelIDForRun(',
                '    func globalModelIDForRun(', '    func selectedLanguageLevel(',
-               '    func handleAutomation(', '    @objc func submit(', '    func textTransformPrompt(',
+               '    func handleAutomation(', '    @objc func submit(', '    func handleClipboardRequest(',
+               '    func startTextRun(', '    func nonEmpty(', '    func secondaryOptions(', '    func textTransformPrompt(',
                '    func generateTextTransform(', '    func generateExplanation(', '    func writeDiffFilesIfNeeded(']:
     source += block(MAIN, marker)
 source += r'''
@@ -514,6 +523,63 @@ check(parsedCited.topicTitle == "Understanding Love" && parsedCited.explanation.
       && parsedCited.explanation.contains("[1] [Fixture source](https://example.test/reference)"),
       "Valid Explain JSON retains readable content and provider citation links")
 response = .success("Fixture answer")
+// A shortcut uses the real request pipeline with no input, picker, or window.
+// Keep an editor request pending to expose accidental cross-controller state.
+saved.modeTextModels = ["proofread": "gpt-6-luna", "rewrite": "anthropic:claude-fable-5-1"]
+let editor = Launcher()
+holdResponse = true; heldCompletion = nil
+editor.handleAutomation(text: "Editor draft", mode: "rewrite", run: true)
+waitFor { heldCompletion != nil }
+let editorCompletion = heldCompletion!, editorRun = editor.activeRun!
+heldCompletion = nil
+let clipboard = Launcher()
+clipboard.inputView = nil; clipboard.modelBox = nil; clipboard.levelBox = nil
+var clipboardOutput = ""
+clipboard.handleClipboardRequest(text: "Clipboard source", mode: "proofread", presentation: .clipboardHUD) { _, result in
+ clipboardOutput = (try? result.get()) ?? ""
+}
+waitFor { heldCompletion != nil }
+let clipboardCompletion = heldCompletion!
+check(editor.activeRun === editorRun && editor.isGenerating && editor.inputView.string == "Editor draft",
+      "Starting a shortcut preserves the editor draft and its active request")
+check(clipboard.inputView == nil && clipboard.window == nil && clipboard.preparations == 0 && clipboard.savedChoices == 0,
+      "A clipboard request creates no editor and saves no launcher choices")
+check(clipboard.lastRunTextModel == "gpt-6-luna" && editor.lastRunTextModel == "anthropic:claude-fable-5-1",
+      "Concurrent editor and clipboard requests retain separate models")
+let requestCount = requests.count
+var busyFailure = false
+clipboard.handleClipboardRequest(text: "Second clipboard source", mode: "rewrite", presentation: .clipboardHUD) { _, result in
+ if case .failure = result { busyFailure = true }
+}
+check(busyFailure && requests.count == requestCount && clipboard.isGenerating,
+      "An overlapping shortcut leaves the original clipboard request running")
+clipboardCompletion(.success("Corrected clipboard text"))
+waitFor { !clipboard.isGenerating }
+check(clipboardOutput == "Corrected clipboard text" && editor.activeRun === editorRun && editor.isGenerating,
+      "Completing clipboard work cannot finish or overwrite the editor request")
+editorCompletion(.success("Rewritten editor draft"))
+waitFor { !editor.isGenerating }
+check(editor.output.contains("Rewritten editor draft") && clipboardOutput == "Corrected clipboard text",
+      "Independent requests deliver their own results")
+// Shortcut defaults still honor per-mode assignments and remembered levels.
+holdResponse = false
+saved.modeTextModels = [:]
+savedLauncher.explanationModel = "gpt-6-luna"; savedLauncher.languageLevel = "c"
+let remembered = Launcher()
+remembered.inputView = nil; remembered.modelBox = nil; remembered.levelBox = nil
+response = .success("Fixture answer")
+remembered.handleClipboardRequest(text: input, mode: "rewrite", presentation: .clipboardHUD) { _, _ in }
+waitFor { !remembered.isGenerating }
+check(remembered.lastRunTextModel == "gpt-6-luna" && remembered.pendingRunLanguageLevel == "c",
+      "Headless shortcuts retain saved model and language-level defaults")
+check(remembered.savedChoices == 0, "Shortcuts leave saved editor choices unchanged")
+savedLauncher.languageLevel = "retired-level"; saved.rewriteStyle = "retired-style"
+remembered.handleClipboardRequest(text: input, mode: "rewrite", presentation: .clipboardHUD) { _, _ in }
+waitFor { !remembered.isGenerating }
+check(remembered.pendingRunLanguageLevel == saved.languageLevel && requests.last!.prompt.appleSourceTask == .rephrase,
+      "Invalid saved levels and styles fall back to the same choices as the editor")
+saved.rewriteStyle = "rephrase"
+savedLauncher = LauncherPreferences()
 // A late response cannot replace a newer run's output or metadata.
 let stale = Launcher()
 holdResponse = true

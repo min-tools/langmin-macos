@@ -82,6 +82,9 @@ enum ClipboardHUDCompletionStyle { case success, neutral, cancelled, failure }
 final class LauncherRun {
  var cancelled = false
  var conversation: ResultConversation?
+ var presentation = LauncherRunPresentation.standard
+ var hudToken: UUID?
+ var acceptsCancellation = true
 }
 // Capture automation requests and expose their completion callback to the test.
 final class LauncherController {
@@ -90,15 +93,29 @@ final class LauncherController {
  var presentation = LauncherRunPresentation.standard
  var completion: ((LauncherRun, Result<String, Error>) -> Void)?
  var run = LauncherRun()
+ var activeRun: LauncherRun?
+ var cancellations = 0
  var requests = 0, errors: [String] = []
  // handleAutomation(text, mode, run, presentation, transformCompletion): Record
  // requested mode, presentation, and callback instead of contacting an AI
  // provider.
- func handleAutomation(text: String, mode: String, run: Bool, presentation: LauncherRunPresentation,
-                       transformCompletion: ((LauncherRun, Result<String, Error>) -> Void)?) {
+ func handleAutomation(text: String, mode: String, run: Bool, presentation: LauncherRunPresentation = .standard,
+                       transformCompletion: ((LauncherRun, Result<String, Error>) -> Void)? = nil) {
   action = mode; runs = run; self.presentation = presentation; completion = transformCompletion
   self.run = LauncherRun(); self.run.conversation = ResultConversation(originalRequest: text)
+  self.run.presentation = presentation; activeRun = self.run
   requests += 1
+ }
+ // handleClipboardRequest(text, mode, presentation, completion): Capture the
+ // separate background route without borrowing the main editor.
+ func handleClipboardRequest(text: String, mode: String, presentation: LauncherRunPresentation,
+                             completion: @escaping (LauncherRun, Result<String, Error>) -> Void) {
+  handleAutomation(text: text, mode: mode, run: true, presentation: presentation, transformCompletion: completion)
+ }
+ // cancelGeneration(expectedRun): Only the matching worker may be cancelled.
+ func cancelGeneration(expectedRun: LauncherRun) {
+  guard activeRun === expectedRun else { return }
+  expectedRun.cancelled = true; activeRun = nil; cancellations += 1
  }
  // featureTitle(mode): Use a predictable mode label for result assertions.
  func featureTitle(for mode: String) -> String { mode.capitalized }
@@ -118,9 +135,21 @@ struct Completion {
 struct OpenedResult {
  var text: String, mode: String, model: String?, level: String, headword: String?, conversation: ResultConversation?
 }
+// Model HUD ownership and cancellation without displaying a panel.
+final class HUD {
+ var cancel: (() -> Void)?
+ var begins = 0
+ func begin(title: String, modelName: String, status: String, screen: NSScreen?, cancel: @escaping () -> Void) -> UUID {
+  self.cancel = cancel; begins += 1; return UUID()
+ }
+}
+final class MenuItem { var isHidden = false, isEnabled = true }
 // Host production clipboard routing with in-memory collaborators.
 final class Delegate {
  let launcherController = LauncherController()
+ let clipboardController = LauncherController()
+ let clipboardHUDController = HUD()
+ var cancelClipboardActionItem: MenuItem? = MenuItem()
  var completed: Completion?
  var opened: OpenedResult?
  // completeClipboardHUD(run, message, [detail = nil], style, dismissAfter,
@@ -162,8 +191,9 @@ final class Delegate {
 }
 '''
 source = source.replace('// ACTION METHODS', '\n'.join(block(marker) for marker in [
-    '    func performClipboardAction(', '    func clipboardHUDTitle(', '    func clipboardHUDVerb('
-]))
+    '    func performClipboardAction(', '    func clipboardHUDTitle(', '    func clipboardHUDVerb(',
+    '    func showClipboardHUDIfNeeded(', '    @objc func cancelCurrentClipboardAction('
+]).replace('@objc ', ''))
 source += '\n'.join(block(marker) for marker in [
     'enum LauncherRunPresentation {', 'struct HelperFailure:', 'struct LauncherCancellationError:', 'struct TranslationSkipped:'
 ])
@@ -182,24 +212,25 @@ for mode in ["proofread", "rewrite", "explain", "summarize", "translate", "dicti
  let app = Delegate(), board = NSPasteboard.general
  board.text = "Karate"
  app.performClipboardAction(mode)
- check(app.launcherController.runs && app.launcherController.completion != nil, "\(mode) has a completion destination")
+ check(app.launcherController.requests == 0, "\(mode) never submits text through the main editor")
+ check(app.clipboardController.runs && app.clipboardController.completion != nil, "\(mode) has a completion destination")
  // Require clipboard requests to choose HUD presentation.
- if case .clipboardHUD = app.launcherController.presentation { checks += 1 }
+ if case .clipboardHUD = app.clipboardController.presentation { checks += 1 }
  // Fail if any mode bypasses the expected HUD route.
  else { check(false, "\(mode) starts in the HUD") }
  let reads = !["proofread", "rewrite"].contains(mode)
  // A reading result must not ask to overwrite text copied during generation.
  if reads { board.text = "New clipboard text"; board.changeCount += 1 }
  let alertsBefore = alertCount
- app.launcherController.completion?(app.launcherController.run, .success("Generated result"))
+ app.clipboardController.completion?(app.clipboardController.run, .success("Generated result"))
  check(alertCount == alertsBefore && app.opened == nil, "\(mode) completes without a modal dialog or automatic window")
  // Reading modes must preserve newer clipboard text and expose an Open action.
  if reads {
   check(board.text == "New clipboard text" && app.completed?.resultText == "Generated result" && app.completed?.open != nil,
         "\(mode) stays in the HUD and preserves the clipboard")
   // Opening later must retain the generating request's identity, even after launcher choices change.
-  app.launcherController.lastRunTextModel = "Another model"
-  app.launcherController.pendingRunLanguageLevel = "c"
+  app.clipboardController.lastRunTextModel = "Another model"
+  app.clipboardController.pendingRunLanguageLevel = "c"
   app.completed?.open?(ClipboardHUDPlayback())
   check(app.opened?.text == "Generated result" && app.opened?.mode == mode && app.opened?.model == "Captured model"
         && app.opened?.level == "b" && app.opened?.conversation?.originalRequest == "Karate",
@@ -217,9 +248,10 @@ for mode in ["proofread", "rewrite"] {
  let app = Delegate(), board = NSPasteboard.general
  board.text = "Original"
  app.performClipboardAction(mode)
+ check(app.launcherController.requests == 0, "\(mode) never submits text through the main editor")
  board.text = "New clipboard text"; board.changeCount += 1
  alertResponse = .alertSecondButtonReturn
- app.launcherController.completion?(app.launcherController.run, .success("Generated result"))
+ app.clipboardController.completion?(app.clipboardController.run, .success("Generated result"))
  check(board.text == "New clipboard text" && app.completed?.style == .neutral, "\(mode) still respects the clipboard-conflict choice")
 }
 
@@ -228,24 +260,47 @@ for mode in ["explain", "dictionary", "translate"] {
  let app = Delegate()
  NSPasteboard.general.text = "Original"
  app.performClipboardAction(mode)
+ check(app.launcherController.requests == 0, "\(mode) never submits text through the main editor")
  let error = "Apple Intelligence does not support output in Russian. Choose another text model."
- app.launcherController.completion?(app.launcherController.run, .failure(HelperFailure(message: error)))
+ app.clipboardController.completion?(app.clipboardController.run, .failure(HelperFailure(message: error)))
  check(app.completed?.message == error && app.completed?.style == .failure && app.completed?.retry != nil,
        "\(mode) delivers the full unsupported-language error to the HUD")
  check(NSPasteboard.general.text == "Original" && app.opened == nil, "\(mode) failure preserves the clipboard and opens no window")
  app.completed?.retry?()
- check(app.launcherController.requests == 2, "\(mode) Retry starts the same action again")
+ check(app.clipboardController.requests == 2, "\(mode) Retry starts the same action again")
 }
 
 let cancelled = Delegate()
 NSPasteboard.general.text = "Original"
 cancelled.performClipboardAction("dictionary")
-cancelled.launcherController.run.cancelled = true
-cancelled.launcherController.completion?(cancelled.launcherController.run, .success("Late result"))
+cancelled.clipboardController.run.cancelled = true
+cancelled.clipboardController.completion?(cancelled.clipboardController.run, .success("Late result"))
 check(cancelled.completed == nil && NSPasteboard.general.text == "Original", "Cancelled requests cannot publish a late result")
+
+// HUD and menu cancellation target only the shortcut, even with an editor run.
+let cancelling = Delegate()
+cancelling.launcherController.handleAutomation(text: "Draft", mode: "rewrite", run: true)
+cancelling.performClipboardAction("proofread")
+let editorRun = cancelling.launcherController.run
+let clipboardRun = cancelling.clipboardController.run
+cancelling.showClipboardHUDIfNeeded(for: editorRun, modelName: "Editor", status: "Working")
+check(cancelling.clipboardHUDController.begins == 0, "Editor requests cannot take over clipboard progress")
+cancelling.showClipboardHUDIfNeeded(for: clipboardRun, modelName: "Clipboard", status: "Working")
+check(cancelling.clipboardHUDController.begins == 1 && clipboardRun.hudToken != nil, "The worker owns the clipboard HUD")
+let oldCancel = cancelling.clipboardHUDController.cancel
+oldCancel?()
+check(cancelling.clipboardController.cancellations == 1 && cancelling.launcherController.cancellations == 0,
+      "HUD cancellation leaves the editor request running")
+cancelling.performClipboardAction("proofread")
+oldCancel?()
+check(cancelling.clipboardController.cancellations == 1, "An old HUD cannot cancel a newer clipboard request")
+cancelling.cancelCurrentClipboardAction(nil)
+check(cancelling.clipboardController.cancellations == 2 && !editorRun.cancelled,
+      "Menu cancellation also leaves the editor untouched")
 
 let compose = Delegate()
 compose.performClipboardAction("compose")
+check(compose.clipboardController.requests == 0, "Compose does not start background work")
 check(!compose.launcherController.runs && compose.launcherController.completion == nil, "Compose still opens the input without executing a request")
 print("\(checks) clipboard routing checks passed; no clipboard, windows, preferences or providers used")
 '''

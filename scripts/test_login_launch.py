@@ -99,7 +99,7 @@ source += block('struct GlobalHotKeyRegistrationOutcome {')
 source += block('func isLoginItemLaunch(')
 source += r'''
 final class AppDelegate: NSObject {
-    let launcherController = Launcher(), setupWizard = Wizard()
+    let launcherController = Launcher(), clipboardController = Launcher(), setupWizard = Wizard()
     var pendingPublicURLs: [URL] = [], handledURLs: [URL] = []
     var sessions: [Int] = []
     var suppressInitialLauncherReveal = false
@@ -214,14 +214,15 @@ for completed in [false, true] {
     }
 }
 // Preserve the existing URL, Service, visible-window, result, and active-request guards.
-for state in 0..<5 {
+for state in 0..<6 {
     let app = AppDelegate()
     switch state {
     case 0: app.pendingPublicURLs = [URL(string: "langmin://library")!]
     case 1: app.suppressInitialLauncherReveal = true
     case 2: app.launcherController.window?.isVisible = true
     case 3: app.sessions = [1]
-    default: app.launcherController.isGenerating = true
+    case 4: app.launcherController.isGenerating = true
+    default: app.clipboardController.isGenerating = true
     }
     launch(app, event())
     check(app.launcherController.shows == 0, "existing startup guard \(state) remains effective")
