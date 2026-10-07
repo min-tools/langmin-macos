@@ -986,3 +986,8 @@
 
 /* Your Pro trial is active. */
 "pro_app_trial_active" = "Ваш пробни период за Pro је активан.";
+
+/* Background operation */
+"run_in_background" = "Ради у позадини";
+"row_background" = "Позадина";
+"background_behavior_hint" = "Langmin наставља да ради након затварања прозора. Притисните ⌘Q за излаз.";

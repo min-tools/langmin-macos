@@ -986,3 +986,8 @@
 
 /* Your Pro trial is active. */
 "pro_app_trial_active" = "A Pro-próbaidőszakod aktív.";
+
+/* Background operation */
+"run_in_background" = "Futtatás a háttérben";
+"row_background" = "Háttér";
+"background_behavior_hint" = "A Langmin az ablakok bezárása után is fut. A ⌘Q kilép az appból.";

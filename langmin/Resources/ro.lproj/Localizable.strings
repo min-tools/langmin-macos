@@ -986,3 +986,8 @@
 
 /* Your Pro trial is active. */
 "pro_app_trial_active" = "Perioada ta de probă Pro este activă.";
+
+/* Background operation */
+"run_in_background" = "Rulează în fundal";
+"row_background" = "Fundal";
+"background_behavior_hint" = "Langmin continuă să ruleze când închizi ferestrele. Folosește ⌘Q pentru a ieși.";

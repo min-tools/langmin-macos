@@ -986,3 +986,8 @@
 
 /* Your Pro trial is active. */
 "pro_app_trial_active" = "Pro deneme süreniz etkin.";
+
+/* Background operation */
+"run_in_background" = "Arka planda çalıştır";
+"row_background" = "Arka plan";
+"background_behavior_hint" = "Pencereleri kapattığınızda Langmin çalışmaya devam eder. Çıkmak için ⌘Q kullanın.";

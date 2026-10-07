@@ -986,3 +986,8 @@
 
 /* Your Pro trial is active. */
 "pro_app_trial_active" = "Pro 무료 체험이 활성화되어 있습니다.";
+
+/* Background operation */
+"run_in_background" = "백그라운드에서 실행";
+"row_background" = "백그라운드";
+"background_behavior_hint" = "윈도우를 닫아도 Langmin을 계속 실행합니다. ⌘Q를 누르면 종료됩니다.";

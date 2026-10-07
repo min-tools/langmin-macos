@@ -986,3 +986,8 @@
 
 /* Your Pro trial is active. */
 "pro_app_trial_active" = "Tu prueba de Pro está activa.";
+
+/* Background operation */
+"run_in_background" = "Ejecutar en segundo plano";
+"row_background" = "Segundo plano";
+"background_behavior_hint" = "Mantén Langmin abierto al cerrar sus ventanas. ⌘Q sale de la app.";

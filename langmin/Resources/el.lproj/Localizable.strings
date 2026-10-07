@@ -986,3 +986,8 @@
 
 /* Your Pro trial is active. */
 "pro_app_trial_active" = "Η δοκιμαστική περίοδος Pro είναι ενεργή.";
+
+/* Background operation */
+"run_in_background" = "Εκτέλεση στο παρασκήνιο";
+"row_background" = "Παρασκήνιο";
+"background_behavior_hint" = "Το Langmin συνεχίζει να λειτουργεί όταν κλείνετε τα παράθυρά του. Πατήστε ⌘Q για έξοδο.";

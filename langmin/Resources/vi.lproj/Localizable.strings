@@ -986,3 +986,8 @@
 
 /* Your Pro trial is active. */
 "pro_app_trial_active" = "Thời gian dùng thử Pro của bạn đang hoạt động.";
+
+/* Background operation */
+"run_in_background" = "Chạy trong nền";
+"row_background" = "Nền";
+"background_behavior_hint" = "Langmin tiếp tục chạy khi bạn đóng các cửa sổ. Nhấn ⌘Q để thoát.";

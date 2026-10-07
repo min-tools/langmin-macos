@@ -72,7 +72,9 @@ To use selected text without copying it, open the source app's **Services** menu
 
 Services leave your clipboard alone and need no Accessibility or Automation permission. Assign their shortcuts in **System Settings → Keyboard → Keyboard Shortcuts → Services**, avoiding the ones Langmin already uses. If the Services are missing after the first launch, log out and back in.
 
-With the menu-bar icon enabled, closing windows leaves Langmin running. **⌘Q** quits it.
+**Settings → General → Run in background** is on by default. After you close the last window with **⌘W** or its close button, Langmin keeps its shortcuts available and disappears from the Dock and **⌘Tab**. This works with or without the menu-bar icon. Minimized windows keep Langmin in the Dock.
+
+Reopen Langmin from Finder or Spotlight, or use the Library shortcut, to show a window again. **⌘Q** quits Langmin when it is active. Turning off **Run in background** makes it quit after the last window closes and any outstanding work finishes. **Launch at login** is a separate, optional setting.
 
 ## Follow-ups
 

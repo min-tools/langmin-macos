@@ -986,3 +986,8 @@
 
 /* Your Pro trial is active. */
 "pro_app_trial_active" = "Je Pro-proefperiode is actief.";
+
+/* Background operation */
+"run_in_background" = "Op de achtergrond uitvoeren";
+"row_background" = "Achtergrond";
+"background_behavior_hint" = "Langmin blijft actief wanneer je de vensters sluit. ⌘Q stopt de app.";

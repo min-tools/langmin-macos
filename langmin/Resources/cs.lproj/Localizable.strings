@@ -986,3 +986,8 @@
 
 /* Your Pro trial is active. */
 "pro_app_trial_active" = "Vaše zkušební období Pro je aktivní.";
+
+/* Background operation */
+"run_in_background" = "Spouštět na pozadí";
+"row_background" = "Pozadí";
+"background_behavior_hint" = "Langmin zůstane spuštěný po zavření oken. Ukončíte jej pomocí ⌘Q.";

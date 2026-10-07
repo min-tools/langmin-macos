@@ -31,3 +31,8 @@
 
 /* Your Pro trial is active. */
 "pro_app_trial_active" = "Your Pro trial is active.";
+
+/* Background operation */
+"run_in_background" = "Run in background";
+"row_background" = "Background";
+"background_behavior_hint" = "Keep Langmin running when you close its windows. ⌘Q quits.";

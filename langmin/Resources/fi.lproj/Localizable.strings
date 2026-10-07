@@ -986,3 +986,8 @@
 
 /* Your Pro trial is active. */
 "pro_app_trial_active" = "Pro-kokeilusi on aktiivinen.";
+
+/* Background operation */
+"run_in_background" = "Suorita taustalla";
+"row_background" = "Tausta";
+"background_behavior_hint" = "Pidä Langmin käynnissä, kun suljet sen ikkunat. ⌘Q lopettaa sovelluksen.";

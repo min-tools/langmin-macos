@@ -212,6 +212,7 @@ final class SettingsFixture {
  // actual collection of its values and hidden defaults.
  func populateFields(_ preferences: AppPreferences) {
   populated = preferences
+  runInBackgroundButton.state = preferences.runInBackground ? .on : .off
   transcriptionSettings.provider = SpeechProvider(rawValue: preferences.transcriptionProvider) ?? .apple
   transcriptionSettings.language = preferences.transcriptionLanguage
  }
@@ -270,7 +271,13 @@ check(defaultPreferredTextModelIDs == [
  "grok:grok-4.7", "deepseek:deepseek-flash", apple
 ], "Fresh defaults use one current balanced model per provider")
 check(AppPreferences().explanationModel == apple, "Fresh installs default to Apple Intelligence")
+check(AppPreferences().runInBackground, "Background operation is enabled by default")
 let form = SettingsFixture()
+form.runInBackgroundButton.state = .on
+check(form.collectPreferences().runInBackground, "Settings saves enabled background operation without a menu-bar icon")
+form.runInBackgroundButton.state = .off
+form.menuBarButton.state = .on
+check(!form.collectPreferences().runInBackground, "Settings saves disabled background operation with a menu-bar icon")
 saved.explanationModel = deepSeek
 saved.modeTextModels = ["proofread": "gpt-6-luna"]
 saved.modeThinking = ["proofread": "medium", "explain": "off"]
@@ -293,6 +300,7 @@ form.resetDefaults(nil)
 check(form.populated?.explanationModel == apple, "Reset populates the default form")
 check(saved.explanationModel == deepSeek, "Reset stays a draft until Save")
 let reset = form.collectPreferences()
+check(reset.runInBackground, "Reset restores background operation")
 check(reset.modeTextModels.isEmpty, "Reset clears per-mode models")
 check(reset.modeThinking.isEmpty, "Reset restores Automatic thinking for all modes")
 check(reset.explanationModel == apple, "Saving Reset replaces a saved DeepSeek default with Apple")

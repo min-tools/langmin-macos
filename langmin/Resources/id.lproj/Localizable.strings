@@ -986,3 +986,8 @@
 
 /* Your Pro trial is active. */
 "pro_app_trial_active" = "Masa uji coba Pro Anda aktif.";
+
+/* Background operation */
+"run_in_background" = "Jalankan di latar belakang";
+"row_background" = "Latar belakang";
+"background_behavior_hint" = "Langmin tetap berjalan saat jendelanya ditutup. ⌘Q untuk keluar.";

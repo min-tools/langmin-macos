@@ -986,3 +986,8 @@
 
 /* Your Pro trial is active. */
 "pro_app_trial_active" = "आपका Pro ट्रायल सक्रिय है।";
+
+/* Background operation */
+"run_in_background" = "बैकग्राउंड में चलाएँ";
+"row_background" = "बैकग्राउंड";
+"background_behavior_hint" = "विंडो बंद करने पर Langmin चलता रहता है। बंद करने के लिए ⌘Q दबाएँ।";

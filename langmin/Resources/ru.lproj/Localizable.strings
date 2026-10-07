@@ -986,3 +986,8 @@
 
 /* Your Pro trial is active. */
 "pro_app_trial_active" = "Ваш пробный период Pro активен.";
+
+/* Background operation */
+"run_in_background" = "Работать в фоне";
+"row_background" = "Фоновый режим";
+"background_behavior_hint" = "Langmin продолжает работать после закрытия окон. ⌘Q завершает работу.";

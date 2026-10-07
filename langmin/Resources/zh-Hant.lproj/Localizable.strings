@@ -986,3 +986,8 @@
 
 /* Your Pro trial is active. */
 "pro_app_trial_active" = "您的 Pro 試用期已生效。";
+
+/* Background operation */
+"run_in_background" = "在背景執行";
+"row_background" = "背景";
+"background_behavior_hint" = "關閉視窗後，Langmin 仍會執行。按 ⌘Q 結束。";

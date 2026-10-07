@@ -986,3 +986,8 @@
 
 /* Your Pro trial is active. */
 "pro_app_trial_active" = "Proの無料体験期間中です。";
+
+/* Background operation */
+"run_in_background" = "バックグラウンドで実行";
+"row_background" = "バックグラウンド";
+"background_behavior_hint" = "ウインドウを閉じてもLangminを実行し続けます。⌘Qで終了します。";

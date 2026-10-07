@@ -107,6 +107,7 @@ final class AppDelegate: NSObject {
     var deferredShortcutRegistrationWarning: GlobalHotKeyRegistrationOutcome?
     var registration = GlobalHotKeyRegistrationOutcome(rejectedActions: [], infrastructureUnavailable: false)
     var warnings = 0, integrations = 0
+    func updateApplicationPresence() { startupCalls.append("presence") }
     func startLibrarySync() { startupCalls.append("librarySync") }
     func installKeyboardControls() { startupCalls.append("keyboard") }
     func updateMenuForActiveWindow() { startupCalls.append("menu") }
@@ -156,6 +157,7 @@ func launch(_ delegate: AppDelegate, _ event: NSAppleEventDescriptor?) {
     delegate.applicationDidFinishLaunching(Notification(name: Notification.Name("launch")))
     NSAppleEventManager.shared().currentAppleEvent = nil
     DispatchQueue.main.drain()
+    check(startupCalls.contains("presence"), "startup applies background presence after deciding which windows to open")
 }
 
 let login = event(reason: keyAELaunchedAsLogInItem)

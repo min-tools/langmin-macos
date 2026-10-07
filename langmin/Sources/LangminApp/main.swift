@@ -85,6 +85,7 @@ let defaultLauncherShowsModel = true
 // Hide the separate language-level picker by default; level choices remain in each mode's menu.
 let defaultLauncherShowsLevel = false
 let defaultMenuBarEnabled = true
+let defaultRunInBackground = true
 let defaultExtraLanguages = ""
 // Modes that support automatic narration.
 let autoNarrateModeIDs = ["explain", "proofread", "rewrite", "summarize", "translate", "dictionary"]
@@ -164,6 +165,7 @@ enum PreferenceKey {
     static let advancedCustomInstructions = "advancedCustomInstructions"
     static let advancedExtraModels = "advancedExtraModels"
     static let menuBarEnabled = "menuBarEnabled"
+    static let runInBackground = "runInBackground"
     static let shortcutCompose = "shortcutCompose"
     static let shortcutProofread = "shortcutProofread"
     static let shortcutRewrite = "shortcutRewrite"
@@ -3346,6 +3348,7 @@ struct AppPreferences {
     var customInstructions: String = ""
     var extraModels: [String] = []
     var menuBarEnabled: Bool = defaultMenuBarEnabled
+    var runInBackground: Bool = defaultRunInBackground
     var globalShortcuts: [String: GlobalShortcut] = defaultGlobalShortcuts
 }
 
@@ -3667,6 +3670,7 @@ func loadAppPreferences() -> AppPreferences {
         customInstructions: storedPreferenceString(PreferenceKey.advancedCustomInstructions),
         extraModels: decodeExtraModels(storedPreferenceString(PreferenceKey.advancedExtraModels)),
         menuBarEnabled: storedPreferenceBool(PreferenceKey.menuBarEnabled, fallback: defaultMenuBarEnabled),
+        runInBackground: storedPreferenceBool(PreferenceKey.runInBackground, fallback: defaultRunInBackground),
         globalShortcuts: loadGlobalShortcuts()
     )
 }
@@ -3851,6 +3855,7 @@ func writePreferences(_ preferences: AppPreferences, launcherPreferences: Launch
     preferencesStore.set(preferences.customInstructions, forKey: PreferenceKey.advancedCustomInstructions)
     preferencesStore.set(encodeExtraModels(preferences.extraModels), forKey: PreferenceKey.advancedExtraModels)
     preferencesStore.set(preferences.menuBarEnabled, forKey: PreferenceKey.menuBarEnabled)
+    preferencesStore.set(preferences.runInBackground, forKey: PreferenceKey.runInBackground)
     // Persist cleared shortcuts as empty strings so reopening Settings does not restore defaults.
     for (action, preferenceKey) in shortcutPreferenceKeys {
         preferencesStore.set(preferences.globalShortcuts[action]?.encoded ?? "", forKey: preferenceKey)
@@ -14365,6 +14370,7 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
     var resetAIConsentButton: NSButton!
     var menuBarButton: NSButton!
     var launchAtLoginButton: NSButton!
+    var runInBackgroundButton: NSButton!
     var shortcutButtons: [String: ShortcutRecorderButton] = [:]
     var narrateBeforeOpenBox: FocusablePopUpButton!
     var dictionaryVoiceBox: FocusablePopUpButton!
@@ -14558,6 +14564,16 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
         launchAtLoginButton.refusesFirstResponder = false
         launchAtLoginButton.toolTip = "Open Langmin at login so its shortcuts and menu-bar actions are available"
 
+        runInBackgroundButton = FocusableButton(
+            checkboxWithTitle: localized("run_in_background", "Run in background"), target: nil, action: nil
+        )
+        runInBackgroundButton.font = NSFont.systemFont(ofSize: 13)
+        runInBackgroundButton.refusesFirstResponder = false
+        settingsInfoTooltips[ObjectIdentifier(runInBackgroundButton)] = localized(
+            "background_behavior_hint",
+            "Keep Langmin running when you close its windows. ⌘Q quits."
+        )
+
         shortcutButtons = [:]
         // Build one recorder for each configurable shortcut action.
         for action in configurableShortcutActions {
@@ -14618,6 +14634,7 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
             (String(format: localized("pro_title", "%@ Pro"), appName), proStatusLabel),
             ("Menu Bar", menuBarButton),
             ("Login Item", launchAtLoginButton),
+            (localized("row_background", "Background"), runInBackgroundButton),
         ]
         generalRows.append((localized("library", "Library"), iCloudButton))
         generalRows.append((localized("row_app_language", "App Language"), appLanguageBox))
@@ -15210,6 +15227,7 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
             iCloudButton,
             menuBarButton,
             launchAtLoginButton,
+            runInBackgroundButton,
             appLanguageBox,
             researchButton,
             resetAIConsentButton,
@@ -15266,6 +15284,7 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
             sectionViews = [
                 menuBarButton,
                 launchAtLoginButton,
+                runInBackgroundButton,
                 iCloudButton,
                 appLanguageBox,
                 researchButton
@@ -15389,6 +15408,7 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
             button.state = preferences.autoNarrateModes.contains(id) ? .on : .off
         }
         menuBarButton.state = preferences.menuBarEnabled ? .on : .off
+        runInBackgroundButton.state = preferences.runInBackground ? .on : .off
         launchAtLoginButton.state = SMAppService.mainApp.status == .enabled ? .on : .off
         let currentUILanguage = appUILanguageOverride() ?? "system"
         appLanguageBox.selectItem(
@@ -15717,6 +15737,7 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
             customInstructions: advancedCustomInstructionsView.string.trimmingCharacters(in: .whitespacesAndNewlines),
             extraModels: decodeExtraModels(advancedExtraModelsView.string),
             menuBarEnabled: menuBarButton.state == .on,
+            runInBackground: runInBackgroundButton.state == .on,
             globalShortcuts: shortcutButtons.reduce(into: [:]) { result, entry in
                 // Persist only shortcut recorders that contain a key combination.
                 if let shortcut = entry.value.shortcut { result[entry.key] = shortcut }
@@ -24282,6 +24303,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     var deferredLoginLaunchUI = false
     var deferredShortcutRegistrationWarning: GlobalHotKeyRegistrationOutcome?
     var serviceTransformInFlight = false
+    private var backgroundPresenceUpdateScheduled = false
 
     // init(): Register URL handling as soon as the delegate exists, so
     // cold-launch langmin:// events cannot race applicationDidFinishLaunching.
@@ -24291,6 +24313,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.terminateIfIdle()
         }
         installURLEventHandler()
+        // Observe all app windows, including Settings, setup, and detached results.
+        NotificationCenter.default.addObserver(self, selector: #selector(applicationWindowBecameKey(_:)),
+                                               name: NSWindow.didBecomeKeyNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(applicationWindowWillClose(_:)),
+                                               name: NSWindow.willCloseNotification, object: nil)
     }
 
     // applicationDidFinishLaunching(notification): Finish app setup once AppKit
@@ -24350,8 +24377,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 return
             }
 
-            // Login items keep integrations running without opening windows or setup.
-            guard !launchedAtLogin else { return }
+            // Apply the background setting without opening windows at login.
+            guard !launchedAtLogin else {
+                self.updateApplicationPresence()
+                return
+            }
 
             // Show the initial launcher only when no URL, Service, result, or active request has claimed startup.
             if
@@ -24364,6 +24394,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self.launcherController.show()
             }
             self.presentSetupWizardIfNeeded()
+            self.updateApplicationPresence()
         }
     }
 
@@ -25083,30 +25114,78 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     // scheduleIdleTerminationAfterService(): After returning the Service
-    // pasteboard, quit if no window or status item needs the app. Recheck after
-    // the selector returns.
+    // pasteboard, apply the background preference once the selector returns.
     func scheduleIdleTerminationAfterService() {
         DispatchQueue.main.async { [weak self] in
             self?.terminateIfIdle()
         }
     }
 
-    // terminateIfIdle(): Terminate a service-launched instance only after
-    // active work and visible interactions have ended.
+    // isApplicationWindow(window): Count user-facing windows while excluding
+    // nonactivating shortcut HUDs, palettes, and other transient panels.
+    func isApplicationWindow(_ window: NSWindow) -> Bool {
+        window.styleMask.contains(.titled) && !window.styleMask.contains(.nonactivatingPanel)
+    }
+
+    // hasOpenApplicationWindows(): Include minimized windows so closing a
+    // different window cannot remove the user's route back through the Dock.
+    func hasOpenApplicationWindows() -> Bool {
+        NSApp.windows.contains { isApplicationWindow($0) && ($0.isVisible || $0.isMiniaturized) }
+    }
+
+    // updateApplicationPresence(): Keep normal windows in the Dock and app
+    // switcher; background shortcuts need neither, regardless of the status icon.
+    func updateApplicationPresence() {
+        let backgroundOnly = loadAppPreferences().runInBackground && !hasOpenApplicationWindows()
+        let policy: NSApplication.ActivationPolicy = backgroundOnly ? .accessory : .regular
+        // Avoid reactivating the app or resetting menus when its policy is unchanged.
+        if NSApp.activationPolicy() != policy { NSApp.setActivationPolicy(policy) }
+    }
+
+    // applicationWindowBecameKey(notification): Restore normal app menus and
+    // Dock presence when a user opens or activates any Langmin window.
+    @objc func applicationWindowBecameKey(_ notification: Notification) {
+        guard let window = notification.object as? NSWindow, isApplicationWindow(window) else { return }
+        // A key-window notification may precede isVisible changing to true.
+        if NSApp.activationPolicy() != .regular { NSApp.setActivationPolicy(.regular) }
+    }
+
+    // applicationWindowWillClose(notification): Recheck after AppKit removes
+    // the closing window from the visible set, including traffic-light closes.
+    @objc func applicationWindowWillClose(_ notification: Notification) {
+        guard let window = notification.object as? NSWindow, isApplicationWindow(window) else { return }
+        scheduleBackgroundPresenceUpdate()
+    }
+
+    // scheduleBackgroundPresenceUpdate(): Coalesce close notifications and
+    // defer idle handling until window delegates have released their sessions.
+    func scheduleBackgroundPresenceUpdate() {
+        guard !backgroundPresenceUpdateScheduled else { return }
+        backgroundPresenceUpdateScheduled = true
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.backgroundPresenceUpdateScheduled = false
+            self.terminateIfIdle()
+        }
+    }
+
+    // terminateIfIdle(): Keep shortcuts available when background mode is on.
+    // Otherwise quit after the last interaction and outstanding work finish.
     func terminateIfIdle() {
-        // Keep the process alive while work, visible windows, or menu-bar integration still need it.
+        // Cmd-H hides open windows too; finishing a request must not quit the
+        // app or remove its Dock entry while the user has merely hidden it.
+        guard !NSApp.isHidden else { return }
+        updateApplicationPresence()
+        // Closing a window never interrupts independent clipboard or Service work.
         guard
+            !loadAppPreferences().runInBackground,
             !serviceTransformInFlight,
             !launcherController.isGenerating,
             !clipboardController.isGenerating,
             !clipboardHUDController.isActive,
             NSApp.modalWindow == nil,
             sessions.isEmpty,
-            !(launcherController.window?.isVisible ?? false),
-            !(launcherController.libraryWindow?.isVisible ?? false),
-            !(preferencesController.window?.isVisible ?? false),
-            !loadAppPreferences().menuBarEnabled
-        // Return without terminating while any active interaction remains.
+            !hasOpenApplicationWindows()
         else { return }
         NSApp.terminate(nil)
     }
@@ -25752,16 +25831,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate(ignoringOtherApps: true)
     }
 
-    // applicationShouldTerminateAfterLastWindowClosed(sender): Let AppKit know
-    // this app can quit after the last viewer window closes.
+    // applicationShouldTerminateAfterLastWindowClosed(sender): Wait for
+    // AppKit to finish closing windows before applying the background setting.
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        return !loadAppPreferences().menuBarEnabled &&
-            sessions.isEmpty &&
-            !serviceTransformInFlight &&
-            !launcherController.isGenerating &&
-            !clipboardHUDController.isActive &&
-            !(launcherController.window?.isVisible ?? false) &&
-            !(preferencesController.window?.isVisible ?? false)
+        scheduleBackgroundPresenceUpdate()
+        return false
     }
 
     // applicationShouldHandleReopen(sender, flag): Reopening the app from

@@ -986,3 +986,8 @@
 
 /* Your Pro trial is active. */
 "pro_app_trial_active" = "Din Pro-provperiod är aktiv.";
+
+/* Background operation */
+"run_in_background" = "Kör i bakgrunden";
+"row_background" = "Bakgrund";
+"background_behavior_hint" = "Låt Langmin fortsätta köras när du stänger fönstren. ⌘Q avslutar.";

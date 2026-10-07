@@ -50,7 +50,7 @@ def run_suites(root, logs, jobs=2, *, scripts=None, swift_suites=(), environment
     results = {}
     # Native focus tests share WindowServer. Run them after the parallel fixtures so
     # one test window cannot take keyboard focus from another test process.
-    focus_names = {'test_result_text_editor', 'test_titlebar_zoom', 'test_audio_transcription', 'test_launcher_input_placeholder'}
+    focus_names = {'test_background_windows', 'test_result_text_editor', 'test_titlebar_zoom', 'test_audio_transcription', 'test_launcher_input_placeholder'}
     focus_tasks = [task for task in tasks if task[0] in focus_names]
     tasks = [task for task in tasks if task[0] not in focus_names]
     with ThreadPoolExecutor(max_workers=jobs) as executor:
