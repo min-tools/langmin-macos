@@ -68,6 +68,10 @@ final class ProStore {
     private(set) var appTrialStartedAt: Date?
     private(set) var hasResolvedAppTrial = false
     private(set) var hasResolvedEntitlement = false
+    // Returning users skip setup; first-run users wait for its trial lookup to finish.
+    private(set) var isTrialWelcomePending = !UserDefaults.standard.bool(
+        forKey: ProStore.appTrialDisclosureAcceptedKey
+    )
     private var updatesTask: Task<Void, Never>?
     private var refreshGeneration = 0
     private var entitlementTimer: Timer?
@@ -93,7 +97,10 @@ final class ProStore {
     }
 
     var hasFullAccess: Bool { isPro || isAppTrialActive }
-    var hasPreparedAppTrial: Bool { developerOverride != nil || appTrialStartedAt != nil || hasResolvedAppTrial }
+    var hasPreparedAppTrial: Bool {
+        developerOverride != nil || LangminEdition.isExpiredTrialPreview
+            || (!isTrialWelcomePending && (appTrialStartedAt != nil || hasResolvedAppTrial))
+    }
     var canManageSubscription: Bool { entitlement.kind == .subscription && !entitlement.isFamilyShared }
 
     // Only the private build input can override verified purchase access.
@@ -226,11 +233,21 @@ final class ProStore {
         // App Store builds must verify the transaction environment before choosing a clock.
         if LangminEdition.isAppStoreBuild {
             Task { @MainActor [weak self] in
-                await self?.refreshAppTrial(now: now)
+                guard let self else { return }
+                await self.refreshAppTrial(now: now)
+                self.finishTrialWelcome()
             }
         } else {
             prepareLocalAppTrial(startIfNeeded: true, now: now)
+            finishTrialWelcome()
         }
+    }
+
+    // finishTrialWelcome(): Publish readiness after setup and its trial lookup complete.
+    private func finishTrialWelcome() {
+        guard isTrialWelcomePending else { return }
+        isTrialWelcomePending = false
+        NotificationCenter.default.post(name: Self.entitlementDidChange, object: self)
     }
 
     // refreshAppTrial([now]): Use Apple's signed acquisition date in production.

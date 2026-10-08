@@ -1,5 +1,22 @@
 import Cocoa
 
+// Keep trial state in memory so repeat launches can be tested without changing preferences.
+final class TrialPreferences {
+    static let shared = TrialPreferences()
+    var values: [String: Any] = [:]
+    func bool(forKey key: String) -> Bool { values[key] as? Bool ?? false }
+    func object(forKey key: String) -> Any? { values[key] }
+    func set(_ value: Any, forKey key: String) { values[key] = value }
+    func removeObject(forKey key: String) { values.removeValue(forKey: key) }
+}
+
+// The real footer's visibility is tested; purchase and restore dialogs stay inactive.
+enum ProPaywallController {
+    static func presentModal(feature: String?) -> Bool { false }
+}
+func presentNothingToRestoreAlert() {}
+func presentProAlert(title: String, body: String, style: NSAlert.Style) {}
+
 // Capture diagnostic messages without writing the test's fixtures to system logs.
 struct Logger {
     private static let lock = NSLock()
@@ -90,10 +107,14 @@ struct AppTransaction {
     var environment = Environment.production
     static var fixture: VerificationResult<AppTransaction> = .unverified
     static var reads = 0
+    static var suspend = false
+    static var pending: CheckedContinuation<Void, Never>?
     // shared: Return the configured signed-app result without contacting Apple.
     static var shared: VerificationResult<AppTransaction> {
         get async throws {
             reads += 1
+            // Hold the signed lookup open to inspect the banner during setup completion.
+            if suspend { await withCheckedContinuation { pending = $0 } }
             return fixture
         }
     }
@@ -177,17 +198,40 @@ enum AppStore {
             while !condition(), Date() < limit { try await Task.sleep(nanoseconds: 5_000_000) }
             try check(condition(), "Asynchronous fixture settled")
         }
-        let store = ProStore()
-        // Public source and App Store builds must both start without Pro access.
-        try check(store.developerOverride == nil, "Public builds have no local override")
         UserDefaults.standard.removeObject(forKey: ProStore.appTrialStartedAtKey)
         UserDefaults.standard.removeObject(forKey: ProStore.appTrialDisclosureAcceptedKey)
+        let store = ProStore.shared
+        // Public source and App Store builds must both start without Pro access.
+        try check(store.developerOverride == nil, "Public builds have no local override")
         defer {
             UserDefaults.standard.removeObject(forKey: ProStore.appTrialStartedAtKey)
             UserDefaults.standard.removeObject(forKey: ProStore.appTrialDisclosureAcceptedKey)
         }
         let disclosedStart = Date(timeIntervalSince1970: 1_800_000_000)
         #if LANGMIN_APP_STORE
+        // A completed sandbox lookup must not announce expiry while setup is still open.
+        AppTransaction.fixture = .verified(AppTransaction(originalPurchaseDate: .distantPast, environment: .sandbox))
+        await store.refreshEntitlement()
+        try check(store.appTrialStartedAt == nil && !store.hasPreparedAppTrial,
+                  "Sandbox startup waits for setup acceptance")
+        try check(!SourcePurchaseFooter.shouldBeVisible, "The real footer stays hidden during setup")
+
+        // Hold the next lookup open after setup closes; the banner must remain hidden.
+        AppTransaction.suspend = true
+        store.beginAppTrial(now: disclosedStart)
+        try await until { AppTransaction.pending != nil }
+        try check(!SourcePurchaseFooter.shouldBeVisible, "The real footer waits for the post-setup lookup")
+        AppTransaction.suspend = false
+        AppTransaction.pending?.resume()
+        AppTransaction.pending = nil
+        try await until { !store.isTrialWelcomePending }
+        try check(store.appTrialStartedAt == disclosedStart && store.isAppTrialActive,
+                  "Accepting setup starts the sandbox trial once")
+        try check(!SourcePurchaseFooter.shouldBeVisible, "The real footer stays hidden during the trial")
+
+        // Restore the fresh-install scenario for a failed signed lookup.
+        store.appTrialStartedAt = nil
+        store.isTrialWelcomePending = true
         // A production build ignores a resettable local date when signed app data is unavailable.
         UserDefaults.standard.set(disclosedStart, forKey: ProStore.appTrialStartedAtKey)
         AppTransaction.fixture = .unverified
@@ -195,18 +239,35 @@ enum AppStore {
         await store.refreshEntitlement()
         try check(store.appTrialStartedAt == nil, "A failed signed lookup never restores local trial state")
         try check(
-            store.hasResolvedAppTrial && store.hasPreparedAppTrial,
-            "A failed signed lookup resolves the App Store build as Free"
+            store.hasResolvedAppTrial && !store.hasPreparedAppTrial && !SourcePurchaseFooter.shouldBeVisible,
+            "A failed signed lookup does not announce expiry before setup finishes"
         )
+        store.beginAppTrial(now: disclosedStart)
+        try await until { !store.isTrialWelcomePending }
+        try check(store.hasPreparedAppTrial && SourcePurchaseFooter.shouldBeVisible,
+                  "Finished setup with failed verification retains the Free tier")
 
         // Apple's original acquisition date remains authoritative after disclosure.
         let acquisition = disclosedStart.addingTimeInterval(-10 * 86_400)
         AppTransaction.fixture = .verified(AppTransaction(originalPurchaseDate: acquisition))
         store.beginAppTrial(now: disclosedStart)
         try await until { store.appTrialStartedAt == acquisition }
+        let readsBeforeRepeat = AppTransaction.reads
         store.beginAppTrial(now: disclosedStart.addingTimeInterval(60))
-        try await until { AppTransaction.reads >= 3 }
+        try await until { AppTransaction.reads > readsBeforeRepeat }
         try check(store.appTrialStartedAt == acquisition, "Repeated acceptance preserves the signed acquisition date")
+
+        // Returning users no longer see setup; their expired sandbox date must still limit access.
+        let expiredDate = Date().addingTimeInterval(-31 * 86_400)
+        UserDefaults.standard.set(expiredDate, forKey: ProStore.appTrialStartedAtKey)
+        AppTransaction.fixture = .verified(AppTransaction(originalPurchaseDate: .distantPast, environment: .sandbox))
+        let returning = ProStore()
+        await returning.refreshEntitlement()
+        try check(!returning.isTrialWelcomePending && returning.hasPreparedAppTrial && !returning.hasFullAccess,
+                  "Returning users resolve expired access without reopening setup")
+        store.appTrialStartedAt = expiredDate
+        try check(SourcePurchaseFooter.shouldBeVisible, "The real footer appears after actual expiry")
+        store.appTrialStartedAt = acquisition
         #else
         store.prepareLocalAppTrial(now: disclosedStart)
         try check(store.appTrialStartedAt == nil, "Store startup does not begin the trial before disclosure")
