@@ -32,6 +32,15 @@ source = r'''
 import Cocoa
 import NaturalLanguage
 func localized(_ key: String, _ fallback: String) -> String { fallback }
+// Model an unrestricted storefront for generated cloud-request fixtures.
+enum OpenAIAvailability {
+ static var isAvailable = true
+ // requireAvailable(): Reject a fixture request if a test closes the gate.
+ static func requireAvailable() throws {
+  // Match the production rejection without loading StoreKit in the fixture.
+  if !isAvailable { throw HelperFailure(message: "OpenAI is unavailable") }
+ }
+}
 let appleIntelligenceModelID = "apple:intelligence", customModelID = "custom"
 let openAIResponsesEndpoint = URL(string: "https://openai.fixture.invalid/responses")!
 let anthropicMessagesEndpoint = URL(string: "https://claude.fixture.invalid/messages")!

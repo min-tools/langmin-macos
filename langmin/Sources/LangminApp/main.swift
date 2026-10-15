@@ -2563,7 +2563,7 @@ let explanationModelOptions: [PreferenceOption] = [
     PreferenceOption(id: "deepseek:deepseek-v4-pro", title: "DeepSeek V4 Pro", note: "reasoning"),
     PreferenceOption(id: "deepseek:deepseek-flash", title: "DeepSeek V4.1 Flash", note: "fast"),
     PreferenceOption(id: appleIntelligenceModelID, title: "Apple Intelligence", note: "on this Mac"),
-    PreferenceOption(id: customModelID, title: "Custom Endpoint", note: "OpenAI-compatible endpoint")
+    PreferenceOption(id: customModelID, title: "Custom Endpoint", note: "chat completions endpoint")
 ]
 
 // Keep first-run provider choices in one place so setup and reset cannot drift.
@@ -2617,7 +2617,7 @@ func explanationModelOptionsDisplaying(customName: String) -> [PreferenceOption]
 let extraModelMarker = " *"
 
 // displayedExplanationModelOptions(customName, extraModels): Insert user-added
-// models after their provider's built-in models and mark them with an asterisk.
+// models by provider, mark them, and remove storefront-restricted choices.
 func displayedExplanationModelOptions(customName: String, extraModels: [String]) -> [PreferenceOption] {
     var options = explanationModelOptionsDisplaying(customName: customName)
     // Insert each valid configured extra model into the provider-ordered menu.
@@ -2645,7 +2645,10 @@ func displayedExplanationModelOptions(customName: String, extraModels: [String])
             options.append(option)
         }
     }
-    return options
+    // Omit all OpenAI models from the China mainland storefront.
+    return OpenAIAvailability.isAvailable
+        ? options
+        : options.filter { textProvider(for: $0.id).provider != .openAI }
 }
 
 // displayedExplanationModelOptions([customName = nil]): Build model display
@@ -2961,18 +2964,21 @@ func grokVoiceSections() -> [ReaderVoiceSection] {
     return sections
 }
 
-// readerVoiceSections(): Show None first, followed by Grok, OpenAI and
-// installed Apple voices.
+// readerVoiceSections(): Show None first, followed by permitted cloud-provider
+// groups and installed Apple voices.
 func readerVoiceSections() -> [ReaderVoiceSection] {
     var sections = [ReaderVoiceSection(header: "", options: [readerNoneOption])]
     // Group cloud voices by provider before listing installed Apple voices.
     sections.append(contentsOf: grokVoiceSections())
-    sections.append(ReaderVoiceSection(header: "OpenAI", options: []))
-    sections.append(ReaderVoiceSection(
-        header: "Multilingual",
-        options: openAIVoiceOptions(),
-        indentLevel: 1
-    ))
+    // Omit the OpenAI voice group in the China mainland storefront.
+    if OpenAIAvailability.isAvailable {
+        sections.append(ReaderVoiceSection(header: "OpenAI", options: []))
+        sections.append(ReaderVoiceSection(
+            header: "Multilingual",
+            options: openAIVoiceOptions(),
+            indentLevel: 1
+        ))
+    }
     sections.append(contentsOf: appleVoiceSections())
     return sections
 }
@@ -9381,9 +9387,15 @@ final class ViewerSession: NSObject, AVAudioPlayerDelegate, NSWindowDelegate, NS
     private func presentPronounceKeyError(provider: NarrationProvider) {
         let alert = NSAlert()
         alert.messageText = "Could not pronounce the word"
-        alert.informativeText = provider == .grok
-            ? "Pronouncing with a Grok voice needs an xAI API key. Add one in Settings, or choose an OpenAI or Apple voice for Dictionary Voice."
-            : "Pronouncing with an OpenAI voice needs an OpenAI API key. Add one in Settings, or choose an Apple voice for Dictionary Voice."
+        // Grok errors suggest only providers offered in the current storefront.
+        if provider == .grok {
+            alert.informativeText = OpenAIAvailability.isAvailable
+                ? "Grok pronunciation requires an xAI API key. Add one in Settings, or choose an OpenAI or Apple voice for Dictionary Voice."
+                : "Grok pronunciation requires an xAI API key. Add one in Settings, or choose an Apple voice for Dictionary Voice."
+        } else {
+            // OpenAI errors can occur only where that provider is available.
+            alert.informativeText = "OpenAI pronunciation requires an OpenAI API key. Add one in Settings, or choose an Apple voice for Dictionary Voice."
+        }
         alert.alertStyle = .warning
         // Attach the error to this viewer when possible; otherwise show a standalone alert.
         if let window { alert.beginSheetModal(for: window) } else { /* Use a sheet when hosted in a window, otherwise show a modal alert. */ alert.runModal() }
@@ -14423,8 +14435,8 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
         // Use cached voice catalogs; refresh providers only after a user-requested speech operation.
     }
 
-    // buildWindow(): Build the tabbed settings window using standard AppKit
-    // controls.
+    // buildWindow(): Build the tabbed Settings window with controls filtered
+    // by the launch-time storefront decision.
     func buildWindow() {
         let window = PreferencesWindow(
             contentRect: NSRect(origin: .zero, size: Self.contentSize),
@@ -14487,7 +14499,7 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
         removeCustomKeyButton.refusesFirstResponder = false
         applySettingsButtonTextBaseline(removeCustomKeyButton)
         customAPIKeyRow = apiKeyControls(field: customAPIKeyField, removeButton: removeCustomKeyButton)
-        keychainNoteLabel = noteLabel("Custom endpoints must support OpenAI chat completions. API keys stay in Keychain; search for tools.min.langmin in Keychain Access to find them.")
+        keychainNoteLabel = noteLabel("Custom endpoints must support the chat completions API. API keys stay in Keychain; search for tools.min.langmin in Keychain Access to find them.")
         // Keep advanced endpoint overrides blank unless the user supplies one.
         advancedOpenAIEndpointField = plainTextField(placeholder: openAIResponsesEndpoint.absoluteString)
         advancedAnthropicEndpointField = plainTextField(placeholder: anthropicMessagesEndpoint.absoluteString)
@@ -14506,8 +14518,11 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
         advancedCustomInstructionsScroll = customInstructionsField.scroll
         // Use fictional model IDs to demonstrate provider:label:model, provider:model and bare model
         // formats.
+        let extraModelsPlaceholder = OpenAIAvailability.isAvailable
+            ? "gpt:Insider Preview:gpt-secret-model\nanthropic:claude-early-access\ngemini:gemini-experimental"
+            : "anthropic:Preview:claude-secret-model\ngemini:gemini-experimental\nclaude-early-access"
         let extraModelsField = multilineField(
-            placeholder: "gpt:Insider Preview:gpt-secret-model\nanthropic:claude-early-access\ngemini:gemini-experimental",
+            placeholder: extraModelsPlaceholder,
             height: 60
         )
         advancedExtraModelsView = extraModelsField.textView
@@ -14530,7 +14545,9 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
             self?.rebuildNarrationDefaultMenu()
             self?.rebuildDictionaryVoiceMenu()
         }
-        settingsInfoTooltips[ObjectIdentifier(voiceBox)] = "Choose voices for narration and Dictionary. Select none to show all voices; click a heading to select its group. Apple voices run on your Mac. OpenAI and Grok voices require Pro and a provider API key."
+        settingsInfoTooltips[ObjectIdentifier(voiceBox)] = OpenAIAvailability.isAvailable
+            ? "Choose voices for narration and Dictionary. Select none to show all voices; click a heading to select its group. Apple voices run on your Mac. OpenAI and Grok voices require Pro and a provider API key."
+            : "Choose voices for narration and Dictionary. Select none to show all voices; click a heading to select its group. Apple voices run on your Mac. Grok voices require Pro and an xAI API key."
 
         researchButton = FocusableButton(
             checkboxWithTitle: localized("use_web_research", "Use web research when available"),
@@ -14624,7 +14641,9 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
         proStatusLabel = NSTextField(labelWithString: "")
         proStatusLabel.font = NSFont.systemFont(ofSize: 13)
         proStatusLabel.lineBreakMode = .byTruncatingTail
-        settingsInfoTooltips[ObjectIdentifier(proStatusLabel)] = "Pro adds cloud models, web research, Library folders, iCloud Library sync, cloud voices, OpenAI transcription, and OpenAI illustrations. Purchase and restore actions remain available from the Pro window."
+        settingsInfoTooltips[ObjectIdentifier(proStatusLabel)] = OpenAIAvailability.isAvailable
+            ? "Pro adds cloud models, web research, Library folders, iCloud Library sync, cloud voices, OpenAI transcription, and OpenAI illustrations. Purchase and restore actions remain available from the Pro window."
+            : "Pro adds cloud models, web research, Library folders, iCloud Library sync, and cloud voices. Purchase and restore actions remain available from the Pro window."
         NotificationCenter.default.addObserver(self, selector: #selector(proEntitlementChanged(_:)), name: ProStore.entitlementDidChange, object: nil)
         refreshProRow()
 
@@ -14656,8 +14675,12 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
         ])
         // Keep provider credentials and custom endpoint details on the Models
         // page.
-        addSettingsTab(.models, rows: [
-            ("OpenAI API Key", apiKeyRow),
+        var modelRows: [(String, NSView)] = []
+        // Omit OpenAI credentials in the China mainland storefront.
+        if OpenAIAvailability.isAvailable {
+            modelRows.append(("OpenAI API Key", apiKeyRow))
+        }
+        modelRows += [
             ("Anthropic API Key", anthropicAPIKeyRow),
             ("Gemini API Key", geminiAPIKeyRow),
             ("xAI API Key", grokAPIKeyRow),
@@ -14667,7 +14690,8 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
             ("Custom Model", customModelField),
             ("Custom API Key", customAPIKeyRow),
             ("Keychain", keychainNoteLabel)
-        ])
+        ]
+        addSettingsTab(.models, rows: modelRows)
         // Split automatic narration choices into two short rows.
         let autoNarrateModeButtonsOrdered = autoNarrateModeOptions.compactMap { autoNarrateModeButtons[$0.id] }
         let autoNarrateModesRow1 = NSStackView(views: Array(autoNarrateModeButtonsOrdered.prefix(3)))
@@ -14693,8 +14717,12 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
         addSettingsTab(.transcription, rows: transcriptionSettings.rows)
         addSettingsTab(.illustrations, rows: illustrationSettings.rows)
         // Keep endpoint overrides and custom instructions on the Advanced page.
-        addSettingsTab(.advanced, rows: [
-            ("OpenAI Endpoint", advancedOpenAIEndpointField),
+        var advancedRows: [(String, NSView)] = []
+        // Omit the OpenAI endpoint override in the China mainland storefront.
+        if OpenAIAvailability.isAvailable {
+            advancedRows.append(("OpenAI Endpoint", advancedOpenAIEndpointField))
+        }
+        advancedRows += [
             ("Anthropic Endpoint", advancedAnthropicEndpointField),
             ("Gemini Endpoint", advancedGeminiEndpointField),
             ("Anthropic Version", advancedAnthropicVersionField),
@@ -14703,7 +14731,8 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
             ("", advancedNoteLabel),
             ("", advancedInstructionsSeparatorRow),
             ("Custom Instructions", advancedCustomInstructionsScroll)
-        ])
+        ]
+        addSettingsTab(.advanced, rows: advancedRows)
         tabView.selectTabViewItem(withIdentifier: selectedSection.rawValue)
 
         resetButton = FocusableButton(title: localized("reset_defaults", "Reset Defaults"), target: self, action: #selector(resetDefaults(_:)))
@@ -15835,7 +15864,9 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
             ? "An Extra Model looks incorrect"
             : "Some Extra Models look incorrect"
         alert.informativeText = problems.joined(separator: "\n")
-            + "\n\nFormat: provider:label:model (label optional), e.g. gpt:Insider Preview:gpt-secret-model."
+            + (OpenAIAvailability.isAvailable
+                ? "\n\nFormat: provider:label:model. The label is optional. Example: gpt:Insider Preview:gpt-secret-model."
+                : "\n\nFormat: provider:label:model. The label is optional. Example: anthropic:Insider Preview:claude-secret-model.")
         alert.addButton(withTitle: "Go Back")
         alert.addButton(withTitle: "Save Anyway")
         // Allow the user to save despite invalid optional Extra Model entries.
@@ -24306,7 +24337,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     var sessions: [ViewerSession] = []
     weak var activeSession: ViewerSession?
     var keyMonitor: Any?
-    let preferencesController = PreferencesController()
+    // Build provider-dependent windows only after the storefront is resolved.
+    lazy var preferencesController = PreferencesController()
     let launcherController = LauncherController()
     // Keep shortcut tasks and cancellation separate from the main editor.
     lazy var clipboardController: LauncherController = {
@@ -24315,7 +24347,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return controller
     }()
     let clipboardHUDController = ClipboardProgressHUDController()
-    let setupWizard = SetupWizardController()
+    // Delay setup construction because its providers depend on the storefront.
+    lazy var setupWizard = SetupWizardController()
     var appMenuItem: NSMenuItem!
     var appMenu: NSMenu!
     var libraryItem: NSMenuItem!
@@ -24350,8 +24383,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                                name: NSWindow.willCloseNotification, object: nil)
     }
 
-    // applicationDidFinishLaunching(notification): Finish app setup once AppKit
-    // has launched the process.
+    // applicationDidFinishLaunching(notification): Capture launch context and
+    // resolve the storefront before constructing provider-dependent UI.
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Capture the launch reason before asynchronous work loses the Apple event.
         let launchedAtLogin = isLoginItemLaunch(NSAppleEventManager.shared().currentAppleEvent)
@@ -24372,6 +24405,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             )
         }
 
+        // Resolve the storefront before building provider-dependent UI.
+        Task { @MainActor [weak self] in
+            await OpenAIAvailability.resolveAtLaunch()
+            self?.finishLaunching(launchedAtLogin: launchedAtLogin)
+        }
+    }
+
+    // finishLaunching(launchedAtLogin): Build provider-dependent controllers
+    // after the one launch-time storefront lookup has completed.
+    private func finishLaunching(launchedAtLogin: Bool) {
         launcherController.appDelegate = self
         startLibrarySync()
         launcherController.prepareForLaunch()

@@ -21,8 +21,8 @@ final class TranscriptionSettingsControls: NSObject {
     }
     var focusViews: [NSView] { languageBox.isEnabled ? [providerBox, languageBox] : [providerBox] }
 
-    // init(): Build native controls at the same width and type size as the
-    // other Settings pages.
+    // init(): Build storefront-appropriate controls at the same width and type
+    // size as the other Settings pages.
     override init() {
         super.init()
         for box in [providerBox, languageBox] {
@@ -35,6 +35,8 @@ final class TranscriptionSettingsControls: NSObject {
         providerBox.action = #selector(providerChanged(_:))
         languageBox.action = #selector(languageChanged(_:))
         for provider in AudioTranscriptionProvider.allCases {
+            // In the China mainland storefront, offer only Apple transcription.
+            guard provider != .openAI || OpenAIAvailability.isAvailable else { continue }
             // A standalone core build offers only the implementation it actually contains.
             providerBox.addItem(withTitle: provider.title)
             providerBox.lastItem?.representedObject = provider.rawValue

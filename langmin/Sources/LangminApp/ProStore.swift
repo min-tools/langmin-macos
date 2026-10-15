@@ -681,20 +681,31 @@ final class ProPaywallController: NSObject, NSWindowDelegate {
 
         let headline = wrappingLabel(reasonText(), size: 13, color: .secondaryLabelColor)
 
-        let features = NSStackView(views: [
-            featureRow(symbol: "cloud", text: localized(
+        // Describe only the providers and voices sold in this storefront.
+        let cloudProviders = OpenAIAvailability.isAvailable
+            ? localized(
                 "pro_feature_cloud",
                 "OpenAI, Anthropic, Gemini, Grok, DeepSeek, and custom endpoints"
-            )),
+            )
+            : "Anthropic, Gemini, Grok, DeepSeek, and custom endpoints"
+        let cloudVoices = OpenAIAvailability.isAvailable
+            ? localized("pro_feature_voices", "OpenAI and Grok voices")
+            : "Grok voices"
+        var featureRows = [
+            featureRow(symbol: "cloud", text: cloudProviders),
             featureRow(symbol: "magnifyingglass", text: localized(
                 "pro_feature_research",
                 "Web research for current facts and sources"
             )),
             featureRow(symbol: "folder", text: localized("pro_feature_folders", "Library folders")),
             featureRow(symbol: "icloud", text: localized("pro_feature_icloud", "iCloud Library sync")),
-            featureRow(symbol: "waveform", text: localized("pro_feature_voices", "OpenAI and Grok voices")),
-            featureRow(symbol: "waveform.badge.mic", text: "OpenAI audio transcription")
-        ])
+            featureRow(symbol: "waveform", text: cloudVoices)
+        ]
+        // Omit OpenAI transcription from the China mainland feature list.
+        if OpenAIAvailability.isAvailable {
+            featureRows.append(featureRow(symbol: "waveform.badge.mic", text: "OpenAI audio transcription"))
+        }
+        let features = NSStackView(views: featureRows)
         features.orientation = .vertical
         features.alignment = .leading
         features.spacing = 8
@@ -842,12 +853,18 @@ final class ProPaywallController: NSObject, NSWindowDelegate {
         // Explain that cross-device Library sync requires Pro access.
         case .librarySync:
             return String(format: localized("pro_reason_icloud", "iCloud Library sync is part of %@ Pro."), appName)
-        // Explain that remote narration voices require Pro access.
+        // Explain only the remote narration voices available in this
+        // storefront.
         case .cloudVoices:
-            return String(format: localized("pro_reason_voices", "OpenAI and Grok voices are part of %@ Pro."), appName)
-        // Explain the purchase requirement before a recording can be uploaded.
+            return OpenAIAvailability.isAvailable
+                ? String(format: localized("pro_reason_voices", "OpenAI and Grok voices are part of %@ Pro."), appName)
+                : "Grok voices are part of \(appName) Pro."
+        // Explain cloud transcription without naming a storefront-excluded
+        // feature.
         case .cloudTranscription:
-            return "OpenAI audio transcription is part of \(appName) Pro. Apple transcription stays free."
+            return OpenAIAvailability.isAvailable
+                ? "OpenAI audio transcription is part of \(appName) Pro. Apple transcription stays free."
+                : "Apple transcription stays free."
         // Describe the app when no particular feature requested the panel.
         case nil:
             return localized("pro_reason_general", "Proofread, rewrite, explain, translate, and look up words from any app.")

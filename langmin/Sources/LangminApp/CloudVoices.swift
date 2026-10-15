@@ -96,7 +96,7 @@ func fetchOpenAIVoices(then refresh: @escaping () -> Void) {
 }
 
 // startSpeechRequest(apiKey, text, model, voice, outputURL, completion):
-// Request speech from OpenAI and write the returned MP3 to disk.
+// Request speech from OpenAI where allowed and write the returned MP3 to disk.
 func startSpeechRequest(
     apiKey: String,
     text: String,
@@ -105,6 +105,7 @@ func startSpeechRequest(
     outputURL: URL,
     completion: @escaping (Result<Void, Error>) -> Void
 ) throws -> NarrationRequestTask {
+    try OpenAIAvailability.requireAvailable()
     var request = URLRequest(url: openAISpeechEndpoint)
     request.httpMethod = "POST"
     request.timeoutInterval = speechRequestTimeout

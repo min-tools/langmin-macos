@@ -147,8 +147,8 @@ final class SetupWizardController: NSObject, NSWindowDelegate {
         self.window = window
     }
 
-    // buildProviders(): Build the available setup providers from the current
-    // edition and local model availability.
+    // buildProviders(): Build setup choices from local model availability and
+    // the launch-time storefront decision.
     private func buildProviders() {
         let appleAvailable = appleIntelligenceIsAvailable()
         providers = [
@@ -208,6 +208,10 @@ final class SetupWizardController: NSObject, NSWindowDelegate {
                 )
             )
         ]
+        // Omit OpenAI from setup in the China mainland storefront.
+        if !OpenAIAvailability.isAvailable {
+            providers.removeAll { $0.id == "openai" }
+        }
     }
 
     // MARK: - Steps
@@ -454,7 +458,7 @@ final class SetupWizardController: NSObject, NSWindowDelegate {
     }
 
     // audioStep(): Choose the pronunciation voice shared by Dictionary and
-    // Settings → Reading.
+    // Settings → Reading, with storefront-specific provider guidance.
     private func audioStep() -> NSView {
         pronunciationVoicePopup = NSPopUpButton(frame: .zero, pullsDown: false)
         pronunciationVoicePopup.translatesAutoresizingMaskIntoConstraints = false
@@ -462,12 +466,15 @@ final class SetupWizardController: NSObject, NSWindowDelegate {
         pronunciationVoicePopup.widthAnchor.constraint(equalToConstant: 320).isActive = true
         selectReaderChoice(pronunciationVoicePopup, id: loadAppPreferences().dictionaryVoice)
 
-        return stepStack(
-            title: localized("wizard_audio_title", "Hear your words"),
-            body: localized(
+        let body = OpenAIAvailability.isAvailable
+            ? localized(
                 "wizard_audio_body",
                 "Read results aloud or hear Dictionary words and examples. Choose a voice that supports the language.\n\nApple voices run on your Mac for free. OpenAI and Grok voices require Pro and a provider API key."
-            ),
+            )
+            : "Read results aloud or hear Dictionary words and examples. Choose a voice that supports the language.\n\nApple voices run on your Mac for free. Grok voices require Pro and an xAI API key."
+        return stepStack(
+            title: localized("wizard_audio_title", "Hear your words"),
+            body: body,
             extra: [
                 fieldCaption(localized("wizard_pronunciation_voice", "Dictionary pronunciation voice")),
                 pronunciationVoicePopup

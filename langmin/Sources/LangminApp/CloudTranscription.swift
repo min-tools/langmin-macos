@@ -129,9 +129,10 @@ func requestOpenAITranscript(_ url: URL, apiKey: String, session: URLSession,
     return try decodedOpenAITranscript(data: responseData, response: response)
 }
 
-// transcribeOpenAIAudioFile(url, progress): Recheck Pro access before reading
-// an API key or starting the upload.
+// transcribeOpenAIAudioFile(url, progress): Check storefront and Pro access
+// before reading an API key or starting the upload.
 func transcribeOpenAIAudioFile(_ url: URL, progress: @escaping @Sendable (AudioTranscriptionProgress) -> Void) async throws -> String {
+    try OpenAIAvailability.requireAvailable()
     // Recheck access before reading credentials or sending audio.
     guard await MainActor.run(body: { ProStore.shared.hasFullAccess }) else {
         throw HelperFailure(message: "OpenAI transcription requires Langmin Pro.")

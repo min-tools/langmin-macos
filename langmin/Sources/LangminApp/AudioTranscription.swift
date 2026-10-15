@@ -10,9 +10,10 @@ enum AudioTranscriptionProvider: String, CaseIterable {
     var title: String { self == .apple ? "Apple · On-device" : "OpenAI · Pro" }
 
     // resolved(value): Use the saved provider, falling back to Apple for an
-    // unknown value.
+    // unknown value or when the storefront excludes OpenAI.
     static func resolved(_ value: String) -> Self {
-        return Self(rawValue: value) ?? .apple
+        let provider = Self(rawValue: value) ?? .apple
+        return provider == .openAI && !OpenAIAvailability.isAvailable ? .apple : provider
     }
 }
 
@@ -195,7 +196,10 @@ private func performAppleAudioTranscription(
     approveDownload: @escaping @Sendable (String) async -> Bool
 ) async throws -> String {
     try Task.checkCancellation()
-    let cloudHint = " You can choose OpenAI in Settings → Transcription."
+    // Mention the cloud fallback only where the storefront offers it.
+    let cloudHint = OpenAIAvailability.isAvailable
+        ? " You can choose OpenAI in Settings → Transcription."
+        : ""
     // Reject older systems before using the speech analyzer APIs.
     guard #available(macOS 26.0, *) else {
         throw HelperFailure(message: "Apple transcription requires macOS 26 or later." + cloudHint)

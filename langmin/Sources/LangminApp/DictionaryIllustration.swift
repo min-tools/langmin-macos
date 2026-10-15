@@ -35,9 +35,11 @@ enum DictionaryIllustrationProvider: String, CaseIterable {
         }
     }
 
+    // isAvailable: Report whether the provider is supported by this Mac and
+    // permitted by the current storefront.
     var isAvailable: Bool {
-        // OpenAI requests check Pro access and credentials before generation.
-        if self == .openAI { return true }
+        // OpenAI is unavailable in the China mainland storefront.
+        if self == .openAI { return OpenAIAvailability.isAvailable }
         // The off choice needs no system capability check.
         guard self == .apple else { return true }
         // Query Image Playground only on macOS versions that provide its API.
@@ -85,6 +87,8 @@ final class DictionaryIllustrationSettingsControls: NSObject {
         providerBox.menu?.autoenablesItems = false
         // Build one selectable menu item for each supported provider choice.
         for provider in DictionaryIllustrationProvider.allCases {
+            // Hide OpenAI in the China mainland storefront.
+            guard provider != .openAI || OpenAIAvailability.isAvailable else { continue }
             let title = provider == .off ? localized("illustration_choose_in_result", "Choose in result") : provider.title
             providerBox.addItem(withTitle: title)
             providerBox.lastItem?.representedObject = provider.rawValue
@@ -108,11 +112,13 @@ final class DictionaryIllustrationSettingsControls: NSObject {
         populate(provider: .off, automatic: false)
     }
 
-    // populate(provider, automatic): Populate both fields together so opening
-    // or resetting Settings cannot opt into generation.
+    // populate(provider, automatic): Populate both fields together, replacing
+    // a storefront-restricted provider with manual selection.
     func populate(provider: DictionaryIllustrationProvider, automatic: Bool) {
-        providerBox.selectItem(at: DictionaryIllustrationProvider.allCases.firstIndex(of: provider) ?? 0)
-        automaticButton.state = automatic ? .on : .off
+        let availableProvider = provider == .openAI && !OpenAIAvailability.isAvailable ? .off : provider
+        let item = providerBox.itemArray.first { ($0.representedObject as? String) == availableProvider.rawValue }
+        providerBox.select(item)
+        automaticButton.state = availableProvider == .off ? .off : (automatic ? .on : .off)
         refresh()
     }
 
@@ -489,8 +495,11 @@ extension ViewerSession {
             add(localized("cancel", "Cancel"), #selector(cancelIllustrationChosen(_:)))
         } else {
             // Offer available generation providers while the result is idle.
-            // Add the Apple and OpenAI choices using the same illustration action path.
+            // Add permitted providers through the shared illustration action
+            // path.
             for provider in [DictionaryIllustrationProvider.apple, .openAI] {
+                // Hide OpenAI actions in the China mainland storefront.
+                guard provider != .openAI || OpenAIAvailability.isAvailable else { continue }
                 add(provider.title, #selector(illustrationProviderChosen(_:)), provider: provider)
                 // Include provider-specific guidance as a noninteractive menu note.
                 if let detail = provider.detail {
@@ -548,6 +557,14 @@ extension ViewerSession {
         guard provider.isAvailable else {
             presentViewerError(localized("illustration_failed", "Could not create illustration"), details: provider.detail ?? "")
             return
+        }
+        // Keep direct cloud requests aligned with the storefront-filtered UI.
+        if provider == .openAI {
+            do { try OpenAIAvailability.requireAvailable() }
+            catch {
+                presentViewerError(localized("illustration_failed", "Could not create illustration"), details: error.localizedDescription)
+                return
+            }
         }
 
         // Reserve the request ID before opening modal dialogs, which can process window-close events.

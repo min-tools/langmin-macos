@@ -12,6 +12,15 @@ struct HelperFailure: LocalizedError {
     let message: String
     var errorDescription: String? { message }
 }
+// Model the production storefront gate without consulting StoreKit.
+enum OpenAIAvailability {
+    static var isAvailable = true
+    // requireAvailable(): Reject fixture requests while a test closes the gate.
+    static func requireAvailable() throws {
+        // Match the production rejection without loading StoreKit in the test.
+        if !isAvailable { throw HelperFailure(message: "OpenAI is unavailable") }
+    }
+}
 struct AudioTranscriptionProgress: Sendable { let message: String; var fraction: Double? = nil }
 // Use fake Pro access and keys; without Pro, even the fake key must stay unread.
 final class ProStore { static let shared = ProStore(); var hasFullAccess = false }
@@ -111,6 +120,13 @@ Task { @MainActor in
             let response = HTTPURLResponse(url: openAITranscriptionEndpoint, statusCode: status, httpVersion: nil, headerFields: nil)!
             rejects("HTTP failure cannot become transcript text") { _ = try decodedOpenAITranscript(data: Data(#"{"text":"should not be accepted"}"#.utf8), response: response) }
         }
+
+        // Verify the storefront check precedes entitlement and key access.
+        OpenAIAvailability.isAvailable = false
+        do { _ = try await transcribeOpenAIAudioFile(file, progress: { _ in }); check(false, "China mainland storefront blocks OpenAI") }
+        catch { check(error.localizedDescription.contains("unavailable"), "The error explains that OpenAI is unavailable") }
+        check(keyReads == 0, "The storefront gate blocks key access")
+        OpenAIAvailability.isAvailable = true
 
         // Verify the Pro access check without reading Keychain or making a network request.
         do { _ = try await transcribeOpenAIAudioFile(file, progress: { _ in }); check(false, "Pro is required") }

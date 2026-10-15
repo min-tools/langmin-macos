@@ -875,8 +875,8 @@ func startGeminiTextRequest(
 }
 
 // startCloudTextRequest(model, prompt, emptyMessage, [research = false],
-// completion): Route a cloud text request to its provider and return a
-// cancellable task.
+// completion): Route an allowed cloud text request to its provider and return
+// a cancellable task.
 func startCloudTextRequest(
     model: String,
     prompt: ExplanationPrompt,
@@ -892,8 +892,9 @@ func startCloudTextRequest(
     case .apple:
         throw HelperFailure(message: "Use the on-device text provider for Apple Intelligence.")
 
-    // Use OpenAI's dedicated response API and credential.
+    // Use OpenAI's dedicated response API only where the storefront permits it.
     case .openAI:
+        try OpenAIAvailability.requireAvailable()
         let apiKey = loadOpenAIAPIKey()
         // Require an OpenAI key before starting a paid remote request.
         guard !apiKey.isEmpty else {
@@ -918,8 +919,12 @@ func startCloudTextRequest(
         let apiKey = loadAnthropicAPIKey()
         // Require an Anthropic key before starting a remote request.
         guard !apiKey.isEmpty else {
+            // Suggest OpenAI only when this storefront offers it.
+            let alternative = OpenAIAvailability.isAvailable
+                ? "You can also choose Apple Intelligence or an OpenAI model."
+                : "You can also choose Apple Intelligence or another model."
             throw HelperFailure(
-                message: "Anthropic API key is not available to Langmin. Add it in Settings, choose Apple Intelligence, or choose an OpenAI model."
+                message: "No Anthropic API key is available. Add one in Settings. \(alternative)"
             )
         }
 
