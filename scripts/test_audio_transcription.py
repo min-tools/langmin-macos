@@ -219,7 +219,8 @@ final class SettingsLayoutFixture: NSObject, NSTextFieldDelegate {
 for marker in ['    func settingsSidebar()', '    func settingsSectionView(rows:', '    func label(_ title: String)',
                '    @objc func selectPreferencesSection(', '    func syncSectionButtonStates()',
                '    func multilineField(', '    func noteLabel(', '    func secureTextField()',
-               '    func plainTextField(', '    func apiKeyControls(']:
+               '    func setSettingsPlaceholder(', '    func plainTextField(',
+               '    func apiKeyControls(']:
     source += block(main, marker) + '\n'
 source += '}\n'
 source += 'let settingsContentSize = SettingsLayout.contentSize\n'

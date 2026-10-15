@@ -30,6 +30,8 @@ struct HelperFailure: LocalizedError {
     let message: String
     var errorDescription: String? { message }
 }
+// Keep the cloud fallback visible while testing Apple speech-model behavior.
+enum OpenAIAvailability { static let isAvailable = true }
 // confirmSpeechModelDownload(language): Fail if the fixture reaches the real
 // approval path.
 func confirmSpeechModelDownload(language: String) -> Bool { fatalError("Unexpected real prompt") }

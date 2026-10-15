@@ -39,6 +39,10 @@ final class ProStore {
     func start() { startupCalls.append("store") }
 }
 enum LangminEdition { static let isExpiredTrialPreview = false }
+enum OpenAIAvailability {
+    // resolveAtLaunch(): Complete the fixture storefront lookup without StoreKit.
+    static func resolveAtLaunch() async {}
+}
 
 // Capture deferred callbacks so tests can clear the current event before delivery.
 struct FixtureDeadline {
@@ -125,6 +129,7 @@ final class AppDelegate: NSObject {
 '''
 for marker in (
     'func applicationDidFinishLaunching(',
+    'private func finishLaunching(',
     'private func presentSetupWizardIfNeeded(',
     'func configureSystemIntegration(',
     '@objc func showLauncher(',
@@ -156,6 +161,10 @@ func launch(_ delegate: AppDelegate, _ event: NSAppleEventDescriptor?) {
     NSAppleEventManager.shared().currentAppleEvent = event
     delegate.applicationDidFinishLaunching(Notification(name: Notification.Name("launch")))
     NSAppleEventManager.shared().currentAppleEvent = nil
+    // Let the launch-time storefront task reach the fixture's finish method.
+    for _ in 0..<100 where !startupCalls.contains("prepareLauncher") {
+        RunLoop.current.run(until: Date().addingTimeInterval(0.01))
+    }
     DispatchQueue.main.drain()
     check(startupCalls.contains("presence"), "startup applies background presence after deciding which windows to open")
 }
