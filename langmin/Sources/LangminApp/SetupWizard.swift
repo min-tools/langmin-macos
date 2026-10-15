@@ -563,7 +563,8 @@ final class SetupWizardController: NSObject, NSWindowDelegate {
         )
     }
 
-    // trialRow(symbol, title, detail): Present one trial fact with a clear icon and supporting text.
+    // trialRow(symbol, title, detail): Present one trial fact with a clear icon
+    // and supporting text.
     private func trialRow(symbol: String, title: String, detail: String) -> NSView {
         let icon = NSImageView()
         icon.image = NSImage(systemSymbolName: symbol, accessibilityDescription: title)
@@ -571,6 +572,17 @@ final class SetupWizardController: NSObject, NSWindowDelegate {
         icon.contentTintColor = .controlAccentColor
         icon.translatesAutoresizingMaskIntoConstraints = false
         icon.widthAnchor.constraint(equalToConstant: 28).isActive = true
+
+        // Give the symbol a top-aligned column with a small visual offset.
+        let iconColumn = NSView()
+        iconColumn.translatesAutoresizingMaskIntoConstraints = false
+        iconColumn.addSubview(icon)
+        NSLayoutConstraint.activate([
+            iconColumn.widthAnchor.constraint(equalToConstant: 28),
+            iconColumn.heightAnchor.constraint(equalToConstant: 30),
+            icon.topAnchor.constraint(equalTo: iconColumn.topAnchor, constant: 2),
+            icon.centerXAnchor.constraint(equalTo: iconColumn.centerXAnchor)
+        ])
 
         let titleLabel = NSTextField(labelWithString: title)
         titleLabel.font = NSFont.systemFont(ofSize: 13, weight: .semibold)
@@ -582,7 +594,7 @@ final class SetupWizardController: NSObject, NSWindowDelegate {
         text.alignment = .leading
         text.spacing = 3
 
-        let row = NSStackView(views: [icon, text])
+        let row = NSStackView(views: [iconColumn, text])
         row.orientation = .horizontal
         row.alignment = .top
         row.spacing = 12

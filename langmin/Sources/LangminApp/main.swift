@@ -14481,7 +14481,7 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
         customBaseURLField = plainTextField(placeholder: "http://localhost:1234/v1")
         customModelField = plainTextField(placeholder: "Model ID from your server")
         customAPIKeyField = secureTextField()
-        customAPIKeyField.placeholderString = "Optional if the server does not require a key"
+        setSettingsPlaceholder("Optional if the server does not require a key", for: customAPIKeyField)
         removeCustomKeyButton = FocusableButton(title: "Remove", target: self, action: #selector(removeCustomKey(_:)))
         removeCustomKeyButton.toolTip = "Remove the saved Custom endpoint API key from Keychain"
         removeCustomKeyButton.refusesFirstResponder = false
@@ -14499,7 +14499,7 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
         // Provide an optional instruction editor below the endpoint settings.
         let customInstructionsField = multilineField(
             placeholder: "Optional. Added after built-in instructions.",
-            height: 46,
+            height: 76,
             monospaced: false
         )
         advancedCustomInstructionsView = customInstructionsField.textView
@@ -14745,26 +14745,26 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
 
             // Set widths per control. Views on different NSTabView pages may have no common
             // ancestor, so constraints between them can fail.
-            apiKeyRow.widthAnchor.constraint(equalToConstant: 330),
-            customDisplayNameField.widthAnchor.constraint(equalToConstant: 330),
-            customBaseURLField.widthAnchor.constraint(equalToConstant: 330),
-            customModelField.widthAnchor.constraint(equalToConstant: 330),
-            customAPIKeyRow.widthAnchor.constraint(equalToConstant: 330),
-            anthropicAPIKeyRow.widthAnchor.constraint(equalToConstant: 330),
-            geminiAPIKeyRow.widthAnchor.constraint(equalToConstant: 330),
-            grokAPIKeyRow.widthAnchor.constraint(equalToConstant: 330),
-            deepSeekAPIKeyRow.widthAnchor.constraint(equalToConstant: 330),
-            keychainNoteLabel.widthAnchor.constraint(equalToConstant: 330),
-            advancedOpenAIEndpointField.widthAnchor.constraint(equalToConstant: 330),
-            advancedAnthropicEndpointField.widthAnchor.constraint(equalToConstant: 330),
-            advancedGeminiEndpointField.widthAnchor.constraint(equalToConstant: 330),
-            advancedAnthropicVersionField.widthAnchor.constraint(equalToConstant: 306),
-            advancedAnthropicSearchToolField.widthAnchor.constraint(equalToConstant: 306),
-            advancedCustomInstructionsScroll.widthAnchor.constraint(equalToConstant: 330),
-            advancedExtraModelsScroll.widthAnchor.constraint(equalToConstant: 330),
-            advancedInstructionsSeparatorRow.widthAnchor.constraint(equalToConstant: 330),
+            apiKeyRow.widthAnchor.constraint(equalToConstant: 400),
+            customDisplayNameField.widthAnchor.constraint(equalToConstant: 400),
+            customBaseURLField.widthAnchor.constraint(equalToConstant: 400),
+            customModelField.widthAnchor.constraint(equalToConstant: 400),
+            customAPIKeyRow.widthAnchor.constraint(equalToConstant: 400),
+            anthropicAPIKeyRow.widthAnchor.constraint(equalToConstant: 400),
+            geminiAPIKeyRow.widthAnchor.constraint(equalToConstant: 400),
+            grokAPIKeyRow.widthAnchor.constraint(equalToConstant: 400),
+            deepSeekAPIKeyRow.widthAnchor.constraint(equalToConstant: 400),
+            keychainNoteLabel.widthAnchor.constraint(equalToConstant: 400),
+            advancedOpenAIEndpointField.widthAnchor.constraint(equalToConstant: 376),
+            advancedAnthropicEndpointField.widthAnchor.constraint(equalToConstant: 376),
+            advancedGeminiEndpointField.widthAnchor.constraint(equalToConstant: 376),
+            advancedAnthropicVersionField.widthAnchor.constraint(equalToConstant: 352),
+            advancedAnthropicSearchToolField.widthAnchor.constraint(equalToConstant: 352),
+            advancedCustomInstructionsScroll.widthAnchor.constraint(equalToConstant: 376),
+            advancedExtraModelsScroll.widthAnchor.constraint(equalToConstant: 376),
+            advancedInstructionsSeparatorRow.widthAnchor.constraint(equalToConstant: 376),
             advancedInstructionsSeparatorRow.heightAnchor.constraint(equalToConstant: 1),
-            advancedNoteLabel.widthAnchor.constraint(equalToConstant: 330),
+            advancedNoteLabel.widthAnchor.constraint(equalToConstant: 376),
             voiceBox.widthAnchor.constraint(equalToConstant: 330),
             narrateBeforeOpenBox.widthAnchor.constraint(equalToConstant: 330),
             dictionaryVoiceBox.widthAnchor.constraint(equalToConstant: 330),
@@ -14846,10 +14846,24 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
         return row
     }
 
-    // settingsSectionView(rows): Build the form for one Settings section.
+    // settingsSectionView(rows): Build one Settings form, aligning labels for
+    // each control type and attaching registered separators.
     func settingsSectionView(rows: [(String, NSView)]) -> NSView {
         let view = NSView()
-        let grid = NSGridView(views: rows.map { [label($0.0), $0.1] })
+        let labels = rows.map { label($0.0) }
+        let labelViews = rows.indices.map { index -> NSView in
+            let control = rows[index].1
+            // Plain text fields need top padding; button rows already align.
+            guard (control as? NSTextField)?.isEditable == true else {
+                return labels[index]
+            }
+            let paddedLabel = NSStackView(views: [labels[index]])
+            paddedLabel.orientation = .vertical
+            paddedLabel.alignment = .trailing
+            paddedLabel.edgeInsets = NSEdgeInsets(top: 4, left: 0, bottom: 0, right: 0)
+            return paddedLabel
+        }
+        let grid = NSGridView(views: rows.indices.map { [labelViews[$0], rows[$0].1] })
         // Choose vertical alignment for each form row according to its control layout.
         for rowIndex in 0..<grid.numberOfRows {
             let control = rows[rowIndex].1
@@ -14860,11 +14874,12 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
             let isVerticalStack = (control as? NSStackView)?.orientation == .vertical
             let isWrappingNote = (control as? NSTextField)?.maximumNumberOfLines == 0
             let isScrollView = control is NSScrollView
-            // Align tall or wrapping controls with the top of their labels.
-            if isVerticalStack || isWrappingNote || isScrollView {
+            let hasPaddedLabel = (control as? NSTextField)?.isEditable == true
+            // Top-align tall controls and fields with their own label inset.
+            if isVerticalStack || isWrappingNote || isScrollView || hasPaddedLabel {
                 grid.row(at: rowIndex).yPlacement = .top
             } else {
-                // Center ordinary single-line controls beside their labels.
+                // Center compact controls without a custom label inset.
                 grid.row(at: rowIndex).yPlacement = .center
             }
         }
@@ -14997,13 +15012,26 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
         return field
     }
 
+    // setSettingsPlaceholder(text, field): Apply a one-point visual correction
+    // to an empty field without moving saved or entered text.
+    func setSettingsPlaceholder(_ text: String, for field: NSTextField) {
+        field.placeholderAttributedString = NSAttributedString(
+            string: text,
+            attributes: [
+                .font: field.font ?? NSFont.systemFont(ofSize: 14),
+                .foregroundColor: NSColor.placeholderTextColor,
+                .baselineOffset: -1
+            ]
+        )
+    }
+
     // secureTextField(): Build a secure field that never pre-fills the stored
     // secret.
     func secureTextField() -> NSSecureTextField {
         let field = NSSecureTextField()
         field.delegate = self
         field.font = NSFont.systemFont(ofSize: 14)
-        field.placeholderString = "Paste key to save or replace"
+        setSettingsPlaceholder("Paste key to save or replace", for: field)
         field.usesSingleLineMode = true
         field.translatesAutoresizingMaskIntoConstraints = false
         field.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
@@ -15016,7 +15044,7 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
         let field = NSTextField()
         field.delegate = self
         field.font = NSFont.systemFont(ofSize: 14)
-        field.placeholderString = placeholder
+        setSettingsPlaceholder(placeholder, for: field)
         field.usesSingleLineMode = true
         field.translatesAutoresizingMaskIntoConstraints = false
         field.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
@@ -15522,7 +15550,7 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
             removeButton: removeCustomKeyButton,
             providerName: "Custom",
             removeAction: #selector(removeCustomKey(_:)),
-            unknownPlaceholder: "Optional; type to add or replace; leave empty to keep saved key",
+            unknownPlaceholder: "Optional; type to add or replace",
             missingPlaceholder: "Optional; no saved key"
         )
     }
@@ -15538,7 +15566,7 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
         removeButton: NSButton,
         providerName: String,
         removeAction: Selector,
-        unknownPlaceholder: String = "Type to add or replace; leave empty to keep saved key",
+        unknownPlaceholder: String = "Type to add or replace",
         missingPlaceholder: String = "No saved key; type to add"
     ) {
         // Show environment-variable hints only in Debug builds.
@@ -15558,21 +15586,23 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
             removeButton.isHidden = false
         // When no key is saved, account for a permitted development environment fallback.
         case false:
-            field.placeholderString = /* Explain when a development key supplies access without a saved key. */ if let environmentName, !environmentKey.isEmpty {
+            let placeholder = /* Explain when a development key supplies access without a saved key. */ if let environmentName, !environmentKey.isEmpty {
                 "Using env \(environmentName); type to save instead"
             } else {
                 // Show the ordinary missing-key hint when no development fallback exists.
                 missingPlaceholder
             }
+            setSettingsPlaceholder(placeholder, for: field)
             removeButton.isHidden = true
         // An unknown Keychain state must not be presented as definitely missing.
         case nil:
-            field.placeholderString = /* Mention a development fallback without claiming the Keychain is empty. */ if let environmentName, !environmentKey.isEmpty {
+            let placeholder = /* Mention a development fallback without claiming the Keychain is empty. */ if let environmentName, !environmentKey.isEmpty {
                 "Using env \(environmentName); type to save instead"
             } else {
                 // Keep the placeholder neutral when saved-key availability is unknown.
                 unknownPlaceholder
             }
+            setSettingsPlaceholder(placeholder, for: field)
             // Keep Remove available when an older install has no recorded key-presence state.
             removeButton.isHidden = false
         }
@@ -15760,12 +15790,12 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
 
         // Offer guided setup after resetting defaults.
         let alert = NSAlert()
-        alert.messageText = localized("reset_wizard_title", "Start over with the Setup Assistant?")
+        alert.messageText = localized("reset_wizard_title", "Start over with the Setup Wizard?")
         alert.informativeText = localized(
             "reset_wizard_body",
-            "Press Save to restore defaults, or open Setup Assistant to choose new settings."
+            "Press Save to restore defaults, or open Setup Wizard to choose new settings."
         )
-        alert.addButton(withTitle: localized("open_setup_assistant", "Open Setup Assistant"))
+        alert.addButton(withTitle: localized("open_setup_assistant", "Open Setup Wizard"))
         alert.addButton(withTitle: localized("not_now", "Not Now"))
         if alert.runModal() == .alertFirstButtonReturn {
             // Hand off to setup without leaving a reset draft that could overwrite its choices.
@@ -24399,7 +24429,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     // presentSetupWizardIfNeeded(): Show setup once on first launch. It remains
-    // available from Setup Assistant in the app menu.
+    // available from Setup Wizard in the app menu.
     private func presentSetupWizardIfNeeded() {
         // Expired-trial previews open directly to the post-trial launcher.
         guard !LangminEdition.isExpiredTrialPreview else { return }
@@ -24408,7 +24438,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         setupWizard.present()
     }
 
-    // showSetupAssistant(sender): Reopen the setup assistant from the app menu.
+    // showSetupAssistant(sender): Reopen the setup wizard from the app menu.
     @objc func showSetupAssistant(_ sender: Any?) {
         setupWizard.present()
     }
@@ -25876,8 +25906,9 @@ let aboutItem = NSMenuItem(
 )
 aboutItem.target = delegate
 delegate.appMenu.addItem(aboutItem)
+// Keep guided onboarding available after the first-run presentation.
 let setupAssistantItem = NSMenuItem(
-    title: localized("setup_assistant", "Setup Assistant…"),
+    title: localized("setup_assistant", "Setup Wizard…"),
     action: #selector(AppDelegate.showSetupAssistant(_:)),
     keyEquivalent: ""
 )
