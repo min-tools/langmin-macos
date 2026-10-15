@@ -69,6 +69,14 @@ Edit translations in `langmin/Resources`. Keep `PRIVACY.md` and `langmin/Resourc
 
 Automatic Dictionary illustrations default to off. Settings → Illustrations controls the provider and opt-in. Choosing a provider alone does not start generation.
 
+## Images
+
+```bash
+python3 scripts/render_hero.py --no-readme
+```
+
+Writes the Mac App Store screenshot set, four 2880x1800 scenes over a wallpaper with English headlines, to `private/app-store/screenshots`. The script compiles the app's declarations without the launch code in `main.swift`, builds the real launcher window offscreen under a throwaway home directory, and stages fictional results through the app's own session code. No model runs. Without `--no-readme` it also renders `docs/images/hero-light.png` and `hero-dark.png` as a plain window capture.
+
 ## Audio transcription
 
 `AudioTranscription.swift` transcribes recordings locally with SpeechAnalyzer on macOS 26 or later. `AudioFileImport.swift` handles the progress sheet and cancellation. `TranscriptionSettings.swift` holds changes until Settings are saved. OpenAI uploads and response handling live in `CloudTranscription.swift`.
