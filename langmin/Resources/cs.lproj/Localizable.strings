@@ -458,8 +458,8 @@
 /* Library folders are part of %@ Pro. */
 "pro_reason_folders" = "Složky v Knihovně jsou součástí %@ Pro.";
 
-/* Get more with %@ Pro. */
-"pro_reason_general" = "Získejte více s %@ Pro.";
+/* Proofread, rewrite, explain, translate, and look up words from any app. */
+"pro_reason_general" = "Kontrolujte, přepisujte, vysvětlujte a překládejte text a vyhledávejte slova z libovolné aplikace.";
 
 /* OpenAI and Grok voices are part of %@ Pro. */
 "pro_reason_voices" = "Hlasy OpenAI a Grok jsou součástí %@ Pro.";

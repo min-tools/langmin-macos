@@ -458,8 +458,8 @@
 /* Library folders are part of %@ Pro. */
 "pro_reason_folders" = "Le cartelle della Libreria fanno parte di %@ Pro.";
 
-/* Get more with %@ Pro. */
-"pro_reason_general" = "Più funzioni con %@ Pro.";
+/* Proofread, rewrite, explain, translate, and look up words from any app. */
+"pro_reason_general" = "Correggi, riscrivi, spiega, traduci e cerca parole da qualsiasi app.";
 
 /* OpenAI and Grok voices are part of %@ Pro. */
 "pro_reason_voices" = "Le voci OpenAI e Grok fanno parte di %@ Pro.";

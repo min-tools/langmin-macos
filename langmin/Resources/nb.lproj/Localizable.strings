@@ -458,8 +458,8 @@
 /* Library folders are part of %@ Pro. */
 "pro_reason_folders" = "Mapper i Biblioteket er en del av %@ Pro.";
 
-/* Get more with %@ Pro. */
-"pro_reason_general" = "Flere funksjoner med %@ Pro.";
+/* Proofread, rewrite, explain, translate, and look up words from any app. */
+"pro_reason_general" = "Korrekturles, skriv om, forklar, oversett og slå opp ord fra hvilken som helst app.";
 
 /* OpenAI and Grok voices are part of %@ Pro. */
 "pro_reason_voices" = "OpenAI- og Grok-stemmer er en del av %@ Pro.";

@@ -458,8 +458,8 @@
 /* Library folders are part of %@ Pro. */
 "pro_reason_folders" = "Dosarele din Bibliotecă fac parte din %@ Pro.";
 
-/* Get more with %@ Pro. */
-"pro_reason_general" = "Mai multe funcții cu %@ Pro.";
+/* Proofread, rewrite, explain, translate, and look up words from any app. */
+"pro_reason_general" = "Corectați, rescrieți, explicați, traduceți și căutați cuvinte din orice aplicație.";
 
 /* OpenAI and Grok voices are part of %@ Pro. */
 "pro_reason_voices" = "Vocile OpenAI și Grok fac parte din %@ Pro.";

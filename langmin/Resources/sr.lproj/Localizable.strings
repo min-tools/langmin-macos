@@ -458,8 +458,8 @@
 /* Library folders are part of %@ Pro. */
 "pro_reason_folders" = "Фасцикле у Библиотеци су део %@ Pro-а.";
 
-/* Get more with %@ Pro. */
-"pro_reason_general" = "Више могућности уз %@ Pro.";
+/* Proofread, rewrite, explain, translate, and look up words from any app. */
+"pro_reason_general" = "Лекторишите, преформулишите, објасните, преведите и потражите речи из било које апликације.";
 
 /* OpenAI and Grok voices are part of %@ Pro. */
 "pro_reason_voices" = "OpenAI и Grok гласови су део %@ Pro-а.";

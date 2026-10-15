@@ -848,9 +848,9 @@ final class ProPaywallController: NSObject, NSWindowDelegate {
         // Explain the purchase requirement before a recording can be uploaded.
         case .cloudTranscription:
             return "OpenAI audio transcription is part of \(appName) Pro. Apple transcription stays free."
-        // Use a general introduction when no particular feature requested the panel.
+        // Describe the app when no particular feature requested the panel.
         case nil:
-            return String(format: localized("pro_reason_general", "Get more with %@ Pro."), appName)
+            return localized("pro_reason_general", "Proofread, rewrite, explain, translate, and look up words from any app.")
         }
     }
 
