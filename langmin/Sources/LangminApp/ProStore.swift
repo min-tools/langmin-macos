@@ -77,9 +77,16 @@ final class ProStore {
     private var entitlementTimer: Timer?
     private var appTrialTimer: Timer?
     private var activationObserver: NSObjectProtocol?
+    /// True when StoreKit installed its sandbox-named receipt in this bundle.
+    private var hasSandboxReceipt: Bool {
+        let receipt = Bundle.main.bundleURL
+            .appendingPathComponent("Contents/_MASReceipt/sandboxReceipt")
+        return FileManager.default.fileExists(atPath: receipt.path)
+    }
 
     private static let appTrialStartedAtKey = "LangminAppTrialStartedAt"
     private static let appTrialDisclosureAcceptedKey = "LangminAppTrialDisclosureAccepted"
+    private static let testTrialClockMigrationKey = "LangminTestTrialClockV1"
 
     var isPro: Bool {
         // Private local builds can grant access without querying StoreKit.
@@ -229,16 +236,26 @@ final class ProStore {
 
     // beginAppTrial([now]): Record acceptance of the disclosed trial and resolve its start date.
     func beginAppTrial(now: Date = Date()) {
+        let isFirstAcceptance = !UserDefaults.standard.bool(
+            forKey: Self.appTrialDisclosureAcceptedKey
+        )
         UserDefaults.standard.set(true, forKey: Self.appTrialDisclosureAcceptedKey)
         // App Store builds must verify the transaction environment before choosing a clock.
         if LangminEdition.isAppStoreBuild {
             Task { @MainActor [weak self] in
                 guard let self else { return }
-                await self.refreshAppTrial(now: now)
+                await self.refreshAppTrial(
+                    now: now,
+                    restartLocalTrial: isFirstAcceptance
+                )
                 self.finishTrialWelcome()
             }
         } else {
-            prepareLocalAppTrial(startIfNeeded: true, now: now)
+            prepareLocalAppTrial(
+                startIfNeeded: true,
+                restartTrial: isFirstAcceptance,
+                now: now
+            )
             finishTrialWelcome()
         }
     }
@@ -250,9 +267,12 @@ final class ProStore {
         NotificationCenter.default.post(name: Self.entitlementDidChange, object: self)
     }
 
-    // refreshAppTrial([now]): Use Apple's signed acquisition date in production.
-    // Verified sandbox builds retain the local clock needed for review and testing.
-    @MainActor private func refreshAppTrial(now: Date = Date()) async {
+    // refreshAppTrial([now], [restartLocalTrial = false]): Use Apple's signed production date or
+    // the disclosed local clock in a verified test environment.
+    @MainActor private func refreshAppTrial(
+        now: Date = Date(),
+        restartLocalTrial: Bool = false
+    ) async {
         guard LangminEdition.isAppStoreBuild else { return }
         defer {
             // A failed signed lookup is still a resolved Free state for this build.
@@ -267,7 +287,12 @@ final class ProStore {
             // A production build must never replace a failed signed lookup with local state.
             return
         }
-        if transaction.environment == .production {
+        let usesLocalClock = LangminFreeAccessPolicy.usesLocalTrialClock(
+            transactionIsProduction: transaction.environment == .production,
+            hasSandboxReceipt: hasSandboxReceipt,
+            originalPurchaseDate: transaction.originalPurchaseDate
+        )
+        if !usesLocalClock {
             let authoritative = LangminFreeAccessPolicy.authoritativeTrialStartDate(
                 appStoreOriginalPurchaseDate: transaction.originalPurchaseDate,
                 localStartedAt: nil,
@@ -280,18 +305,32 @@ final class ProStore {
             let accepted = UserDefaults.standard.bool(
                 forKey: Self.appTrialDisclosureAcceptedKey
             )
+            let didMigrateTestClock = UserDefaults.standard.bool(
+                forKey: Self.testTrialClockMigrationKey
+            )
+            let shouldRestart = accepted && LangminFreeAccessPolicy.shouldRestartLocalTrial(
+                firstAcceptance: restartLocalTrial,
+                isTestEnvironment: usesLocalClock,
+                didMigrateTestClock: didMigrateTestClock
+            )
             prepareLocalAppTrial(
                 startIfNeeded: accepted,
+                restartTrial: shouldRestart,
                 now: now,
                 allowAppStoreSandbox: true
             )
+            // Repair an existing test install once without changing production trial state.
+            if accepted {
+                UserDefaults.standard.set(true, forKey: Self.testTrialClockMigrationKey)
+            }
         }
     }
 
-    // prepareLocalAppTrial([startIfNeeded = false], [now],
-    // [allowAppStoreSandbox = false]): Restore or start the local test clock.
+    // prepareLocalAppTrial([startIfNeeded = false], [restartTrial = false], [now],
+    // [allowAppStoreSandbox = false]): Restore, start, or replace the local test clock.
     private func prepareLocalAppTrial(
         startIfNeeded: Bool = false,
+        restartTrial: Bool = false,
         now: Date = Date(),
         allowAppStoreSandbox: Bool = false
     ) {
@@ -302,6 +341,10 @@ final class ProStore {
         if let forced = LangminEdition.forcedTrialStartedAt {
             // Private previews must not change the real trial date in preferences.
             appTrialStartedAt = forced
+        } else if restartTrial {
+            // First consent or a one-time test migration starts the promised trial now.
+            appTrialStartedAt = now
+            UserDefaults.standard.set(now, forKey: Self.appTrialStartedAtKey)
         } else if appTrialStartedAt == nil {
             if let stored = UserDefaults.standard.object(forKey: Self.appTrialStartedAtKey) as? Date {
                 appTrialStartedAt = stored

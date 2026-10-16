@@ -200,12 +200,14 @@ enum AppStore {
         }
         UserDefaults.standard.removeObject(forKey: ProStore.appTrialStartedAtKey)
         UserDefaults.standard.removeObject(forKey: ProStore.appTrialDisclosureAcceptedKey)
+        UserDefaults.standard.removeObject(forKey: ProStore.testTrialClockMigrationKey)
         let store = ProStore.shared
         // Public source and App Store builds must both start without Pro access.
         try check(store.developerOverride == nil, "Public builds have no local override")
         defer {
             UserDefaults.standard.removeObject(forKey: ProStore.appTrialStartedAtKey)
             UserDefaults.standard.removeObject(forKey: ProStore.appTrialDisclosureAcceptedKey)
+            UserDefaults.standard.removeObject(forKey: ProStore.testTrialClockMigrationKey)
         }
         let disclosedStart = Date(timeIntervalSince1970: 1_800_000_000)
         #if LANGMIN_APP_STORE
@@ -257,9 +259,45 @@ enum AppStore {
         try await until { AppTransaction.reads > readsBeforeRepeat }
         try check(store.appTrialStartedAt == acquisition, "Repeated acceptance preserves the signed acquisition date")
 
-        // Returning users no longer see setup; their expired sandbox date must still limit access.
+        // A stale local date without an accepted disclosure can remain after development builds.
+        // Accepting the first-launch notice must start the promised sandbox trial now.
+        UserDefaults.standard.set(acquisition, forKey: ProStore.appTrialStartedAtKey)
+        UserDefaults.standard.removeObject(forKey: ProStore.appTrialDisclosureAcceptedKey)
+        UserDefaults.standard.removeObject(forKey: ProStore.testTrialClockMigrationKey)
+        AppTransaction.fixture = .verified(AppTransaction(
+            originalPurchaseDate: .distantPast,
+            environment: .sandbox
+        ))
+        let firstSandboxLaunch = ProStore()
+        firstSandboxLaunch.beginAppTrial(now: disclosedStart)
+        try await until { !firstSandboxLaunch.isTrialWelcomePending }
+        try check(
+            firstSandboxLaunch.appTrialStartedAt == disclosedStart
+                && firstSandboxLaunch.isAppTrialActive,
+            "First sandbox acceptance replaces an orphaned local trial date"
+        )
+
+        // Repair a TestFlight install whose transaction looks like production but carries Apple's
+        // fixed sandbox acquisition date.
         let expiredDate = Date().addingTimeInterval(-31 * 86_400)
         UserDefaults.standard.set(expiredDate, forKey: ProStore.appTrialStartedAtKey)
+        UserDefaults.standard.set(true, forKey: ProStore.appTrialDisclosureAcceptedKey)
+        UserDefaults.standard.removeObject(forKey: ProStore.testTrialClockMigrationKey)
+        AppTransaction.fixture = .verified(AppTransaction(
+            originalPurchaseDate: Date(timeIntervalSince1970: 1_375_340_400),
+            environment: .production
+        ))
+        let migrated = ProStore()
+        await migrated.refreshEntitlement()
+        try check(migrated.isAppTrialActive, "TestFlight receives a current local trial clock")
+        try check(
+            UserDefaults.standard.bool(forKey: ProStore.testTrialClockMigrationKey),
+            "TestFlight records the one-time trial migration"
+        )
+
+        // Returning users no longer see setup; their expired sandbox date must still limit access.
+        UserDefaults.standard.set(expiredDate, forKey: ProStore.appTrialStartedAtKey)
+        UserDefaults.standard.set(true, forKey: ProStore.testTrialClockMigrationKey)
         AppTransaction.fixture = .verified(AppTransaction(originalPurchaseDate: .distantPast, environment: .sandbox))
         let returning = ProStore()
         await returning.refreshEntitlement()

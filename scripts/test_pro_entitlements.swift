@@ -85,6 +85,53 @@ private struct ProEntitlementTests {
             30,
             "a new local trial reports 30 days"
         )
+        // TestFlight remains a test environment with production-style receipt metadata.
+        let sandboxPurchaseDate = Date(timeIntervalSince1970: 1_375_340_400)
+        expect(
+            LangminFreeAccessPolicy.usesLocalTrialClock(
+                transactionIsProduction: true,
+                hasSandboxReceipt: true,
+                originalPurchaseDate: now
+            ),
+            true,
+            "a sandbox receipt identifies TestFlight"
+        )
+        expect(
+            LangminFreeAccessPolicy.usesLocalTrialClock(
+                transactionIsProduction: true,
+                hasSandboxReceipt: false,
+                originalPurchaseDate: sandboxPurchaseDate
+            ),
+            true,
+            "the fixed sandbox date identifies macOS TestFlight"
+        )
+        expect(
+            LangminFreeAccessPolicy.usesLocalTrialClock(
+                transactionIsProduction: true,
+                hasSandboxReceipt: false,
+                originalPurchaseDate: now
+            ),
+            false,
+            "the production App Store keeps Apple's signed clock"
+        )
+        expect(
+            LangminFreeAccessPolicy.shouldRestartLocalTrial(
+                firstAcceptance: false,
+                isTestEnvironment: true,
+                didMigrateTestClock: false
+            ),
+            true,
+            "an existing test install receives the corrected clock once"
+        )
+        expect(
+            LangminFreeAccessPolicy.shouldRestartLocalTrial(
+                firstAcceptance: false,
+                isTestEnvironment: true,
+                didMigrateTestClock: true
+            ),
+            false,
+            "a migrated test install keeps its clock"
+        )
         let localStart = now.addingTimeInterval(86_400)
         expect(
             LangminFreeAccessPolicy.authoritativeTrialStartDate(
