@@ -38,7 +38,7 @@ struct AppPreferences {
  var explanationModel = defaultExplanationModel
  var modeTextModels: [String: String] = [:]
  var modeThinking: [String: String] = [:]
- var openAIEndpointOverride = "", anthropicEndpointOverride = ""
+ var openAIEndpointOverride = "", anthropicEndpointOverride = "", geminiEndpointOverride = ""
  var preferredTextModels = defaultPreferredTextModelIDs
  var customModelName = "", customDisplayName = "", extraModels: [String] = []
  var launcherShowsModel = true
@@ -55,6 +55,8 @@ var saved = AppPreferences(), remembered = LauncherPreferences()
 func loadAppPreferences() -> AppPreferences { saved }
 let openAIResponsesEndpoint = URL(string: "https://example.test/responses")!
 let anthropicMessagesEndpoint = URL(string: "https://example.test/messages")!
+let geminiAPIBaseURL = "https://gemini.fixture.invalid/models"
+func resolvedOverride(_ value: String, default fallback: String) -> String { value.isEmpty ? fallback : value }
 func resolvedOverrideURL(_ value: String, default fallback: URL) -> URL { value.isEmpty ? fallback : URL(string: value)! }
 struct TextConversationMessage { enum Role: String { case user, assistant }; let role: Role; let content: String }
 

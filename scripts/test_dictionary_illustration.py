@@ -399,7 +399,7 @@ let request = try dictionaryImageRequest(apiKey: "fixture-placeholder", prompt: 
 let body = try JSONSerialization.jsonObject(with: request.httpBody!) as! [String: Any]
 check(request.url == dictionaryImageEndpoint && request.httpMethod == "POST", "Correct endpoint/method")
 check(body["n"] as? Int == 1 && body["size"] as? String == "1536x1024", "Exactly one landscape image")
-check(body["model"] as? String == dictionaryImageModel && body["quality"] as? String == "medium", "Correct model/quality")
+check(body["model"] as? String == "gpt-image-2.6-flare" && body["quality"] as? String == "medium", "Use the current image model at medium quality")
 
 // URLProtocol guarantees transport tests never reach a network endpoint.
 final class FixtureProtocol: URLProtocol {

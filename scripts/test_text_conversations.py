@@ -338,12 +338,13 @@ for label in ["DeepSeek", "Grok", "Custom endpoint"] {
 // Exercise actual Responses and Messages bodies for each task, endpoint and
 // research setting. Models without the supported effort control remain unchanged.
 let openAILatencyModels: [(String, Bool)] = [
- ("gpt-6-astra", true), ("gpt-6-sol", true), ("gpt-6-luna", true),
+ ("gpt-6-astra", true), ("gpt-6.1-sol", true), ("gpt-6.1-terra", true), ("gpt-6-sol", true), ("gpt-6-luna", true),
  ("gpt-5.6-sol", true), ("gpt-5.6-terra", true), ("gpt-5.6-luna", true), ("gpt-5.5", true),
  ("gpt-5.4", false), ("gpt-5.4-mini", false), ("gpt-5.4-nano", false),
  ("gpt-4.1", false), ("gpt-4.1-mini", false), ("custom-model", false)
 ]
 let claudeLatencyModels: [(String, Bool)] = [
+ ("claude-fable-5-2", true), ("claude-sonnet-5-5", true), ("claude-haiku-5-5", true),
  ("claude-fable-5-1", true), ("claude-fable-5", true),
  ("claude-opus-5-5", true), ("claude-sonnet-5", true),
  ("claude-haiku-4-5", false), ("custom-model", false)
@@ -357,7 +358,7 @@ for customEndpoint in [false, true] {
     let payload = try body(startOpenAITextRequest(apiKey: "fixture", model: model, prompt: prompt, emptyMessage: "empty", research: research, completion: complete))
     let automatic = prompt.thinking == nil || prompt.thinking == .automatic
     let requested: String? = automatic ? (automaticLow ? "low" : nil)
-        : prompt.thinking == .off && model == "gpt-6-astra" ? "low" : prompt.thinking?.apiEffort
+        : prompt.thinking == .off && ["gpt-6-astra", "gpt-6.1-sol"].contains(model) ? "low" : prompt.thinking?.apiEffort
     let expected: [String: String]? = supportsEffort && !customEndpoint ? requested.map { ["effort": $0] } : nil
     check((payload["reasoning"] as? [String: String]) == expected, "\(name): Responses effort is scoped to supported models, tasks and endpoints")
     check(payload["instructions"] as? String == promptApplyingCustomInstructions(prompt).instructions, "\(name): Responses effort preserves task and custom instructions")
@@ -383,8 +384,37 @@ for customEndpoint in [false, true] {
   }
  }
 }
+// Gemini 4 uses documented thinking levels and enough room for thought tokens.
+for customEndpoint in [false, true] {
+ fixturePreferences.geminiEndpointOverride = customEndpoint ? "https://custom.test/models" : ""
+ for model in ["gemini-4-carbon", "gemini-4-argon", "gemini-4-hydrogen", "gemini-3.8-flash", "custom-model"] {
+  for research in [false, true] {
+   for (name, prompt, automaticLow) in latencyCases {
+    let payload = try body(startGeminiTextRequest(apiKey: "fixture", model: model, prompt: prompt, emptyMessage: "empty", research: research, completion: complete))
+    let config = payload["generationConfig"] as! [String: Any]
+    let supported = model.hasPrefix("gemini-4-") && !customEndpoint
+    let automatic = prompt.thinking == nil || prompt.thinking == .automatic
+    let requested = automatic ? (automaticLow ? "low" : nil) : (prompt.thinking == .off ? "low" : prompt.thinking?.apiEffort)
+    let expected = supported ? requested.map { ["thinkingLevel": $0] } : nil
+    check(config["thinkingConfig"] as? [String: String] == expected, "\(name): Gemini sends supported effort only to its native endpoint")
+    let budget = supported ? (model == "gemini-4-hydrogen" ? 65_536 : 32_768) : 8192
+    check(config["maxOutputTokens"] as? Int == budget, "Gemini output limits match synchronous model caps")
+    check((payload["tools"] != nil) == research, "Gemini preserves research opt-in")
+    check((payload["contents"] as? [[String: Any]])?.count == prompt.messages.count, "Gemini preserves conversation history")
+   }
+  }
+ }
+}
 fixturePreferences = AppPreferences()
 let capabilities: [(TextModelProvider, String, [String])] = [
+ (.openAI, "gpt-6.1-sol", ["automatic", "low", "medium", "high"]),
+ (.openAI, "gpt-6.1-terra", ["automatic", "off", "low", "medium", "high"]),
+ (.anthropic, "claude-fable-5-2", ["automatic", "low", "medium", "high"]),
+ (.anthropic, "claude-sonnet-5-5", ["automatic", "low", "medium", "high"]),
+ (.anthropic, "claude-haiku-5-5", ["automatic", "low", "medium", "high"]),
+ (.gemini, "gemini-4-carbon", ["automatic", "low", "medium", "high"]),
+ (.gemini, "gemini-4-argon", ["automatic", "low", "medium", "high"]),
+ (.gemini, "gemini-4-hydrogen", ["automatic", "low", "medium", "high"]),
  (.openAI, "gpt-6-astra", ["automatic", "low", "medium", "high"]),
  (.openAI, "gpt-6-sol", ["automatic", "off", "low", "medium", "high"]),
  (.openAI, "gpt-6-luna", ["automatic", "off", "low", "medium", "high"]),

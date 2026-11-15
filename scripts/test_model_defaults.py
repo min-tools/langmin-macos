@@ -37,7 +37,7 @@ struct GlobalShortcut {}
 let defaultGlobalShortcuts: [String: GlobalShortcut] = [:]
 let defaultLanguageLevel = "off"
 // Provide the image-provider choices needed by preference defaults.
-enum DictionaryIllustrationProvider { case off, openAI }
+enum DictionaryIllustrationProvider: String { case off, openAI }
 // localized(key, english): Resolve labels through the fixture’s controlled
 // localization.
 func localized(_ key: String, _ english: String) -> String { english }
@@ -69,6 +69,11 @@ final class MemoryStore {
  // set(value, key): Record saved values without changing the user’s
  // preferences.
  func set(_ value: Any, forKey key: String) { values[key] = value }
+ // Read persisted fixture values without opening the real preferences domain.
+ func string(forKey key: String) -> String? { values[key] as? String }
+ func object(forKey key: String) -> Any? { values[key] }
+ func bool(forKey key: String) -> Bool { values[key] as? Bool ?? false }
+ func dictionary(forKey key: String) -> [String: Any]? { values[key] as? [String: Any] }
 }
 let preferencesStore = MemoryStore()
 // Represent checkbox state without creating native controls.
@@ -242,6 +247,26 @@ final class WizardFixture {
 extension WizardFixture {
 '''
 source += block(WIZARD, '    private func finish()').replace('private ', '') + '\n}\n'
+# Exercise the real preference loaders independently of the Settings fixture's
+# controlled in-memory AppPreferences value.
+for marker in ['struct LauncherPreferences {', 'func decodeTextModelList(',
+               'func decodeReaderVoiceList(', 'func encodeReaderVoiceList(',
+               'func decodeAutoNarrateModes(', 'func storedPreferenceString(',
+               'func storedPreferenceBool(', 'func loadLauncherPreferences(']:
+    source += block(MAIN, marker) + '\n'
+source += block(MAIN, 'func loadAppPreferences(').replace(
+    'func loadAppPreferences(', 'func loadPersistedAppPreferences(', 1) + '\n'
+source += r'''
+// Keep unrelated language, shortcut and pinned-mode handling isolated.
+func loadTranslationTargets() -> [String] { [defaultTranslationTargetID] }
+func decodeLanguageList(_ value: String) -> [String] { decodeTextModelList(value) }
+func normalizedLanguageLevel(_ value: String) -> String { value }
+func loadGlobalShortcuts() -> [String: GlobalShortcut] { defaultGlobalShortcuts }
+enum LauncherLogic {
+ // idList(from): Decode the fixture's comma-separated pinned modes.
+ static func idList(from value: String) -> [String] { decodeTextModelList(value) }
+}
+'''
 source += r'''
 var checks = 0
 // check(condition, message): Report failed fixture expectations with their case
@@ -255,21 +280,50 @@ let apple = appleIntelligenceModelID, deepSeek = "deepseek:deepseek-flash"
 let catalogIDs = explanationModelOptions.map(\.id)
 check(Set(catalogIDs).count == catalogIDs.count, "The built-in model catalog has no duplicate IDs")
 let currentCloudModels = [
- "gpt-6-astra", "gpt-6-sol", "gpt-6-luna",
- "anthropic:claude-fable-5-1", "anthropic:claude-opus-5-5", "anthropic:claude-sonnet-5",
- "gemini:gemini-3.1-pro-preview", "gemini:gemini-3.8-flash", "gemini:gemini-3.5-flash-lite",
+ "gpt-6-astra", "gpt-6.1-sol", "gpt-6.1-terra", "gpt-6-luna",
+ "anthropic:claude-fable-5-2", "anthropic:claude-opus-5-5", "anthropic:claude-sonnet-5-5", "anthropic:claude-haiku-5-5",
+ "gemini:gemini-4-carbon", "gemini:gemini-4-argon", "gemini:gemini-4-hydrogen",
  "grok:grok-4.7", "deepseek:deepseek-v4-pro", "deepseek:deepseek-flash"
 ]
 check(currentCloudModels.allSatisfy(catalogIDs.contains), "The catalog contains every current frontier model")
 let retiredModels = [
  "anthropic:claude-opus-4-1", "grok:grok-3-mini",
- "deepseek:deepseek-chat", "deepseek:deepseek-reasoner"
+ "deepseek:deepseek-chat", "deepseek:deepseek-reasoner",
+ "gemini:gemini-2.5-pro", "gemini:gemini-2.5-flash"
 ]
-check(retiredModels.allSatisfy { !catalogIDs.contains($0) }, "The catalog omits retired provider models")
+check(retiredModels.allSatisfy { !catalogIDs.contains($0) }, "The catalog omits retired or restricted provider models")
 check(defaultPreferredTextModelIDs == [
- "gpt-6-sol", "anthropic:claude-sonnet-5", "gemini:gemini-3.8-flash",
+ "gpt-6.1-sol", "anthropic:claude-sonnet-5-5", "gemini:gemini-4-hydrogen",
  "grok:grok-4.7", "deepseek:deepseek-flash", apple
 ], "Fresh defaults use one current balanced model per provider")
+// Removed Gemini choices stay with their provider; supported and custom IDs stay intact.
+check(replacementTextModelID("gemini:gemini-2.5-pro") == "gemini:gemini-3.8-flash", "Replace restricted Gemini Pro")
+check(replacementTextModelID("gemini:gemini-2.5-flash") == "gemini:gemini-3.5-flash-lite", "Replace restricted Gemini Flash")
+for id in catalogIDs + ["custom", "custom-model", "gemini:user-preview", ""] {
+ check(replacementTextModelID(id) == id, "Supported and user-defined model choices survive updates")
+}
+// Loading an existing installation migrates every selection and merges aliases.
+let oldPro = "gemini:gemini-2.5-pro", newPro = "gemini:gemini-3.8-flash"
+let oldFlash = "gemini:gemini-2.5-flash", newFlash = "gemini:gemini-3.5-flash-lite"
+preferencesStore.values = [
+ PreferenceKey.preferredTextModels: encodeTextModelList([oldPro, "custom", newPro, oldFlash, newFlash, "gemini:user-preview"]),
+ PreferenceKey.explanationModel: oldPro,
+ PreferenceKey.modeTextModels: ["explain": oldPro, "translate": oldFlash, "rewrite": "gpt-6-sol"],
+ PreferenceKey.modeThinking: ["explain": "high"],
+ PreferenceKey.launcherExplanationModel: oldFlash
+]
+let migrated = loadPersistedAppPreferences()
+check(migrated.preferredTextModels == [newPro, "custom", newFlash, "gemini:user-preview"], "Loaded shortlist migrates and deduplicates without reordering")
+check(migrated.explanationModel == newPro, "Loaded default model migrates")
+check(migrated.modeTextModels == ["explain": newPro, "translate": newFlash, "rewrite": "gpt-6-sol"], "Loaded per-mode choices migrate without replacing supported models")
+check(migrated.modeThinking == ["explain": "high"], "Model migration preserves thinking choices")
+check(loadLauncherPreferences().explanationModel == newFlash, "The remembered launcher choice migrates")
+check(preferencesStore.string(forKey: PreferenceKey.explanationModel) == oldPro, "Loading preferences does not rewrite the saved domain")
+// An untouched installation still starts with Apple and the current shortlist.
+preferencesStore.values = [:]
+let fresh = loadPersistedAppPreferences()
+check(fresh.explanationModel == apple && fresh.preferredTextModels == defaultPreferredTextModelIDs, "Fresh preference loading uses current defaults")
+check(loadLauncherPreferences().explanationModel.isEmpty, "No remembered model is invented on first launch")
 check(AppPreferences().explanationModel == apple, "Fresh installs default to Apple Intelligence")
 check(AppPreferences().runInBackground, "Background operation is enabled by default")
 let form = SettingsFixture()
@@ -343,7 +397,7 @@ func finishSetup(_ ids: [String], available: Bool) {
  if !ids.isEmpty { check((preferencesStore.values[PreferenceKey.modeTextModels] as? [String: String])?.isEmpty == true, "Model setup clears old per-mode assignments") }
 }
 // Check that Apple remains the default when selected alongside a cloud provider.
-for cloud in [deepSeek, "gpt-6-sol", "anthropic:claude-sonnet-5"] {
+for cloud in [deepSeek, "gpt-6.1-sol", "anthropic:claude-sonnet-5-5"] {
  finishSetup([cloud, apple], available: true)
  check(preferencesStore.values[PreferenceKey.explanationModel] as? String == apple, "Apple wins over a checked cloud provider")
  check(preferencesStore.values[PreferenceKey.launcherExplanationModel] as? String == apple, "Remembered models follow the new setup default")

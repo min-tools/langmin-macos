@@ -469,16 +469,22 @@ func cloudThinkingOptions(provider: TextModelProvider, model: String, preference
     // Compatible custom endpoints may implement a different request schema.
     case .openAI:
         guard resolvedOverrideURL(preferences.openAIEndpointOverride, default: openAIResponsesEndpoint) == openAIResponsesEndpoint else { return [] }
-        // Astra always reasons; other supported GPT models can disable thinking.
-        if model == "gpt-6-astra" { return [.automatic, .low, .medium, .high] }
-        if ["gpt-6-sol", "gpt-6-luna", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.5"].contains(model) {
+        // Astra and Sol 6.1 always reason; Terra 6.1 also supports Off.
+        if ["gpt-6-astra", "gpt-6.1-sol"].contains(model) { return [.automatic, .low, .medium, .high] }
+        if ["gpt-6.1-terra", "gpt-6-sol", "gpt-6-luna", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.5"].contains(model) {
             return [.automatic, .off, .low, .medium, .high]
         }
         return []
-    // These Claude models always reason; Haiku and unknown models stay unchanged.
+    // Current Claude models support effort; older Haiku keeps its defaults.
     case .anthropic:
         guard resolvedOverrideURL(preferences.anthropicEndpointOverride, default: anthropicMessagesEndpoint) == anthropicMessagesEndpoint else { return [] }
-        return ["claude-fable-5-1", "claude-fable-5", "claude-opus-5-5", "claude-sonnet-5"].contains(model)
+        return ["claude-fable-5-2", "claude-fable-5-1", "claude-fable-5", "claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5", "claude-sonnet-5"].contains(model)
+            ? [.automatic, .low, .medium, .high] : []
+    // Gemini 4 always reasons. Custom endpoints keep their own request schema.
+    case .gemini:
+        guard resolvedOverride(preferences.geminiEndpointOverride, default: geminiAPIBaseURL)
+            .trimmingCharacters(in: CharacterSet(charactersIn: "/")) == geminiAPIBaseURL else { return [] }
+        return ["gemini-4-carbon", "gemini-4-argon", "gemini-4-hydrogen"].contains(model)
             ? [.automatic, .low, .medium, .high] : []
     // DeepSeek maps Medium to High, so show only its distinct levels.
     case .deepSeek:
@@ -730,7 +736,7 @@ func startAnthropicTextRequest(
         "system": prompt.instructions,
         "messages": prompt.chatMessages
     ]
-    // Claude always thinks; use supported effort levels without raising the
+    // Use Claude's supported effort levels without raising the
     // existing output-token limit when the user changes effort.
     if let effort = cloudThinkingForRequest(prompt, provider: .anthropic, model: model, preferences: preferences)?.apiEffort {
         body["output_config"] = ["effort": effort]
@@ -819,6 +825,15 @@ func startGeminiTextRequest(
     request.setValue(apiKey, forHTTPHeaderField: "x-goog-api-key")
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
+    // Gemini 4 counts reasoning in the output budget; use its synchronous cap.
+    let isGemini4 = !cloudThinkingOptions(provider: .gemini, model: model, preferences: preferences).isEmpty
+    var generationConfig: [String: Any] = [
+        "maxOutputTokens": isGemini4 ? (model == "gemini-4-hydrogen" ? 65_536 : 32_768) : 8192
+    ]
+    // Match the model's menu and keep Automatic follow-ups at provider defaults.
+    if let effort = cloudThinkingForRequest(prompt, provider: .gemini, model: model, preferences: preferences)?.apiEffort {
+        generationConfig["thinkingConfig"] = ["thinkingLevel": effort]
+    }
     var body: [String: Any] = [
         "systemInstruction": [
             "parts": [["text": prompt.instructions]]
@@ -827,9 +842,7 @@ func startGeminiTextRequest(
             ["role": message.role == .assistant ? "model" : "user",
              "parts": [["text": message.content]]]
         },
-        "generationConfig": [
-            "maxOutputTokens": 8192
-        ]
+        "generationConfig": generationConfig
     ]
     // Enable Google Search only for requests that opted into research.
     if research {

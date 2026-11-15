@@ -44,6 +44,8 @@ enum OpenAIAvailability {
 let appleIntelligenceModelID = "apple:intelligence", customModelID = "custom"
 let openAIResponsesEndpoint = URL(string: "https://openai.fixture.invalid/responses")!
 let anthropicMessagesEndpoint = URL(string: "https://claude.fixture.invalid/messages")!
+let geminiAPIBaseURL = "https://gemini.fixture.invalid/models"
+func resolvedOverride(_ value: String, default fallback: String) -> String { value.isEmpty ? fallback : value }
 func resolvedOverrideURL(_ value: String, default fallback: URL) -> URL { value.isEmpty ? fallback : URL(string: value)! }
 let defaultExplanationModel = appleIntelligenceModelID, defaultOutputLanguage = "auto"
 let defaultRewriteStyle = "rephrase", defaultTTSVoice = "none"
@@ -55,7 +57,7 @@ let modelIDs = [appleIntelligenceModelID, "gpt-6-luna", "anthropic:claude-fable-
 struct AppPreferences {
  var explanationModel = "gpt-6-luna", modeTextModels: [String: String] = [:]
  var modeThinking: [String: String] = [:]
- var openAIEndpointOverride = "", anthropicEndpointOverride = ""
+ var openAIEndpointOverride = "", anthropicEndpointOverride = "", geminiEndpointOverride = ""
  var preferredTextModels = modelIDs, extraModels: [String] = []
  var customModelName = "fixture-model", customDisplayName = "Fixture", customBaseURL = "https://fixture.invalid/v1"
  var languageLevel = "b", rewriteStyle = "rephrase", customInstructions = ""

@@ -2534,30 +2534,36 @@ final class TitlebarTooltipButton: NSButton {
     }
 }
 
-// Built-in text models for the model pickers.
+// Built-in text models, checked against provider catalogs on 2026-11-15.
 let explanationModelOptions: [PreferenceOption] = [
     PreferenceOption(id: "gpt-6-astra", title: "GPT-6 Astra", note: "web research"),
-    PreferenceOption(id: "gpt-6-sol", title: "GPT-6 Sol", note: "web research"),
+    PreferenceOption(id: "gpt-6.1-sol", title: "GPT-6.1 Sol", note: "web research"),
+    PreferenceOption(id: "gpt-6.1-terra", title: "GPT-6.1 Terra", note: "web research"),
     PreferenceOption(id: "gpt-6-luna", title: "GPT-6 Luna", note: "web research"),
-    PreferenceOption(id: "gpt-5.6-sol", title: "GPT-5.6 Sol", note: "web research"),
-    PreferenceOption(id: "gpt-5.6-terra", title: "GPT-5.6 Terra", note: "web research"),
-    PreferenceOption(id: "gpt-5.6-luna", title: "GPT-5.6 Luna", note: "web research"),
-    PreferenceOption(id: "gpt-5.5", title: "GPT-5.5", note: "web research"),
-    PreferenceOption(id: "gpt-5.4", title: "GPT-5.4", note: "web research"),
-    PreferenceOption(id: "gpt-5.4-mini", title: "GPT-5.4 Mini", note: "web research"),
-    PreferenceOption(id: "gpt-5.4-nano", title: "GPT-5.4 Nano", note: "web research"),
-    PreferenceOption(id: "gpt-4.1", title: "GPT-4.1", note: "web research"),
-    PreferenceOption(id: "gpt-4.1-mini", title: "GPT-4.1 Mini", note: "web research"),
-    PreferenceOption(id: "anthropic:claude-fable-5-1", title: "Claude Fable 5.1", note: "web research"),
+    PreferenceOption(id: "gpt-6-sol", title: "GPT-6 Sol", note: "legacy · web research"),
+    PreferenceOption(id: "gpt-5.6-sol", title: "GPT-5.6 Sol", note: "legacy · web research"),
+    PreferenceOption(id: "gpt-5.6-terra", title: "GPT-5.6 Terra", note: "legacy · web research"),
+    PreferenceOption(id: "gpt-5.6-luna", title: "GPT-5.6 Luna", note: "legacy · web research"),
+    PreferenceOption(id: "gpt-5.5", title: "GPT-5.5", note: "legacy · web research"),
+    PreferenceOption(id: "gpt-5.4", title: "GPT-5.4", note: "legacy · web research"),
+    PreferenceOption(id: "gpt-5.4-mini", title: "GPT-5.4 Mini", note: "legacy · web research"),
+    PreferenceOption(id: "gpt-5.4-nano", title: "GPT-5.4 Nano", note: "deprecated · web research"),
+    PreferenceOption(id: "gpt-4.1", title: "GPT-4.1", note: "deprecated · web research"),
+    PreferenceOption(id: "gpt-4.1-mini", title: "GPT-4.1 Mini", note: "deprecated · web research"),
+    PreferenceOption(id: "anthropic:claude-fable-5-2", title: "Claude Fable 5.2", note: "web research"),
     PreferenceOption(id: "anthropic:claude-opus-5-5", title: "Claude Opus 5.5", note: "web research"),
-    PreferenceOption(id: "anthropic:claude-sonnet-5", title: "Claude Sonnet 5", note: "web research"),
-    PreferenceOption(id: "anthropic:claude-haiku-4-5", title: "Claude Haiku 4.5", note: "web research"),
+    PreferenceOption(id: "anthropic:claude-sonnet-5-5", title: "Claude Sonnet 5.5", note: "web research"),
+    PreferenceOption(id: "anthropic:claude-haiku-5-5", title: "Claude Haiku 5.5", note: "web research"),
+    PreferenceOption(id: "anthropic:claude-fable-5-1", title: "Claude Fable 5.1", note: "legacy · web research"),
+    PreferenceOption(id: "anthropic:claude-sonnet-5", title: "Claude Sonnet 5", note: "legacy · web research"),
+    PreferenceOption(id: "anthropic:claude-haiku-4-5", title: "Claude Haiku 4.5", note: "legacy · web research"),
     PreferenceOption(id: "anthropic:claude-fable-5", title: "Claude Fable 5", note: "legacy · web research"),
+    PreferenceOption(id: "gemini:gemini-4-carbon", title: "Gemini 4 Carbon", note: "web research"),
+    PreferenceOption(id: "gemini:gemini-4-argon", title: "Gemini 4 Argon", note: "web research"),
+    PreferenceOption(id: "gemini:gemini-4-hydrogen", title: "Gemini 4 Hydrogen", note: "web research"),
     PreferenceOption(id: "gemini:gemini-3.1-pro-preview", title: "Gemini 3.1 Pro", note: "preview · web research"),
     PreferenceOption(id: "gemini:gemini-3.8-flash", title: "Gemini 3.8 Flash", note: "web research"),
     PreferenceOption(id: "gemini:gemini-3.5-flash-lite", title: "Gemini 3.5 Flash-Lite", note: "web research"),
-    PreferenceOption(id: "gemini:gemini-2.5-pro", title: "Gemini 2.5 Pro", note: "legacy · web research"),
-    PreferenceOption(id: "gemini:gemini-2.5-flash", title: "Gemini 2.5 Flash", note: "legacy · web research"),
     PreferenceOption(id: "gemini:gemini-2.5-flash-lite", title: "Gemini 2.5 Flash-Lite", note: "legacy · web research"),
     PreferenceOption(id: "grok:grok-4.7", title: "Grok 4.7", note: "xAI"),
     PreferenceOption(id: "deepseek:deepseek-v4-pro", title: "DeepSeek V4 Pro", note: "reasoning"),
@@ -2567,9 +2573,9 @@ let explanationModelOptions: [PreferenceOption] = [
 ]
 
 // Keep first-run provider choices in one place so setup and reset cannot drift.
-let defaultOpenAITextModelID = "gpt-6-sol"
-let defaultAnthropicTextModelID = "anthropic:claude-sonnet-5"
-let defaultGeminiTextModelID = "gemini:gemini-3.8-flash"
+let defaultOpenAITextModelID = "gpt-6.1-sol"
+let defaultAnthropicTextModelID = "anthropic:claude-sonnet-5-5"
+let defaultGeminiTextModelID = "gemini:gemini-4-hydrogen"
 let defaultGrokTextModelID = "grok:grok-4.7"
 let defaultDeepSeekTextModelID = "deepseek:deepseek-flash"
 
@@ -2582,6 +2588,18 @@ let defaultPreferredTextModelIDs = [
     defaultDeepSeekTextModelID,
     appleIntelligenceModelID
 ]
+
+// replacementTextModelID(model): Move deprecated, restricted Gemini choices
+// to Google's supported replacements without changing providers or custom IDs.
+func replacementTextModelID(_ model: String) -> String {
+    switch model {
+    // These aliases will route to different models after December 1, 2026.
+    case "gemini:gemini-2.5-pro": return "gemini:gemini-3.8-flash"
+    case "gemini:gemini-2.5-flash": return "gemini:gemini-3.5-flash-lite"
+    // Preserve supported models, custom endpoints and user-added IDs.
+    default: return model
+    }
+}
 
 // appleIntelligenceIsAvailable():
 // Check local-model availability for the picker and setup. Recheck when starting a request.
@@ -3540,6 +3558,11 @@ func loadAppPreferences() -> AppPreferences {
             fallback: encodeTextModelList(defaultPreferredTextModelIDs)
         )
     )
+    // Preserve enabled providers while removing duplicate replacement choices.
+    var seenModels = Set<String>()
+    preferredTextModels = preferredTextModels.map(replacementTextModelID).filter {
+        seenModels.insert($0).inserted
+    }
     // Include a configured Custom Endpoint on migration, but preserve later explicit deselection.
     if !hasSavedModelShortlist,
        !customModelName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
@@ -3548,11 +3571,11 @@ func loadAppPreferences() -> AppPreferences {
     }
 
     return AppPreferences(
-        explanationModel: storedPreferenceString(
+        explanationModel: replacementTextModelID(storedPreferenceString(
             PreferenceKey.explanationModel,
             fallback: defaultExplanationModel
-        ),
-        modeTextModels: preferencesStore.dictionary(forKey: PreferenceKey.modeTextModels) as? [String: String] ?? [:],
+        )),
+        modeTextModels: (preferencesStore.dictionary(forKey: PreferenceKey.modeTextModels) as? [String: String] ?? [:]).mapValues(replacementTextModelID),
         modeThinking: preferencesStore.dictionary(forKey: PreferenceKey.modeThinking) as? [String: String] ?? [:],
         preferredTextModels: preferredTextModels,
         customBaseURL: storedPreferenceString(
@@ -3688,7 +3711,7 @@ func loadLauncherPreferences() -> LauncherPreferences {
             PreferenceKey.launcherMode,
             fallback: "explain"
         ),
-        explanationModel: storedPreferenceString(PreferenceKey.launcherExplanationModel),
+        explanationModel: replacementTextModelID(storedPreferenceString(PreferenceKey.launcherExplanationModel)),
         explanationEffort: storedPreferenceString(PreferenceKey.launcherExplanationEffort),
         rewriteStyle: storedPreferenceString(
             PreferenceKey.launcherRewriteStyle,

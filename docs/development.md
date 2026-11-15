@@ -69,6 +69,25 @@ Edit translations in `langmin/Resources`. Keep `PRIVACY.md` and `langmin/Resourc
 
 Automatic Dictionary illustrations default to off. Settings → Illustrations controls the provider and opt-in. Choosing a provider alone does not start generation.
 
+## Model catalog
+
+The built-in catalog was checked on November 15, 2026. New provider defaults are GPT-6.1 Sol, Claude Sonnet 5.5, and Gemini 4 Hydrogen. Apple Intelligence remains the overall default. Grok 4.7, DeepSeek V4 Pro, DeepSeek V4.1 Flash, and GPT-Transcribe remain current.
+
+Gemini 2.5 Pro and Flash are deprecated and restricted to existing users. Saved selections, including per-mode choices and the launcher's last choice, resolve to Google's replacements: Gemini 3.8 Flash and 3.5 Flash-Lite. Supported older models remain selectable; upcoming OpenAI retirements are marked deprecated.
+
+GPT-6.1 Sol cannot turn reasoning off. Terra can. The new Claude models and Gemini 4 expose Automatic, Low, Medium, and High. Gemini 4 uses a larger output budget because thinking tokens count toward it. Custom endpoint overrides keep their existing request parameters.
+
+Dictionary illustrations use GPT-Image-2.6 Flare at medium quality. Existing images retain their recorded model attribution.
+
+The Speech API models remain supported until January 6, 2027. Their replacement, GPT-Realtime-2.1 Mini, requires the Realtime API and cannot be substituted into `/v1/audio/speech`. Migrate narration before that deadline.
+
+Verify future updates against the providers' own catalogs and retirement notices:
+
+- [OpenAI models](https://developers.openai.com/api/docs/models) and [deprecations](https://developers.openai.com/api/docs/deprecations).
+- [Claude models](https://platform.claude.com/docs/en/models/overview) and [deprecations](https://platform.claude.com/docs/en/about-claude/model-deprecations).
+- [Gemini models](https://aistudio.google.com/docs/models) and [deprecations](https://aistudio.google.com/docs/deprecations).
+- [Grok models](https://docs.x.ai/developers/models) and [DeepSeek models](https://api-docs.deepseek.com/quick_start/pricing/).
+
 ## Images
 
 ```bash

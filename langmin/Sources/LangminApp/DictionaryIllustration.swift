@@ -193,7 +193,7 @@ func dictionaryIllustrationPNG(from data: Data) throws -> Data {
 }
 
 let dictionaryImageEndpoint = URL(string: "https://api.openai.com/v1/images/generations")!
-let dictionaryImageModel = "gpt-image-2"
+let dictionaryImageModel = "gpt-image-2.6-flare"
 
 // dictionaryIllustrationCaption(model): Show the image's recorded model, never
 // the current text model or image-generation preference. Apple's picker
