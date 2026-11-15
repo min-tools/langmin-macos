@@ -338,7 +338,7 @@
 /* OK */
 "ok" = "OK";
 
-/* On this Mac */
+/* On your Mac */
 "on_this_mac" = "Pe acest Mac";
 
 /* Open */
@@ -747,13 +747,13 @@
 /* Runs on your Mac. Free, with no account needed. */
 "wizard_apple_available" = "Rulează pe Mac. Gratuit, fără cont.";
 
-/* Apple Intelligence (on this Mac, private and free) */
+/* Apple Intelligence (on your Mac, private and free) */
 "wizard_apple_row" = "Apple Intelligence (pe acest Mac, privat și gratuit)";
 
-/* Apple Intelligence (not available on this Mac) */
+/* Apple Intelligence (not available on your Mac) */
 "wizard_apple_row_unavailable" = "Apple Intelligence (indisponibil pe acest Mac)";
 
-/* Not available on this Mac (requires Apple Intelligence). Choose a cloud provider below. */
+/* Not available on your Mac (requires Apple Intelligence). Choose a cloud provider below. */
 "wizard_apple_unavailable" = "Indisponibil pe acest Mac (necesită Apple Intelligence). Alegeți un furnizor cloud mai jos.";
 
 /* Read results aloud or hear Dictionary words and examples. Choose a voice that supports the language.\n\nApple voices run on your Mac for free. OpenAI and Grok voices require Pro and a provider API key. */

@@ -338,7 +338,7 @@
 /* OK */
 "ok" = "확인";
 
-/* On this Mac */
+/* On your Mac */
 "on_this_mac" = "이 Mac에서";
 
 /* Open */
@@ -747,13 +747,13 @@
 /* Runs on your Mac. Free, with no account needed. */
 "wizard_apple_available" = "Mac에서 실행됩니다. 무료이며 계정이 필요 없습니다.";
 
-/* Apple Intelligence (on this Mac, private and free) */
+/* Apple Intelligence (on your Mac, private and free) */
 "wizard_apple_row" = "Apple Intelligence(이 Mac에서, 비공개이며 무료)";
 
-/* Apple Intelligence (not available on this Mac) */
+/* Apple Intelligence (not available on your Mac) */
 "wizard_apple_row_unavailable" = "Apple Intelligence(이 Mac에서 사용 불가)";
 
-/* Not available on this Mac (requires Apple Intelligence). Choose a cloud provider below. */
+/* Not available on your Mac (requires Apple Intelligence). Choose a cloud provider below. */
 "wizard_apple_unavailable" = "이 Mac에서는 사용할 수 없습니다(Apple Intelligence 필요). 아래에서 클라우드 제공자를 선택하세요.";
 
 /* Read results aloud or hear Dictionary words and examples. Choose a voice that supports the language.\n\nApple voices run on your Mac for free. OpenAI and Grok voices require Pro and a provider API key. */

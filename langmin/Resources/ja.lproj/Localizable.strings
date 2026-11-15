@@ -338,7 +338,7 @@
 /* OK */
 "ok" = "OK";
 
-/* On this Mac */
+/* On your Mac */
 "on_this_mac" = "この Mac 上";
 
 /* Open */
@@ -747,13 +747,13 @@
 /* Runs on your Mac. Free, with no account needed. */
 "wizard_apple_available" = "Mac上で動作します。無料で、アカウントは不要です。";
 
-/* Apple Intelligence (on this Mac, private and free) */
+/* Apple Intelligence (on your Mac, private and free) */
 "wizard_apple_row" = "Apple Intelligence（この Mac 上、プライベートで無料）";
 
-/* Apple Intelligence (not available on this Mac) */
+/* Apple Intelligence (not available on your Mac) */
 "wizard_apple_row_unavailable" = "Apple Intelligence（この Mac では利用不可）";
 
-/* Not available on this Mac (requires Apple Intelligence). Choose a cloud provider below. */
+/* Not available on your Mac (requires Apple Intelligence). Choose a cloud provider below. */
 "wizard_apple_unavailable" = "この Mac では利用できません（Apple Intelligence が必要です）。下からクラウドプロバイダを選んでください。";
 
 /* Read results aloud or hear Dictionary words and examples. Choose a voice that supports the language.\n\nApple voices run on your Mac for free. OpenAI and Grok voices require Pro and a provider API key. */

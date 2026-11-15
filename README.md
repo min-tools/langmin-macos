@@ -152,7 +152,7 @@ Every result is the start of a thread. Ask for an example, a shorter version, or
     <td width="60%">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset="docs/images/models-dark.png">
-        <img src="docs/images/models-light.png" alt="The model picker: Apple Intelligence under On this Mac, then GPT-5.6 Luna, Claude Fable 5.1, Gemini 2.5 Pro, Grok 4, DeepSeek Chat, and a Qwen 3 model on LM Studio under Your providers.">
+        <img src="docs/images/models-light.png" alt="The model picker: Apple Intelligence under On your Mac, then GPT-5.6 Luna, Claude Fable 5.1, Gemini 2.5 Pro, Grok 4, DeepSeek Chat, and a Qwen 3 model on LM Studio under Your providers.">
       </picture>
     </td>
     <td width="40%">

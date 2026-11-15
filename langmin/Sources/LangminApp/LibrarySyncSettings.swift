@@ -35,7 +35,7 @@ final class LibrarySyncSettingsController: NSObject {
         panel.isReleasedWhenClosed = false
         toggle = NSButton(checkboxWithTitle: "Sync Library with iCloud", target: self, action: #selector(toggleSync(_:)))
         toggle.font = .systemFont(ofSize: 14, weight: .medium)
-        let detail = NSTextField(wrappingLabelWithString: "Keep saved results, folders, conversations, images, and audio available across Macs using the same Apple Account.\n\nDeletions sync too. Turning sync off keeps your local and iCloud copies. API keys, settings, and unsaved results stay on this Mac.")
+        let detail = NSTextField(wrappingLabelWithString: "Keep saved results, folders, conversations, images, and audio available across Macs using the same Apple Account.\n\nDeletions sync too. Turning sync off keeps your local and iCloud copies. API keys, settings, and unsaved results stay on your Mac.")
         detail.font = .systemFont(ofSize: 13)
         detail.textColor = .secondaryLabelColor
         // Keep current status and the last completed sync time separate.

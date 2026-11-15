@@ -338,7 +338,7 @@
 /* OK */
 "ok" = "U redu";
 
-/* On this Mac */
+/* On your Mac */
 "on_this_mac" = "Na ovom Mac-u";
 
 /* Open */
@@ -747,13 +747,13 @@
 /* Runs on your Mac. Free, with no account needed. */
 "wizard_apple_available" = "Radi na vašem Mac-u. Besplatno i bez naloga.";
 
-/* Apple Intelligence (on this Mac, private and free) */
+/* Apple Intelligence (on your Mac, private and free) */
 "wizard_apple_row" = "Apple Intelligence (na ovom Mac-u, privatno i besplatno)";
 
-/* Apple Intelligence (not available on this Mac) */
+/* Apple Intelligence (not available on your Mac) */
 "wizard_apple_row_unavailable" = "Apple Intelligence (nije dostupno na ovom Mac-u)";
 
-/* Not available on this Mac (requires Apple Intelligence). Choose a cloud provider below. */
+/* Not available on your Mac (requires Apple Intelligence). Choose a cloud provider below. */
 "wizard_apple_unavailable" = "Nije dostupno na ovom Mac-u (zahteva Apple Intelligence). Izaberite provajdera u oblaku ispod.";
 
 /* Read results aloud or hear Dictionary words and examples. Choose a voice that supports the language.\n\nApple voices run on your Mac for free. OpenAI and Grok voices require Pro and a provider API key. */

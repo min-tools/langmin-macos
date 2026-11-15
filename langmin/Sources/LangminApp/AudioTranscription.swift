@@ -54,7 +54,7 @@ func confirmSpeechModelDownload(language: String) -> Bool {
     guard !Task.isCancelled else { return false }
     let alert = NSAlert()
     alert.messageText = "Download speech recognition for \(language)?"
-    alert.informativeText = "macOS needs a speech model before it can transcribe this language. The download requires internet access and disk space. Your recording stays on this Mac."
+    alert.informativeText = "macOS needs a speech model before it can transcribe this language. The download requires internet access and disk space. Your recording stays on your Mac."
     alert.addButton(withTitle: localized("cancel", "Cancel"))
     alert.addButton(withTitle: "Download")
     return runLangminModalAlert(alert) == .alertSecondButtonReturn
@@ -206,7 +206,7 @@ private func performAppleAudioTranscription(
     }
     // Report unavailable speech support instead of silently uploading audio.
     guard SpeechTranscriber.isAvailable else {
-        throw HelperFailure(message: "Apple transcription is unavailable on this Mac." + cloudHint)
+        throw HelperFailure(message: "Apple transcription is unavailable on your Mac." + cloudHint)
     }
     let requested = audioTranscriptionLocale(language)
     let name = Locale.current.localizedString(forIdentifier: requested.identifier) ?? requested.identifier

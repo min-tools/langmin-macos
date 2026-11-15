@@ -2562,7 +2562,7 @@ let explanationModelOptions: [PreferenceOption] = [
     PreferenceOption(id: "grok:grok-4.7", title: "Grok 4.7", note: "xAI"),
     PreferenceOption(id: "deepseek:deepseek-v4-pro", title: "DeepSeek V4 Pro", note: "reasoning"),
     PreferenceOption(id: "deepseek:deepseek-flash", title: "DeepSeek V4.1 Flash", note: "fast"),
-    PreferenceOption(id: appleIntelligenceModelID, title: "Apple Intelligence", note: "on this Mac"),
+    PreferenceOption(id: appleIntelligenceModelID, title: "Apple Intelligence", note: "on your Mac"),
     PreferenceOption(id: customModelID, title: "Custom Endpoint", note: "chat completions endpoint")
 ]
 
@@ -2607,7 +2607,7 @@ func explanationModelOptionsDisplaying(customName: String) -> [PreferenceOption]
         }
         // Explain local unavailability beside the Apple model option.
         if option.id == appleIntelligenceModelID, !appleAvailable {
-            return PreferenceOption(id: option.id, title: option.title, note: "not available on this Mac")
+            return PreferenceOption(id: option.id, title: option.title, note: "not available on your Mac")
         }
         return option
     }
@@ -5326,7 +5326,7 @@ func remoteSecretWarningMessage(provider: String, findings: [LangminSecretFindin
     """
     Langmin found \(langminSecretSummary(findings)) in this text.
 
-    Sending this to \(provider) may expose sensitive data outside this Mac.
+    Sending this to \(provider) may expose sensitive data outside your Mac.
 
     Cancel to remove the secret or choose Apple Intelligence. Send Anyway sends this text to the selected provider.
     """
@@ -5760,7 +5760,7 @@ func appleIntelligenceText(prompt: ExplanationPrompt) async throws -> String {
     // Explain unavailability before spending time preparing a generation.
     case .unavailable:
         throw HelperFailure(
-            message: "Apple Intelligence is not available on this Mac. Enable it or choose another text model."
+            message: "Apple Intelligence is not available on your Mac. Enable it or choose another text model."
         )
     }
 
@@ -5783,7 +5783,7 @@ func appleIntelligenceText(prompt: ExplanationPrompt) async throws -> String {
             ? "Remove those languages or choose another text model."
             : "Choose another text model for this follow-up."
         throw HelperFailure(
-            message: "Apple Intelligence on this Mac does not support output in \(names). \(recovery)"
+            message: "Apple Intelligence on your Mac does not support output in \(names). \(recovery)"
         )
     }
 
@@ -15839,7 +15839,7 @@ final class PreferencesController: NSObject, NSTextFieldDelegate {
         let alert = NSAlert()
         alert.alertStyle = .warning
         alert.messageText = "Reset AI data-sharing permissions?"
-        alert.informativeText = "Langmin will ask again before sending text to each remote AI provider or recordings to OpenAI. Apple text generation, voices, and transcription stay on this Mac."
+        alert.informativeText = "Langmin will ask again before sending text to each remote AI provider or recordings to OpenAI. Apple text generation, voices, and transcription stay on your Mac."
         alert.addButton(withTitle: "Reset Permissions")
         alert.addButton(withTitle: localized("cancel", "Cancel"))
         // Revoke saved sharing approvals only after explicit confirmation.
@@ -21748,7 +21748,7 @@ final class LauncherController: NSObject, NSWindowDelegate, NSTextFieldDelegate,
 
             // Show an on-device group only when local model choices are available.
             if !appleOptions.isEmpty {
-                rows.append(.header(localized("on_this_mac", "On this Mac")))
+                rows.append(.header(localized("on_this_mac", "On your Mac")))
                 // List local models before remote-provider choices.
                 for option in appleOptions {
                     rows.append(.item(self.modelPaletteItem(option: option, detail: nil, currentID: currentID, mode: mode)))

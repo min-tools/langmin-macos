@@ -54,7 +54,7 @@ final class LibraryCloudSync {
     private var scheduledSync: DispatchWorkItem?
     private(set) var enabled = false
     private(set) var isSyncing = false
-    private(set) var status = "iCloud sync is off. Your Library is stored on this Mac."
+    private(set) var status = "iCloud sync is off. Your Library is stored on your Mac."
     private(set) var lastSync: Date?
     var hasProAccess: Bool { proAccess() }
     // Open documents keep their backing files until closed; staged deletions retain their Undo window.

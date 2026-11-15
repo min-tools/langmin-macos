@@ -109,7 +109,7 @@ final class TranscriptionSettingsControls: NSObject {
                 languageBox.lastItem?.representedObject = savedLanguage
             }
             languageBox.selectItem(at: languageBox.itemArray.firstIndex { ($0.representedObject as? String) == savedLanguage } ?? 0)
-            providerNote.stringValue = "Free · Transcribes on this Mac. Requires macOS 26 or later and a supported language. Langmin asks before downloading a missing speech model."
+            providerNote.stringValue = "Free · Transcribes on your Mac. Requires macOS 26 or later and a supported language. Langmin asks before downloading a missing speech model."
         } else {
             // The speech endpoint is fixed and does not inherit a text-model endpoint override.
             providerNote.stringValue = "Pro · Uses GPT-Transcribe and your OpenAI key from Settings → Models. Langmin asks before uploading audio. OpenAI bills transcription separately. File limit: 25 MB."

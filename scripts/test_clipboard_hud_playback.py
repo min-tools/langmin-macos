@@ -663,7 +663,7 @@ for label in [statusHUD.titleLabel!, statusHUD.statusLabel!] {
  let naturalWidth = (label.stringValue as NSString).size(withAttributes: [.font: label.font!]).width
  check(label.frame.width >= floor(naturalWidth), "The complete mode and Apple Intelligence name fit in the progress row")
 }
-let unsupported = "Apple Intelligence on this Mac does not support output in Russian. Remove that language or choose another text model."
+let unsupported = "Apple Intelligence on your Mac does not support output in Russian. Remove that language or choose another text model."
 statusHUD.complete(token: statusToken, message: unsupported, style: .failure, dismissAfter: 0.01, retry: {})
 statusHUD.panel?.contentView?.layoutSubtreeIfNeeded()
 check(statusHUD.titleLabel?.stringValue == "Request failed" && statusHUD.resultTextView?.string == unsupported, "Errors have a short title and complete visible detail")

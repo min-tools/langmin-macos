@@ -164,7 +164,7 @@ final class SetupWizardController: NSObject, NSWindowDelegate {
                     )
                     : localized(
                         "wizard_apple_unavailable",
-                        "Not available on this Mac (requires Apple Intelligence). Choose a cloud provider below."
+                        "Not available on your Mac (requires Apple Intelligence). Choose a cloud provider below."
                     )
             ),
             WizardProvider(
@@ -366,8 +366,8 @@ final class SetupWizardController: NSObject, NSWindowDelegate {
             } else {
                 // Describe local Apple availability without asking for a cloud credential.
                 check.title = appleAvailable
-                    ? localized("wizard_apple_row", "Apple Intelligence (on this Mac, private and free)")
-                    : localized("wizard_apple_row_unavailable", "Apple Intelligence (not available on this Mac)")
+                    ? localized("wizard_apple_row", "Apple Intelligence (on your Mac, private and free)")
+                    : localized("wizard_apple_row_unavailable", "Apple Intelligence (not available on your Mac)")
                 rows.append(check)
             }
         }
